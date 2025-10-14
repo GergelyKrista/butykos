@@ -23,6 +23,12 @@ var placement_mode: bool = false
 var placement_facility_id: String = ""
 var placement_preview: Node2D = null
 
+# Route creation mode
+var route_mode: bool = false
+var route_source_id: String = ""
+var route_destination_id: String = ""
+var route_product: String = ""
+
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 
@@ -70,10 +76,20 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_placement()
 
-	# Cancel placement with Escape
+	# Route mode input
+	if route_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				_try_select_facility_for_route()
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_route_mode()
+
+	# Cancel placement/route mode with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
+		elif route_mode:
+			_cancel_route_mode()
 
 
 func _process(_delta: float) -> void:
@@ -273,3 +289,116 @@ func _on_money_changed(_new_amount: int, _delta: int) -> void:
 func _on_build_button_pressed(facility_id: String) -> void:
 	"""Handle build button press from UI"""
 	start_placement_mode(facility_id)
+
+
+# ========================================
+# ROUTE CREATION
+# ========================================
+
+func start_route_mode() -> void:
+	"""Enter route creation mode"""
+	route_mode = true
+	route_source_id = ""
+	route_destination_id = ""
+	print("Route mode started - Click source facility, then destination facility")
+
+
+func _try_select_facility_for_route() -> void:
+	"""Try to select a facility for route creation"""
+	var facility = WorldManager.get_facility_at_position(mouse_grid_pos)
+
+	if facility.is_empty():
+		print("No facility at this location")
+		return
+
+	var facility_id = facility.id
+
+	# First click: select source
+	if route_source_id.is_empty():
+		route_source_id = facility_id
+		print("Route source selected: %s - Now click destination" % facility_id)
+		# Highlight source facility
+		_highlight_facility(facility_id, Color.YELLOW)
+		return
+
+	# Second click: select destination and create route
+	if route_destination_id.is_empty():
+		if facility_id == route_source_id:
+			print("Cannot create route to same facility")
+			return
+
+		route_destination_id = facility_id
+		print("Route destination selected: %s" % facility_id)
+
+		# Determine what product to transport
+		var product = _determine_route_product(route_source_id, route_destination_id)
+
+		if product.is_empty():
+			print("No compatible product found for this route")
+			_cancel_route_mode()
+			return
+
+		# Create the route
+		var route_id = LogisticsManager.create_route(route_source_id, route_destination_id, product)
+
+		if not route_id.is_empty():
+			print("Route created: %s" % route_id)
+			# TODO: Visualize route on map
+
+		_cancel_route_mode()
+
+
+func _determine_route_product(source_id: String, dest_id: String) -> String:
+	"""Determine what product should be transported on this route"""
+	var source = WorldManager.get_facility(source_id)
+	var dest = WorldManager.get_facility(dest_id)
+
+	var source_def = DataManager.get_facility_data(source.type)
+	var dest_def = DataManager.get_facility_data(dest.type)
+
+	# Get what the source produces
+	var source_output = source_def.get("production", {}).get("output", "")
+
+	# Get what the destination needs
+	var dest_input = dest_def.get("production", {}).get("input", "")
+
+	# Match output to input
+	if not source_output.is_empty() and source_output == dest_input:
+		return source_output
+
+	# Default to source output if destination doesn't specify
+	if not source_output.is_empty():
+		return source_output
+
+	return ""
+
+
+func _cancel_route_mode() -> void:
+	"""Cancel route creation mode"""
+	if not route_source_id.is_empty():
+		_unhighlight_facility(route_source_id)
+
+	route_mode = false
+	route_source_id = ""
+	route_destination_id = ""
+	route_product = ""
+	print("Route mode cancelled")
+
+
+func _highlight_facility(facility_id: String, color: Color) -> void:
+	"""Highlight a facility"""
+	var facility_node = facilities_container.get_node_or_null(facility_id)
+	if facility_node:
+		facility_node.modulate = color
+
+
+func _unhighlight_facility(facility_id: String) -> void:
+	"""Remove highlight from a facility"""
+	var facility_node = facilities_container.get_node_or_null(facility_id)
+	if facility_node:
+		facility_node.modulate = Color.WHITE
+
+
+func _on_create_route_button_pressed() -> void:
+	"""Handle create route button press from UI"""
+	start_route_mode()

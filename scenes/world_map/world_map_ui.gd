@@ -17,6 +17,7 @@ extends CanvasLayer
 # ========================================
 
 signal build_button_pressed(facility_id: String)
+signal create_route_button_pressed()
 
 # ========================================
 # INITIALIZATION
@@ -70,6 +71,20 @@ func _create_build_menu() -> void:
 	if not build_menu:
 		return
 
+	# Add separator
+	var separator = HSeparator.new()
+	build_menu.add_child(separator)
+
+	# Add "Create Route" button at the top
+	var route_button = Button.new()
+	route_button.text = "Create Route"
+	route_button.pressed.connect(_on_create_route_button_clicked)
+	build_menu.add_child(route_button)
+
+	# Add separator
+	var separator2 = HSeparator.new()
+	build_menu.add_child(separator2)
+
 	# Get all facility definitions
 	var facilities = DataManager.get_all_facilities()
 
@@ -91,3 +106,9 @@ func _on_build_button_clicked(facility_id: String) -> void:
 	"""Handle build button click"""
 	print("Build button clicked: %s" % facility_id)
 	build_button_pressed.emit(facility_id)
+
+
+func _on_create_route_button_clicked() -> void:
+	"""Handle create route button click"""
+	print("Create route button clicked")
+	create_route_button_pressed.emit()
