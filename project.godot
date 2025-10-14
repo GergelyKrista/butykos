@@ -13,3 +13,9 @@ config_version=5
 config/name="Butykos"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+EventBus="*res://core/event_bus.gd"
+GameManager="*res://core/game_manager.gd"
+SaveManager="*res://core/save_manager.gd"
