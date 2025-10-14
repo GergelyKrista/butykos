@@ -305,10 +305,16 @@ func start_route_mode() -> void:
 
 func _try_select_facility_for_route() -> void:
 	"""Try to select a facility for route creation"""
-	var facility = WorldManager.get_facility_at_position(mouse_grid_pos)
+	# Get current mouse position directly (don't rely on cached value)
+	var world_pos = camera.get_global_mouse_position()
+	var grid_pos = WorldManager.world_to_grid(world_pos)
+
+	print("DEBUG: Clicked at world_pos: %s, grid_pos: %s" % [world_pos, grid_pos])
+
+	var facility = WorldManager.get_facility_at_position(grid_pos)
 
 	if facility.is_empty():
-		print("No facility at this location")
+		print("No facility at grid position %s" % grid_pos)
 		return
 
 	var facility_id = facility.id
