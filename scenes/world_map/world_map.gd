@@ -54,6 +54,10 @@ func _ready() -> void:
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
 
+	# Rotate the world for isometric view (grid + facilities)
+	grid_renderer.rotation_degrees = 45
+	facilities_container.rotation_degrees = 45
+
 	# Center camera on grid
 	camera.position = Vector2(
 		WorldManager.GRID_SIZE.x * WorldManager.TILE_SIZE / 2.0,
@@ -68,8 +72,10 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	# Update mouse position
 	if event is InputEventMouse:
-		var world_pos = camera.get_global_mouse_position()
-		mouse_grid_pos = WorldManager.world_to_grid(world_pos)
+		var screen_pos = camera.get_global_mouse_position()
+		# Adjust for 45-degree rotation of the world
+		var rotated_pos = screen_pos.rotated(-deg_to_rad(45))
+		mouse_grid_pos = WorldManager.world_to_grid(rotated_pos)
 
 	# Placement mode input
 	if placement_mode:

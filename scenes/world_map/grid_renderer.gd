@@ -8,8 +8,8 @@ extends Node2D
 # CONFIGURATION
 # ========================================
 
-@export var grid_color: Color = Color(0.3, 0.3, 0.3, 0.5)
-@export var grid_line_width: float = 1.0
+@export var grid_color: Color = Color(0.4, 0.4, 0.4, 0.8)
+@export var grid_line_width: float = 2.0
 @export var show_coordinates: bool = false
 
 # ========================================
