@@ -80,7 +80,30 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 	if output_product.is_empty() or output_quantity == 0:
 		return
 
-	# Add to inventory
+	# Check if facility requires inputs
+	var input_product = production_data.get("input", "")
+	var input_quantity = production_data.get("input_quantity", 0)
+
+	if not input_product.is_empty() and input_quantity > 0:
+		# Check if we have enough input materials
+		var current_input = get_inventory_item(facility_id, input_product)
+		if current_input < input_quantity:
+			# Not enough inputs, can't produce
+			print("Production blocked: %s needs %d %s (has %d)" % [
+				facility_def.get("name", facility.type),
+				input_quantity,
+				input_product,
+				current_input
+			])
+			# Reset timer to try again
+			production_timers[facility_id] = cycle_time
+			return
+
+		# Consume inputs
+		_remove_from_inventory(facility_id, input_product, input_quantity)
+		print("Consumed %d %s for production" % [input_quantity, input_product])
+
+	# Add output to inventory
 	_add_to_inventory(facility_id, output_product, output_quantity)
 
 	# Reset timer
@@ -92,8 +115,8 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 		output_product
 	])
 
-	# Auto-sell if enabled
-	if auto_sell_enabled:
+	# Auto-sell if enabled (only if this is a final product with no downstream use)
+	if auto_sell_enabled and _should_auto_sell(output_product):
 		_sell_product(facility_id, output_product, output_quantity)
 
 
@@ -130,9 +153,38 @@ func get_inventory(facility_id: String) -> Dictionary:
 	return production_outputs.get(facility_id, {})
 
 
+func get_inventory_item(facility_id: String, product: String) -> int:
+	"""Get quantity of a specific product in facility inventory"""
+	if not production_outputs.has(facility_id):
+		return 0
+	return production_outputs[facility_id].get(product, 0)
+
+
+func add_item_to_facility(facility_id: String, product: String, quantity: int) -> bool:
+	"""Add items to facility from external source (logistics). Returns true if successful."""
+	if not WorldManager.get_facility(facility_id):
+		return false
+
+	_add_to_inventory(facility_id, product, quantity)
+	print("Delivered %d %s to facility %s" % [quantity, product, facility_id])
+	return true
+
+
+func remove_item_from_facility(facility_id: String, product: String, quantity: int) -> bool:
+	"""Remove items from facility for logistics. Returns true if successful."""
+	return _remove_from_inventory(facility_id, product, quantity)
+
+
 # ========================================
 # SELLING
 # ========================================
+
+func _should_auto_sell(product: String) -> bool:
+	"""Check if a product should be auto-sold (is it a final product?)"""
+	# Final products that can be sold directly
+	var final_products = ["ale", "lager", "wheat_beer", "whiskey", "vodka", "premium_whiskey"]
+	return product in final_products
+
 
 func _sell_product(facility_id: String, product: String, quantity: int) -> void:
 	"""Sell product to market"""
