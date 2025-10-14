@@ -76,12 +76,10 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_placement()
 
-	# Route mode input
+	# Route mode input (clicking handled by Area2D signals now)
 	if route_mode:
 		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-				_try_select_facility_for_route()
-			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_route_mode()
 
 	# Cancel placement/route mode with Escape
@@ -223,36 +221,98 @@ func _on_facility_placed(facility: Dictionary) -> void:
 	facilities_container.add_child(facility_node)
 
 
-func _create_facility_node(facility: Dictionary) -> Node2D:
-	"""Create a visual node for a facility"""
-	var node = Node2D.new()
-	node.name = facility.id
-	node.position = facility.world_pos
+func _create_facility_node(facility: Dictionary) -> Area2D:
+	"""Create a visual node for a facility with clickable area"""
+	var area = Area2D.new()
+	area.name = facility.id
+	area.position = facility.world_pos
 
 	var facility_def = DataManager.get_facility_data(facility.type)
 	var size = facility.size
 	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
 
-	# Create colored rectangle
+	# Create sprite for each tile (placeholder - can be replaced with real sprites)
 	for x in range(size.x):
 		for y in range(size.y):
-			var rect = ColorRect.new()
-			rect.size = Vector2(WorldManager.TILE_SIZE - 4, WorldManager.TILE_SIZE - 4)
-			rect.position = Vector2(
-				(x - size.x / 2.0) * WorldManager.TILE_SIZE + 2,
-				(y - size.y / 2.0) * WorldManager.TILE_SIZE + 2
+			var sprite = Sprite2D.new()
+			sprite.texture = _create_placeholder_texture(WorldManager.TILE_SIZE - 4, color)
+			sprite.position = Vector2(
+				(x - size.x / 2.0) * WorldManager.TILE_SIZE,
+				(y - size.y / 2.0) * WorldManager.TILE_SIZE
 			)
-			rect.color = color
-			node.add_child(rect)
+			area.add_child(sprite)
+
+	# Add collision shape covering entire facility for click detection
+	var collision = CollisionShape2D.new()
+	var shape = RectangleShape2D.new()
+	shape.size = Vector2(
+		size.x * WorldManager.TILE_SIZE - 8,
+		size.y * WorldManager.TILE_SIZE - 8
+	)
+	collision.shape = shape
+	area.add_child(collision)
 
 	# Add label
 	var label = Label.new()
 	label.text = facility_def.get("name", facility.type)
-	label.position = Vector2(-WorldManager.TILE_SIZE / 2, -WorldManager.TILE_SIZE / 2 - 20)
+	label.position = Vector2(-WorldManager.TILE_SIZE / 2, -size.y * WorldManager.TILE_SIZE / 2 - 20)
 	label.add_theme_font_size_override("font_size", 12)
-	node.add_child(label)
+	area.add_child(label)
 
-	return node
+	# Connect click signal
+	area.input_event.connect(_on_facility_clicked.bind(facility.id))
+
+	return area
+
+
+func _create_placeholder_texture(tile_size: int, color: Color) -> ImageTexture:
+	"""Create a simple colored square texture as placeholder for sprites"""
+	var image = Image.create(tile_size, tile_size, false, Image.FORMAT_RGBA8)
+	image.fill(color)
+	return ImageTexture.create_from_image(image)
+
+
+func _on_facility_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, facility_id: String) -> void:
+	"""Handle facility being clicked"""
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			# In route mode, select this facility
+			if route_mode:
+				_select_facility_for_route(facility_id)
+
+
+func _select_facility_for_route(facility_id: String) -> void:
+	"""Select a facility for route creation"""
+	# First click: select source
+	if route_source_id.is_empty():
+		route_source_id = facility_id
+		print("Route source selected: %s - Now click destination" % facility_id)
+		_highlight_facility(facility_id, Color.YELLOW)
+		return
+
+	# Second click: select destination
+	if facility_id == route_source_id:
+		print("Cannot create route to same facility")
+		return
+
+	route_destination_id = facility_id
+	print("Route destination selected: %s" % facility_id)
+
+	# Determine what product to transport
+	var product = _determine_route_product(route_source_id, route_destination_id)
+
+	if product.is_empty():
+		print("No compatible product found for this route")
+		_cancel_route_mode()
+		return
+
+	# Create the route
+	var route_id = LogisticsManager.create_route(route_source_id, route_destination_id, product)
+
+	if not route_id.is_empty():
+		print("Route created: %s" % route_id)
+
+	_cancel_route_mode()
 
 
 func _on_facility_removed(facility_id: String) -> void:
@@ -300,58 +360,7 @@ func start_route_mode() -> void:
 	route_mode = true
 	route_source_id = ""
 	route_destination_id = ""
-	print("Route mode started - Click source facility, then destination facility")
-
-
-func _try_select_facility_for_route() -> void:
-	"""Try to select a facility for route creation"""
-	# Get current mouse position directly (don't rely on cached value)
-	var world_pos = camera.get_global_mouse_position()
-	var grid_pos = WorldManager.world_to_grid(world_pos)
-
-	print("DEBUG: Clicked at world_pos: %s, grid_pos: %s" % [world_pos, grid_pos])
-
-	var facility = WorldManager.get_facility_at_position(grid_pos)
-
-	if facility.is_empty():
-		print("No facility at grid position %s" % grid_pos)
-		return
-
-	var facility_id = facility.id
-
-	# First click: select source
-	if route_source_id.is_empty():
-		route_source_id = facility_id
-		print("Route source selected: %s - Now click destination" % facility_id)
-		# Highlight source facility
-		_highlight_facility(facility_id, Color.YELLOW)
-		return
-
-	# Second click: select destination and create route
-	if route_destination_id.is_empty():
-		if facility_id == route_source_id:
-			print("Cannot create route to same facility")
-			return
-
-		route_destination_id = facility_id
-		print("Route destination selected: %s" % facility_id)
-
-		# Determine what product to transport
-		var product = _determine_route_product(route_source_id, route_destination_id)
-
-		if product.is_empty():
-			print("No compatible product found for this route")
-			_cancel_route_mode()
-			return
-
-		# Create the route
-		var route_id = LogisticsManager.create_route(route_source_id, route_destination_id, product)
-
-		if not route_id.is_empty():
-			print("Route created: %s" % route_id)
-			# TODO: Visualize route on map
-
-		_cancel_route_mode()
+	print("Route mode started - Click any facility to start")
 
 
 func _determine_route_product(source_id: String, dest_id: String) -> String:
