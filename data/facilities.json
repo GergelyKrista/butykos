@@ -1,0 +1,75 @@
+{
+	"barley_field": {
+		"id": "barley_field",
+		"name": "Barley Field",
+		"description": "Grows barley for brewing. The foundation of your alcohol empire.",
+		"category": "agriculture",
+		"size": [2, 2],
+		"cost": 500,
+		"construction_time": 3.0,
+		"maintenance_cost": 10,
+		"unlock_requirements": {},
+		"production": {
+			"output": "barley",
+			"quantity": 10,
+			"cycle_time": 5.0
+		},
+		"visual": {
+			"color": "#7cba3f",
+			"icon": "res://assets/sprites/barley_field.png"
+		}
+	},
+	"grain_mill": {
+		"id": "grain_mill",
+		"name": "Grain Mill",
+		"description": "Processes barley into malt for brewing.",
+		"category": "processing",
+		"size": [2, 2],
+		"cost": 800,
+		"construction_time": 5.0,
+		"maintenance_cost": 15,
+		"unlock_requirements": {
+			"money": 1000
+		},
+		"production": {
+			"input": "barley",
+			"input_quantity": 10,
+			"output": "malt",
+			"quantity": 8,
+			"cycle_time": 3.0
+		},
+		"visual": {
+			"color": "#8b6f47",
+			"icon": "res://assets/sprites/grain_mill.png"
+		}
+	},
+	"brewery": {
+		"id": "brewery",
+		"name": "Brewery",
+		"description": "Produces ale from malt. Your first alcohol production facility.",
+		"category": "production",
+		"size": [3, 3],
+		"cost": 1500,
+		"construction_time": 10.0,
+		"maintenance_cost": 30,
+		"unlock_requirements": {
+			"money": 2000,
+			"facilities_built": {
+				"barley_field": 1,
+				"grain_mill": 1
+			}
+		},
+		"production": {
+			"input": "malt",
+			"input_quantity": 8,
+			"output": "ale",
+			"quantity": 5,
+			"cycle_time": 8.0
+		},
+		"visual": {
+			"color": "#c97a3f",
+			"icon": "res://assets/sprites/brewery.png"
+		},
+		"has_interior": true
+	}
+}
