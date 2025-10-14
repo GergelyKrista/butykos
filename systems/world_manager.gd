@@ -85,12 +85,22 @@ func place_facility(facility_type: String, grid_pos: Vector2i, facility_data: Di
 	_next_facility_id += 1
 
 	# Create facility data
+	# Calculate world position at center of facility (not just top-left tile)
+	var center_grid_pos = Vector2(
+		grid_pos.x + size.x / 2.0,
+		grid_pos.y + size.y / 2.0
+	)
+	var world_pos = Vector2(
+		center_grid_pos.x * TILE_SIZE,
+		center_grid_pos.y * TILE_SIZE
+	)
+
 	var facility = {
 		"id": facility_id,
 		"type": facility_type,
 		"grid_pos": grid_pos,
 		"size": size,
-		"world_pos": grid_to_world(grid_pos),
+		"world_pos": world_pos,
 		"constructed": false,
 		"construction_progress": 0.0,
 		"production_active": false,

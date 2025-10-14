@@ -1,0 +1,201 @@
+{
+  "conveyor_belt": {
+    "name": "Conveyor Belt",
+    "description": "Transports materials between machines",
+    "category": "logistics",
+    "size": [1, 1],
+    "cost": 50,
+    "visual": {
+      "color": "#666666",
+      "sprite": "res://assets/machines/conveyor_belt.png"
+    },
+    "connectable": true
+  },
+
+  "mash_tun": {
+    "name": "Mash Tun",
+    "description": "Converts grain into mash for brewing",
+    "category": "brewing",
+    "size": [2, 2],
+    "cost": 300,
+    "visual": {
+      "color": "#8B4513",
+      "sprite": "res://assets/machines/mash_tun.png"
+    },
+    "production": {
+      "input": "malt",
+      "input_quantity": 5,
+      "output": "mash",
+      "quantity": 4,
+      "cycle_time": 4.0
+    },
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "fermentation_vat": {
+    "name": "Fermentation Vat",
+    "description": "Ferments mash into beer or wash",
+    "category": "brewing",
+    "size": [2, 3],
+    "cost": 500,
+    "visual": {
+      "color": "#DAA520",
+      "sprite": "res://assets/machines/fermentation_vat.png"
+    },
+    "production": {
+      "input": "mash",
+      "input_quantity": 4,
+      "output": "fermented_wash",
+      "quantity": 3,
+      "cycle_time": 8.0
+    },
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "distillation_column": {
+    "name": "Distillation Column",
+    "description": "Distills wash into spirits",
+    "category": "distilling",
+    "size": [2, 4],
+    "cost": 800,
+    "visual": {
+      "color": "#C0C0C0",
+      "sprite": "res://assets/machines/distillation_column.png"
+    },
+    "production": {
+      "input": "fermented_wash",
+      "input_quantity": 3,
+      "output": "raw_spirit",
+      "quantity": 2,
+      "cycle_time": 6.0
+    },
+    "requires_facility": ["distillery"]
+  },
+
+  "aging_barrel": {
+    "name": "Aging Barrel",
+    "description": "Ages spirits to improve quality",
+    "category": "distilling",
+    "size": [1, 1],
+    "cost": 200,
+    "visual": {
+      "color": "#654321",
+      "sprite": "res://assets/machines/aging_barrel.png"
+    },
+    "production": {
+      "input": "raw_spirit",
+      "input_quantity": 1,
+      "output": "aged_spirit",
+      "quantity": 1,
+      "cycle_time": 12.0
+    },
+    "requires_facility": ["distillery"]
+  },
+
+  "bottling_line": {
+    "name": "Bottling Line",
+    "description": "Packages finished products for sale",
+    "category": "packaging",
+    "size": [3, 2],
+    "cost": 600,
+    "visual": {
+      "color": "#00CED1",
+      "sprite": "res://assets/machines/bottling_line.png"
+    },
+    "production": {
+      "input": "fermented_wash",
+      "input_quantity": 3,
+      "output": "ale",
+      "quantity": 5,
+      "cycle_time": 3.0
+    },
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "quality_control": {
+    "name": "Quality Control Station",
+    "description": "Ensures product quality and increases value",
+    "category": "quality",
+    "size": [2, 2],
+    "cost": 400,
+    "visual": {
+      "color": "#4169E1",
+      "sprite": "res://assets/machines/quality_control.png"
+    },
+    "modifiers": {
+      "quality_bonus": 0.15,
+      "price_multiplier": 1.2
+    },
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "storage_tank": {
+    "name": "Storage Tank",
+    "description": "Stores intermediate products",
+    "category": "storage",
+    "size": [2, 2],
+    "cost": 250,
+    "visual": {
+      "color": "#708090",
+      "sprite": "res://assets/machines/storage_tank.png"
+    },
+    "storage_capacity": 100,
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "input_hopper": {
+    "name": "Input Hopper",
+    "description": "Receives materials from logistics routes",
+    "category": "logistics",
+    "size": [1, 1],
+    "cost": 100,
+    "visual": {
+      "color": "#A9A9A9",
+      "sprite": "res://assets/machines/input_hopper.png"
+    },
+    "is_input_node": true,
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "output_depot": {
+    "name": "Output Depot",
+    "description": "Sends finished products to logistics routes",
+    "category": "logistics",
+    "size": [1, 1],
+    "cost": 100,
+    "visual": {
+      "color": "#FFD700",
+      "sprite": "res://assets/machines/output_depot.png"
+    },
+    "is_output_node": true,
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "boiler": {
+    "name": "Steam Boiler",
+    "description": "Provides power to nearby machines",
+    "category": "utility",
+    "size": [2, 3],
+    "cost": 700,
+    "visual": {
+      "color": "#DC143C",
+      "sprite": "res://assets/machines/boiler.png"
+    },
+    "power_output": 10,
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "water_pump": {
+    "name": "Water Pump",
+    "description": "Supplies water for production",
+    "category": "utility",
+    "size": [1, 2],
+    "cost": 150,
+    "visual": {
+      "color": "#1E90FF",
+      "sprite": "res://assets/machines/water_pump.png"
+    },
+    "resource_type": "water",
+    "requires_facility": ["brewery", "distillery"]
+  }
+}

@@ -10,7 +10,7 @@ extends CanvasLayer
 
 @onready var money_label: Label = $HUD/MoneyLabel
 @onready var date_label: Label = $HUD/DateLabel
-@onready var build_menu: VBoxContainer = $BuildMenu/VBoxContainer
+@onready var build_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
 
 # ========================================
 # SIGNALS
@@ -71,19 +71,16 @@ func _create_build_menu() -> void:
 	if not build_menu:
 		return
 
-	# Add separator
-	var separator = HSeparator.new()
-	build_menu.add_child(separator)
-
-	# Add "Create Route" button at the top
+	# Add "Create Route" button first
 	var route_button = Button.new()
-	route_button.text = "Create Route"
+	route_button.text = "📦 Create Route"
+	route_button.custom_minimum_size = Vector2(150, 60)
 	route_button.pressed.connect(_on_create_route_button_clicked)
 	build_menu.add_child(route_button)
 
 	# Add separator
-	var separator2 = HSeparator.new()
-	build_menu.add_child(separator2)
+	var separator = VSeparator.new()
+	build_menu.add_child(separator)
 
 	# Get all facility definitions
 	var facilities = DataManager.get_all_facilities()
@@ -96,7 +93,12 @@ func _create_build_menu() -> void:
 func _create_build_button(facility_id: String, facility_def: Dictionary) -> void:
 	"""Create a build button for a facility"""
 	var button = Button.new()
-	button.text = "%s ($%d)" % [facility_def.get("name", facility_id), facility_def.get("cost", 0)]
+	var name = facility_def.get("name", facility_id)
+	var cost = facility_def.get("cost", 0)
+
+	# Multi-line button text
+	button.text = "%s\n$%d" % [name, cost]
+	button.custom_minimum_size = Vector2(120, 60)
 	button.pressed.connect(_on_build_button_clicked.bind(facility_id))
 
 	build_menu.add_child(button)

@@ -51,6 +51,9 @@ func _ready() -> void:
 	_update_money_display()
 	EventBus.money_changed.connect(_on_money_changed)
 
+	# Load existing facilities (important for returning from factory interior)
+	_load_existing_facilities()
+
 	# Center camera on grid
 	camera.position = Vector2(
 		WorldManager.GRID_SIZE.x * WorldManager.TILE_SIZE / 2.0,
@@ -93,7 +96,20 @@ func _input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	# Update placement preview position
 	if placement_mode and placement_preview:
-		var world_pos = WorldManager.grid_to_world(mouse_grid_pos)
+		# Get facility size to properly center the preview
+		var facility_def = DataManager.get_facility_data(placement_facility_id)
+		var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
+
+		# Calculate center position (same logic as actual placement)
+		var center_grid_pos = Vector2(
+			mouse_grid_pos.x + size.x / 2.0,
+			mouse_grid_pos.y + size.y / 2.0
+		)
+		var world_pos = Vector2(
+			center_grid_pos.x * WorldManager.TILE_SIZE,
+			center_grid_pos.y * WorldManager.TILE_SIZE
+		)
+
 		placement_preview.position = world_pos
 
 		# Update preview color based on validity
@@ -215,6 +231,17 @@ func _cancel_placement() -> void:
 # FACILITY VISUALIZATION
 # ========================================
 
+func _load_existing_facilities() -> void:
+	"""Load and visualize all existing facilities from WorldManager"""
+	var facilities = WorldManager.get_all_facilities()
+
+	print("Loading %d existing facilities" % facilities.size())
+
+	for facility in facilities:
+		var facility_node = _create_facility_node(facility)
+		facilities_container.add_child(facility_node)
+
+
 func _on_facility_placed(facility: Dictionary) -> void:
 	"""Create visual representation of a placed facility"""
 	var facility_node = _create_facility_node(facility)
@@ -236,9 +263,10 @@ func _create_facility_node(facility: Dictionary) -> Area2D:
 		for y in range(size.y):
 			var sprite = Sprite2D.new()
 			sprite.texture = _create_placeholder_texture(WorldManager.TILE_SIZE - 4, color)
+			# Sprite2D positions from center, so add TILE_SIZE/2 offset
 			sprite.position = Vector2(
-				(x - size.x / 2.0) * WorldManager.TILE_SIZE,
-				(y - size.y / 2.0) * WorldManager.TILE_SIZE
+				(x - size.x / 2.0) * WorldManager.TILE_SIZE + WorldManager.TILE_SIZE / 2.0,
+				(y - size.y / 2.0) * WorldManager.TILE_SIZE + WorldManager.TILE_SIZE / 2.0
 			)
 			area.add_child(sprite)
 
@@ -274,11 +302,23 @@ func _create_placeholder_texture(tile_size: int, color: Color) -> ImageTexture:
 
 func _on_facility_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, facility_id: String) -> void:
 	"""Handle facility being clicked"""
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			# In route mode, select this facility
-			if route_mode:
-				_select_facility_for_route(facility_id)
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		# Check for double-click first (has higher priority)
+		if event.double_click and FactoryManager.has_interior(facility_id):
+			print("Double-click detected on facility: %s" % facility_id)
+			_enter_factory(facility_id)
+			return
+
+		# Check for shift+click (also high priority)
+		if event.pressed and event.shift_pressed and FactoryManager.has_interior(facility_id):
+			print("Shift+click detected on facility: %s" % facility_id)
+			_enter_factory(facility_id)
+			return
+
+		# Regular click: route mode
+		if event.pressed and route_mode:
+			_select_facility_for_route(facility_id)
+			return
 
 
 func _select_facility_for_route(facility_id: String) -> void:
@@ -417,3 +457,18 @@ func _unhighlight_facility(facility_id: String) -> void:
 func _on_create_route_button_pressed() -> void:
 	"""Handle create route button press from UI"""
 	start_route_mode()
+
+
+# ========================================
+# FACTORY INTERIOR TRANSITION
+# ========================================
+
+func _enter_factory(facility_id: String) -> void:
+	"""Enter factory interior view"""
+	print("Entering factory interior for: %s" % facility_id)
+
+	# Set active factory in GameManager
+	GameManager.enter_factory_view(facility_id)
+
+	# Load factory interior scene
+	get_tree().change_scene_to_file("res://scenes/factory_interior/factory_interior.tscn")

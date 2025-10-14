@@ -4,12 +4,15 @@ How to replace placeholder sprites with real art assets.
 
 ## Current System
 
-**Facilities currently use:**
-- Programmatically generated colored square textures
-- Color defined in `data/facilities.json`
+**Both layers now use Sprite2D with placeholder textures:**
+- **World Map Facilities:** Programmatically generated colored squares
+- **Factory Interior Machines:** Programmatically generated colored squares
+- Color defined in `data/facilities.json` and `data/machines.json`
 - Created on-the-fly using `Image.create()` and `ImageTexture`
 
-**Location:** `scenes/world_map/world_map.gd:268-273`
+**Locations:**
+- World Map: `scenes/world_map/world_map.gd:295-300`
+- Factory Interior: `scenes/factory_interior/factory_interior.gd:247-251`
 
 ```gdscript
 func _create_placeholder_texture(tile_size: int, color: Color) -> ImageTexture:
@@ -119,11 +122,24 @@ Based on your design doc:
 - Think: Prison Architect / Mini Metro aesthetic
 
 ### Recommended Sizes
+
+**Facilities (World Map - 64px tiles):**
 | Facility | Grid Size | Sprite Size |
 |----------|-----------|-------------|
 | Barley Field | 2x2 | 128x128px |
 | Grain Mill | 2x2 | 128x128px |
 | Brewery | 3x3 | 192x192px |
+
+**Machines (Factory Interior - 64px tiles):**
+| Machine | Grid Size | Sprite Size |
+|---------|-----------|-------------|
+| Conveyor Belt | 1x1 | 64x64px |
+| Mash Tun | 2x2 | 128x128px |
+| Fermentation Vat | 2x3 | 128x192px |
+| Distillation Column | 2x4 | 128x256px |
+| Bottling Line | 3x2 | 192x128px |
+| Quality Control | 2x2 | 128x128px |
+| Storage Tank | 2x2 | 128x128px |
 
 ## Example: Adding Barley Field Sprite
 

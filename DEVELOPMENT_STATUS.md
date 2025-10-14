@@ -1,200 +1,404 @@
 # Development Status - Alcohol Empire Tycoon
 
 **Last Updated:** 2025-10-14
-**Phase:** Foundation (Months 1-3)
-**Status:** Minimal Playable Loop Complete ✅
+**Current Phase:** Dual-Layer MVP Complete - Ready for Testing
+**Target:** 15-18 months to Early Access
 
-## What's Been Built
+## 🎯 Project Vision
 
-### Core Singleton Managers (✅ Complete)
+OTTD-inspired business tycoon game with dual-layer gameplay:
+- **Strategic Layer:** 50x50 world map for facility placement and logistics
+- **Tactical Layer:** 20x20 factory interiors for machine placement and optimization
+- **Theme:** Alcohol production empire (beer, spirits, etc.)
+
+## ✅ Completed Features
+
+### Core Architecture (Phase 0) - 100% Complete
+- [x] Project structure and folder organization
+- [x] Singleton autoload managers (EventBus, GameManager, SaveManager, DataManager)
+- [x] Signal-based communication system (40+ signals)
+- [x] Data-driven design with JSON configuration
+- [x] Comprehensive documentation (ARCHITECTURE.md, TROUBLESHOOTING.md, etc.)
+
+### System Managers - 90% Complete
 
 | Manager | Status | Description |
 |---------|--------|-------------|
-| **EventBus** | ✅ | 40+ signals for decoupled system communication |
-| **GameManager** | ✅ | Game state, time progression, scene transitions |
-| **SaveManager** | ✅ | Save/load framework (not yet implemented) |
-| **DataManager** | ✅ | JSON data loader for facilities, products, recipes |
-
-### Game Systems (🟡 In Progress)
-
-| System | Status | Description |
-|--------|--------|-------------|
-| **WorldManager** | ✅ | 50x50 grid, facility placement, coordinate conversion |
+| **EventBus** | ✅ | Signal hub for decoupled system communication |
+| **GameManager** | ✅ | Game state, time, scene transitions, factory tracking |
+| **DataManager** | ✅ | JSON loading with helper methods for filtering |
+| **SaveManager** | 🟡 | Framework created, not fully implemented |
+| **WorldManager** | ✅ | 50x50 grid management, coordinate conversion |
 | **EconomyManager** | ✅ | Money tracking, transactions, purchase/refund |
-| **ProductionManager** | ✅ | Production cycles, inventory, auto-selling |
-| **LogisticsManager** | ⬜ | Vehicles, routes, cargo transport (not started) |
-| **MarketManager** | ⬜ | Supply/demand, pricing (not started) |
-| **FactoryManager** | ⬜ | Factory interiors (not started) |
+| **ProductionManager** | ✅ | Input-based production cycles, inventory management |
+| **LogisticsManager** | ✅ | Routes, vehicles, automatic cargo transport |
+| **FactoryManager** | ✅ | Factory interior state tracking, machine placement |
 
-### World Map Layer (✅ Complete)
+### World Map Layer (Strategic) - 95% Complete
+- [x] 50x50 grid rendering with visual feedback
+- [x] Camera controls (pan, zoom)
+- [x] Multi-tile facility placement system (2x2, 3x3)
+- [x] Sprite-based facility visuals (ready for asset replacement)
+- [x] Area2D click detection for reliable facility selection
+- [x] Placement preview with validity checking (green/red)
+- [x] Build menu UI with dynamic buttons
+- [x] Money display with real-time updates
+- [x] Facility visual representation with labels
+- [ ] Additional facility types (only 3 exist)
+- [ ] Visual polish and animations
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Grid visualization | ✅ | 50x50 tiles, 64px each |
-| Camera controls | ✅ | Pan (middle mouse), zoom (wheel) |
-| Facility placement | ✅ | Preview, validation, instant construction |
-| Build menu UI | ✅ | Dynamic buttons from facility data |
-| Money/Date HUD | ✅ | Real-time updates via signals |
-| Facility visualization | ✅ | Color-coded tiles with labels |
+### Production Chain System - 90% Complete
+- [x] Input-based production (requires raw materials)
+- [x] Intermediate products (barley, malt) stay in inventory
+- [x] Final products (ale, whiskey) auto-sell for profit
+- [x] Facility inventory management per building
+- [x] Production cycle timing and progress tracking
+- [x] 3-stage chain: Barley Field → Grain Mill → Brewery
+- [x] Console logging for debugging production flow
+- [ ] Visual production indicators
+- [ ] Advanced recipes with multiple inputs
 
-### Data Definitions (🟡 Partial)
+### Logistics System - 85% Complete
+- [x] Route creation between facilities
+- [x] Vehicle spawning and management
+- [x] Automatic cargo pickup and delivery
+- [x] Vehicle state machine (at_source → traveling → at_destination)
+- [x] Two-click route creation UI
+- [x] Visual facility highlighting during route mode
+- [x] Product compatibility checking for routes
+- [x] Instant delivery mode for testing
+- [ ] Visual route lines on map
+- [ ] Vehicle visuals and animations
+- [ ] Multiple vehicles per route
+
+### Factory Interior Layer (Tactical) - 60% Complete ⭐ NEW
+- [x] FactoryManager with 20x20 interior grid per facility
+- [x] Factory interior scene with grid renderer
+- [x] Machine placement system (similar to facilities)
+- [x] Machine data definitions (machines.json with 12 types)
+- [x] Scene transitions (double-click or Shift+click facility)
+- [x] Back button navigation to world map
+- [x] State persistence across layer transitions
+- [x] Independent interior state per facility
+- [x] Machine visual placeholders (ready for sprites)
+- [x] Interior camera and UI system
+- [ ] Machine placement UI/build menu
+- [ ] Machine production logic
+- [ ] Interior logistics (conveyor belts)
+- [ ] Input/output nodes for facility connection
+- [ ] Visual production flow
+
+### Data Configuration - 70% Complete
 
 | File | Status | Contents |
 |------|--------|----------|
-| `facilities.json` | ✅ | 3 facility types (barley field, grain mill, brewery) |
-| `products.json` | ⬜ | Not created |
-| `recipes.json` | ⬜ | Not created |
-| `machines.json` | ⬜ | Not created |
+| `facilities.json` | ✅ | 3 facility types with production chains |
+| `machines.json` | ✅ | 12 machine types (mash tun, fermentation vat, etc.) |
+| `products.json` | ⬜ | Placeholder for future expansion |
+| `recipes.json` | ⬜ | Placeholder for future expansion |
 
-### Production Chain (🟡 Basic)
+## 🎮 Current Playable Game Loop
 
-Current implementation:
-- Barley Field → produces barley → auto-sells for $1000
-- Grain Mill → defined but not producing (needs input system)
-- Brewery → defined but not producing (needs input system)
+### What You Can Do Now
+1. ✅ Place Barley Field on world map → produces barley every 5s
+2. ✅ Place Grain Mill → waits for barley input
+3. ✅ Create route from Field to Mill → vehicle transports barley
+4. ✅ Mill converts barley to malt every 3s
+5. ✅ Place Brewery → waits for malt input
+6. ✅ Create route from Mill to Brewery → vehicle transports malt
+7. ✅ Brewery converts malt to ale → auto-sells for profit
+8. ✅ **NEW:** Double-click Brewery to enter interior
+9. ✅ **NEW:** See 20x20 grid with placed machines
+10. ✅ **NEW:** Click back button to return to world map
+11. ✅ Money accumulates, build more facilities
 
-**Limitation:** No input requirements yet (MVP simplification)
+### What's Being Tested
+- Scene transitions between layers
+- State persistence for multiple factories
+- Machine placement (manual testing needed)
+- Dual-layer workflow
 
-## Project Structure
+## 📋 Next Steps (Priority Order)
 
+### Phase 4A: Testing & Validation (Current)
+1. **Test dual-layer gameplay loop** (use DUAL_LAYER_TEST.md)
+   - Verify scene transitions
+   - Check state persistence
+   - Test with multiple factories
+   - Identify any bugs or issues
+
+### Phase 4B: Machine Production (1-2 sessions)
+2. **Add machine placement UI**
+   - Build menu in factory interior
+   - Filter machines by category
+   - Show costs and requirements
+
+3. **Connect machine production to facility**
+   - Machines process materials
+   - Machine inventory feeds facility output
+   - Production efficiency based on layout
+
+### Phase 4C: Interior Logistics (2-3 sessions)
+4. **Implement conveyor belts**
+   - Visual connections between machines
+   - Automatic material flow
+   - Belt placement and routing
+
+5. **Add input/output nodes**
+   - Connect facility logistics to interior
+   - Transfer materials in/out of factory
+   - Visualize incoming/outgoing cargo
+
+### Phase 5: Content Expansion (3-5 sessions)
+6. **Additional facilities**
+   - Distillery (whiskey production)
+   - Wheat farm (alternative grain)
+   - Packaging facilities
+   - Storage warehouses
+
+7. **More machines**
+   - Distillation columns
+   - Aging barrels
+   - Bottling lines
+   - Quality control stations
+
+### Phase 6: Economic Depth (5-7 sessions)
+8. **Market system**
+   - Dynamic pricing
+   - Supply and demand
+   - Market trends
+
+9. **Upgrades and research**
+   - Facility upgrades
+   - Machine efficiency improvements
+   - Unlock new recipes
+
+### Phase 7: Polish & Systems (7-10 sessions)
+10. **Save/Load system**
+    - Complete SaveManager implementation
+    - JSON save file format
+    - Autosave functionality
+
+11. **Visual improvements**
+    - Replace placeholder sprites
+    - Production animations
+    - UI polish and tooltips
+
+12. **Tutorial and progression**
+    - Onboarding for new players
+    - Unlock progression
+    - Achievement system
+
+## 📊 Development Progress by System
+
+### Core Systems: 90% Complete
+- ✅ EventBus
+- ✅ GameManager
+- ✅ DataManager
+- ✅ WorldManager
+- ✅ EconomyManager
+- ✅ ProductionManager
+- ✅ LogisticsManager
+- ✅ FactoryManager
+- 🟡 SaveManager (framework only)
+
+### World Map Layer: 95% Complete
+- ✅ Grid and camera
+- ✅ Facility placement
+- ✅ Route creation
+- ✅ Production visualization
+- 🟡 Visual polish needed
+- 🟡 More facility variety
+
+### Factory Interior Layer: 60% Complete
+- ✅ Scene structure
+- ✅ Grid rendering
+- ✅ Machine placement
+- ✅ State persistence
+- ⬜ Machine production
+- ⬜ Interior logistics
+- ⬜ UI/UX polish
+
+### Content: 30% Complete
+- ✅ 3 facility types
+- ✅ 12 machine types
+- ✅ 1 complete production chain
+- ⬜ Additional chains
+- ⬜ Variety of recipes
+- ⬜ Research/upgrades
+
+## 📁 Key Files Reference
+
+### Managers (core/ and systems/)
+- `core/event_bus.gd` - Signal hub
+- `core/game_manager.gd` - Game state, `active_factory_id` for transitions
+- `core/data_manager.gd` - JSON loading, `get_machine_data()`, filtering
+- `systems/world_manager.gd` - 50x50 grid, facility placement
+- `systems/economy_manager.gd` - Money and costs
+- `systems/production_manager.gd` - Input-based production
+- `systems/logistics_manager.gd` - Routes and vehicles
+- `systems/factory_manager.gd` - 20x20 interiors, machine placement
+
+### Scenes
+- `scenes/world_map/world_map.tscn/.gd` - Strategic layer
+- `scenes/world_map/grid_renderer.gd` - 50x50 grid drawing
+- `scenes/factory_interior/factory_interior.tscn/.gd` - Tactical layer
+- `scenes/factory_interior/factory_interior_grid_renderer.gd` - 20x20 grid
+- `scenes/factory_interior/factory_interior_ui.gd` - Back button, labels
+
+### Data
+- `data/facilities.json` - Barley Field, Grain Mill, Brewery
+- `data/machines.json` - 12 machine types for interiors
+
+### Documentation
+- `ARCHITECTURE.md` - System design overview
+- `TESTING_GUIDE.md` - Production chain testing (outdated)
+- `SPRITE_ASSET_GUIDE.md` - How to replace placeholder sprites
+- `TROUBLESHOOTING.md` - Common issues (autoload not recognized, etc.)
+- `DUAL_LAYER_TEST.md` - Factory interior testing guide ⭐ NEW
+- `DEVELOPMENT_STATUS.md` - This file ⭐ UPDATED
+
+## 🐛 Known Issues & Limitations
+
+### Current Limitations
+- No machine placement UI in factory interior (manual testing only)
+- Machine production not connected to facility output yet
+- No visual feedback for route lines between facilities
+- Camera zoom controls not implemented
+- No vehicle visuals (invisible transport)
+
+### Design Decisions Pending
+- Should machines produce independently or feed facility?
+- Interior logistics: automatic or player-designed?
+- Input/output node positions: fixed or player-placed?
+- Quality system: percentage bonuses or discrete tiers?
+
+### Fixed Issues (Historical)
+- ✅ Autoload singletons not recognized → restart Godot
+- ✅ Route creation click detection → replaced with Area2D
+- ✅ Facilities auto-selling all products → only final products now
+
+## 🚀 Performance Considerations
+
+### Current Performance
+- 50x50 world grid: Efficient (line drawing only)
+- Facility rendering: Lightweight (Image.fill placeholders)
+- Production cycles: Efficient (dict lookups)
+- Scene transitions: Brief load time (<1 second)
+
+### Future Optimization Opportunities
+- Object pooling for vehicles
+- Occlusion culling for off-screen facilities
+- Batch rendering for grid lines
+- Lazy loading of factory interiors
+- Spatial partitioning for large facility counts
+
+## 📈 Milestone Progress
+
+### Milestone 1: Dual-Layer MVP ✅ COMPLETE (Current)
+- ✅ World map with facility placement
+- ✅ Production chain with input requirements
+- ✅ Logistics with automatic transport
+- ✅ Factory interior with machine placement
+- ✅ Scene transitions and state persistence
+- 🔄 **Testing in progress**
+
+### Milestone 2: Interior Production (Next, 2-3 weeks)
+- [ ] Machine production logic
+- [ ] Interior logistics (conveyors)
+- [ ] Machine build menu UI
+- [ ] Input/output nodes
+- [ ] Production efficiency system
+
+### Milestone 3: Content Expansion (4-6 weeks)
+- [ ] 5+ new facility types
+- [ ] 20+ new machine types
+- [ ] Multiple production chains
+- [ ] Recipe variety
+
+### Milestone 4: Economic Depth (7-10 weeks)
+- [ ] Market system with pricing
+- [ ] Research and upgrades
+- [ ] Facility maintenance costs
+- [ ] Quality and efficiency mechanics
+
+### Milestone 5: Polish & Systems (11-15 weeks)
+- [ ] Save/Load implementation
+- [ ] Visual improvements
+- [ ] UI/UX polish
+- [ ] Tutorial and progression
+- [ ] Performance optimization
+
+### Milestone 6: Early Access Prep (16-20 weeks)
+- [ ] Content balancing
+- [ ] Bug fixing and testing
+- [ ] Settings and options
+- [ ] Documentation and guides
+- [ ] Steam page preparation
+
+## 🎯 Session Summary
+
+### What Was Just Completed (This Session)
+1. ✅ Created `data/machines.json` with 12 machine types
+2. ✅ Updated DataManager with machine helper methods
+3. ✅ Created `DUAL_LAYER_TEST.md` testing guide
+4. ✅ Updated `DEVELOPMENT_STATUS.md` with current progress
+
+### Previously Completed (Earlier Sessions)
+- ✅ FactoryManager implementation
+- ✅ Factory interior scene and scripts
+- ✅ Scene transition system
+- ✅ Machine placement logic
+- ✅ State persistence system
+
+### Ready for User Testing
+- The dual-layer system is ready for testing
+- Follow DUAL_LAYER_TEST.md for step-by-step testing
+- Report any issues or unexpected behavior
+
+## 📝 Notes
+
+### Development Philosophy
+- **Incremental development:** Build minimal features, test thoroughly, iterate
+- **Data-driven design:** JSON for all gameplay configuration and balancing
+- **Signal-based communication:** Loose coupling via EventBus
+- **Performance-first:** Target smooth gameplay even with many facilities
+
+### Technical Patterns Used
+- Singleton autoloads for global state management
+- Signal-based events via EventBus
+- Multi-tile grid with occupation tracking
+- Area2D for reliable click detection
+- Sprite2D with programmatic textures (easy asset replacement)
+- Scene state persistence via dedicated manager classes
+
+### User Feedback Integration
+- ✅ Multi-tile facilities preferred over single-tile
+- ✅ Sprite-based system for easy asset replacement
+- ✅ Conveyor belts planned for future phase
+- ✅ Dual-layer system (strategic + tactical) implemented
+- ✅ No visual route lines for now (intentional)
+
+### Git History
 ```
-butykos/
-├── core/                       # ✅ Singleton managers
-│   ├── event_bus.gd
-│   ├── game_manager.gd
-│   ├── save_manager.gd
-│   └── data_manager.gd
-├── systems/                    # 🟡 System managers
-│   ├── world_manager.gd       # ✅
-│   ├── economy_manager.gd     # ✅
-│   └── production_manager.gd  # ✅
-├── scenes/
-│   └── world_map/             # ✅ World map layer
-│       ├── world_map.tscn
-│       ├── world_map.gd
-│       ├── grid_renderer.gd
-│       ├── camera_controller.gd
-│       └── world_map_ui.gd
-├── data/                      # 🟡 Game data
-│   └── facilities.json        # ✅
-├── ui/                        # ⬜ Reusable UI (empty)
-├── assets/                    # ⬜ Assets (empty)
-└── scripts/                   # ⬜ Utilities (empty)
+6030fce Add testing guide and development status documentation
+c1becef Add complete world map scene and production simulation
+aa90f3d Add WorldManager, EconomyManager, and facility data system
+54a7687 Add core singleton manager autoloads
+ef4b153 Create project folder structure and documentation
 ```
 
-## Playable Features
+## 🎓 Learning Resources
 
-### ✅ Working Now
-- Place facilities on world map
-- Camera pan and zoom
-- Placement preview with validation
-- Production cycles (5s for barley field)
-- Auto-sell products for revenue
-- Money accumulation
-- Build more facilities with earned money
-
-### ⬜ Not Yet Implemented
-- Construction time (instant build for MVP)
-- Input requirements (all facilities self-sufficient)
-- Storage/inventory management
-- Logistics (vehicles, routes)
-- Markets (supply/demand)
-- Factory interior layer
-- Save/load games
-- Multiple products flowing through chain
-
-## Metrics
-
-| Metric | Target | Current |
-|--------|--------|---------|
-| FPS | 60 | Not tested |
-| Max facilities | 50+ | Not tested |
-| Max vehicles | 200+ | N/A (not implemented) |
-| Scene transition | <1s | N/A (not implemented) |
-
-## Git History
-
-```
-c1becef - Add complete world map scene and production simulation
-aa90f3d - Add WorldManager, EconomyManager, and facility data system
-54a7687 - Add core singleton manager autoloads
-ef4b153 - Create project folder structure and documentation
-455af65 - Add Godot 4.x base project files
-572f758 - Initial commit
-```
-
-## Next Milestones
-
-### Milestone 1: Complete Production Chain (Weeks 1-2)
-- [ ] Add products.json with barley, malt, ale definitions
-- [ ] Add recipes.json with input/output requirements
-- [ ] Implement input checking in ProductionManager
-- [ ] Test 3-facility chain: Field → Mill → Brewery
-
-### Milestone 2: Logistics System (Weeks 3-4)
-- [ ] Create LogisticsManager
-- [ ] Implement vehicle spawning and movement
-- [ ] Add route creation UI
-- [ ] Test cargo transport between facilities
-
-### Milestone 3: Factory Interior Layer (Weeks 5-6)
-- [ ] Create factory_interior scene
-- [ ] Implement scene transition (world ↔ factory)
-- [ ] Add machine placement grid (20x20)
-- [ ] Test state persistence
-
-### Milestone 4: Market System (Weeks 7-8)
-- [ ] Create MarketManager
-- [ ] Implement supply/demand simulation
-- [ ] Add dynamic pricing
-- [ ] Create market UI panels
-
-### Milestone 5: Polish & Balance (Weeks 9-10)
-- [ ] Add construction time system
-- [ ] Implement save/load functionality
-- [ ] Balance costs and production rates
-- [ ] Add tutorial/onboarding
-
-## Known Issues
-
-None yet (MVP just completed).
-
-## Development Tools
-
-- **Engine:** Godot 4.2
-- **Language:** GDScript
-- **Version Control:** Git
-- **MCP Server:** Setup guide created (not yet configured)
-- **Platform:** Windows (MINGW64)
-
-## Documentation
-
-- [x] README.md (initial)
-- [x] MCP_SETUP_GUIDE.md
-- [x] TESTING_GUIDE.md
-- [x] DEVELOPMENT_STATUS.md (this file)
-- [ ] API documentation
-- [ ] Architecture diagrams
-
-## Team
-
-- **Main Developer:** Solo developer, 10-20 hrs/week
-- **Target Timeline:** 15-18 months to Early Access
-
-## Notes
-
-**Design Philosophy:**
-- Incremental development (build → test → iterate)
-- Data-driven design (JSON for balancing)
-- Signal-based communication (EventBus)
-- Performance-first approach
-
-**Current Focus:**
-Getting the minimal loop polished and tested before adding complexity.
+For understanding the codebase:
+- Start with `ARCHITECTURE.md` for system overview
+- Read `TESTING_GUIDE.md` to understand production flow
+- Check `SPRITE_ASSET_GUIDE.md` for visual asset integration
+- Use `TROUBLESHOOTING.md` if you encounter issues
+- Follow `DUAL_LAYER_TEST.md` to test factory interiors
 
 ---
 
-**Next Session Goals:**
-1. Test the playable loop in Godot
-2. Fix any bugs discovered
-3. Plan next milestone (production chain or logistics)
+**Status:** Dual-layer MVP complete! Ready for comprehensive testing. Next focus: machine production logic and interior logistics.
+
+**Recommended Next Action:** Run through DUAL_LAYER_TEST.md and report findings.

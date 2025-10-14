@@ -87,6 +87,32 @@ func get_facilities_by_category(category: String) -> Dictionary:
 	return result
 
 
+func get_all_machines() -> Dictionary:
+	"""Get all machine definitions"""
+	return machines.duplicate()
+
+
+func get_machines_by_category(category: String) -> Dictionary:
+	"""Get all machines of a specific category"""
+	var result = {}
+	for machine_id in machines:
+		var machine = machines[machine_id]
+		if machine.get("category", "") == category:
+			result[machine_id] = machine
+	return result
+
+
+func get_machines_for_facility(facility_type: String) -> Dictionary:
+	"""Get all machines that can be placed in a specific facility type"""
+	var result = {}
+	for machine_id in machines:
+		var machine = machines[machine_id]
+		var required_facilities = machine.get("requires_facility", [])
+		if required_facilities.is_empty() or facility_type in required_facilities:
+			result[machine_id] = machine
+	return result
+
+
 # ========================================
 # PRIVATE METHODS
 # ========================================
