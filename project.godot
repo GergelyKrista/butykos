@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="Butykos"
+run/main_scene="res://scenes/world_map/world_map.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -22,3 +23,4 @@ SaveManager="*res://core/save_manager.gd"
 DataManager="*res://core/data_manager.gd"
 WorldManager="*res://systems/world_manager.gd"
 EconomyManager="*res://systems/economy_manager.gd"
+ProductionManager="*res://systems/production_manager.gd"
