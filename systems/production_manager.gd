@@ -20,8 +20,9 @@ var production_outputs: Dictionary = {}
 # Dictionary of machine production timers: { "facility_id:machine_id": time_remaining }
 var machine_timers: Dictionary = {}
 
-# Dictionary of machine outputs: { "facility_id:machine_id": {product_id: quantity} }
-var machine_outputs: Dictionary = {}
+# Dictionary of machine inventories: { "facility_id:machine_id": {product_id: quantity} }
+# Machines now have their own inventory instead of using facility inventory
+var machine_inventories: Dictionary = {}
 
 # ========================================
 # CONFIGURATION
@@ -29,6 +30,11 @@ var machine_outputs: Dictionary = {}
 
 var auto_sell_enabled: bool = true  # Auto-sell products when produced
 var default_sell_price: int = 100   # Default price per product unit
+
+# Input/Output node transfer settings
+var io_node_transfer_amount: int = 10  # How much to transfer per cycle
+var io_node_timer: float = 0.0  # Timer for periodic IO node operations
+const IO_NODE_CYCLE_TIME: float = 2.0  # How often IO nodes transfer (seconds)
 
 # ========================================
 # INITIALIZATION
@@ -51,6 +57,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_update_production(delta)
 	_update_machine_production(delta)
+	_update_io_nodes(delta)
 
 
 # ========================================
@@ -185,35 +192,35 @@ func _complete_machine_production_cycle(facility_id: String, machine_id: String,
 	if output_product.is_empty() or output_quantity == 0:
 		return
 
+	var machine_key = "%s:%s" % [facility_id, machine_id]
+
 	# Check if machine requires inputs
 	var input_product = production_data.get("input", "")
 	var input_quantity = production_data.get("input_quantity", 0)
 
 	if not input_product.is_empty() and input_quantity > 0:
-		# Check facility inventory for input materials
-		var current_input = get_inventory_item(facility_id, input_product)
+		# Check machine's own inventory for input materials
+		var current_input = get_machine_inventory_item(facility_id, machine_id, input_product)
 		if current_input < input_quantity:
 			# Not enough inputs, can't produce
-			print("Machine production blocked: %s needs %d %s from facility (has %d)" % [
+			print("Machine production blocked: %s needs %d %s (has %d)" % [
 				machine_def.get("name", machine.type),
 				input_quantity,
 				input_product,
 				current_input
 			])
 			# Reset timer to try again
-			var machine_key = "%s:%s" % [facility_id, machine_id]
 			machine_timers[machine_key] = cycle_time
 			return
 
-		# Consume inputs from facility inventory
-		_remove_from_inventory(facility_id, input_product, input_quantity)
-		print("Machine consumed %d %s from facility inventory" % [input_quantity, input_product])
+		# Consume inputs from machine's own inventory
+		_remove_from_machine_inventory(facility_id, machine_id, input_product, input_quantity)
+		print("Machine consumed %d %s from own inventory" % [input_quantity, input_product])
 
-	# Add output to facility inventory (machines feed facility)
-	_add_to_inventory(facility_id, output_product, output_quantity)
+	# Add output to machine's own inventory
+	_add_to_machine_inventory(facility_id, machine_id, output_product, output_quantity)
 
 	# Reset timer
-	var machine_key = "%s:%s" % [facility_id, machine_id]
 	machine_timers[machine_key] = cycle_time
 
 	print("Machine production complete: %s produced %d %s" % [
@@ -222,9 +229,8 @@ func _complete_machine_production_cycle(facility_id: String, machine_id: String,
 		output_product
 	])
 
-	# Auto-sell if enabled and product is final
-	if auto_sell_enabled and _should_auto_sell(output_product):
-		_sell_product(facility_id, output_product, output_quantity)
+	# Try to transfer output to adjacent machines
+	_try_transfer_to_adjacent(facility_id, machine_id, machine)
 
 
 # ========================================
@@ -280,6 +286,259 @@ func add_item_to_facility(facility_id: String, product: String, quantity: int) -
 func remove_item_from_facility(facility_id: String, product: String, quantity: int) -> bool:
 	"""Remove items from facility for logistics. Returns true if successful."""
 	return _remove_from_inventory(facility_id, product, quantity)
+
+
+# ========================================
+# MACHINE INVENTORY MANAGEMENT
+# ========================================
+
+func _add_to_machine_inventory(facility_id: String, machine_id: String, product: String, quantity: int) -> void:
+	"""Add product to machine's inventory"""
+	var machine_key = "%s:%s" % [facility_id, machine_id]
+
+	if not machine_inventories.has(machine_key):
+		machine_inventories[machine_key] = {}
+
+	var current = machine_inventories[machine_key].get(product, 0)
+	machine_inventories[machine_key][product] = current + quantity
+
+
+func _remove_from_machine_inventory(facility_id: String, machine_id: String, product: String, quantity: int) -> bool:
+	"""Remove product from machine's inventory. Returns false if insufficient."""
+	var machine_key = "%s:%s" % [facility_id, machine_id]
+
+	if not machine_inventories.has(machine_key):
+		return false
+
+	var current = machine_inventories[machine_key].get(product, 0)
+	if current < quantity:
+		return false
+
+	machine_inventories[machine_key][product] = current - quantity
+	return true
+
+
+func get_machine_inventory(facility_id: String, machine_id: String) -> Dictionary:
+	"""Get machine's inventory"""
+	var machine_key = "%s:%s" % [facility_id, machine_id]
+	return machine_inventories.get(machine_key, {})
+
+
+func get_machine_inventory_item(facility_id: String, machine_id: String, product: String) -> int:
+	"""Get quantity of a specific product in machine's inventory"""
+	var machine_key = "%s:%s" % [facility_id, machine_id]
+	if not machine_inventories.has(machine_key):
+		return 0
+	return machine_inventories[machine_key].get(product, 0)
+
+
+# ========================================
+# ADJACENT MACHINE TRANSFER
+# ========================================
+
+func _try_transfer_to_adjacent(facility_id: String, machine_id: String, machine: Dictionary) -> void:
+	"""Try to transfer machine's output to adjacent machines that need it"""
+
+	# Get machine's current inventory
+	var inventory = get_machine_inventory(facility_id, machine_id)
+	if inventory.is_empty():
+		return
+
+	# Get machine's grid position
+	var grid_pos = machine.get("grid_pos", Vector2i.ZERO)
+
+	# Check all four adjacent directions (N, S, E, W)
+	var adjacent_positions = [
+		Vector2i(grid_pos.x, grid_pos.y - 1),  # North
+		Vector2i(grid_pos.x, grid_pos.y + 1),  # South
+		Vector2i(grid_pos.x - 1, grid_pos.y),  # West
+		Vector2i(grid_pos.x + 1, grid_pos.y),  # East
+	]
+
+	# Try to transfer each product in our inventory
+	for product in inventory.keys():
+		var available_quantity = inventory[product]
+		if available_quantity <= 0:
+			continue
+
+		# Try each adjacent position
+		for adj_pos in adjacent_positions:
+			# Get machine at adjacent position
+			var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
+			if adj_machine.is_empty():
+				continue
+
+			var adj_machine_id = adj_machine.get("id", "")
+			if adj_machine_id.is_empty():
+				continue
+
+			# Check if adjacent machine needs this product
+			if _machine_needs_product(adj_machine, product):
+				# Try to transfer (transfer up to half of available, min 1)
+				var transfer_amount = max(1, available_quantity / 2)
+
+				if _remove_from_machine_inventory(facility_id, machine_id, product, transfer_amount):
+					_add_to_machine_inventory(facility_id, adj_machine_id, product, transfer_amount)
+
+					print("Transferred %d %s: %s → %s" % [
+						transfer_amount,
+						product,
+						machine_id,
+						adj_machine_id
+					])
+
+					# Update available quantity for next transfer
+					available_quantity -= transfer_amount
+					if available_quantity <= 0:
+						break
+
+
+func _machine_needs_product(machine: Dictionary, product: String) -> bool:
+	"""Check if a machine needs a specific product as input"""
+
+	var machine_def = DataManager.get_machine_data(machine.type)
+	if machine_def.is_empty():
+		return false
+
+	var production_data = machine_def.get("production", {})
+	if production_data.is_empty():
+		return false
+
+	var input_product = production_data.get("input", "")
+	return input_product == product
+
+
+# ========================================
+# INPUT/OUTPUT NODE OPERATIONS
+# ========================================
+
+func _update_io_nodes(delta: float) -> void:
+	"""Update input/output nodes periodically"""
+
+	io_node_timer += delta
+	if io_node_timer < IO_NODE_CYCLE_TIME:
+		return
+
+	io_node_timer = 0.0
+
+	# Process all facilities that have interiors
+	for facility_id in WorldManager.facilities.keys():
+		if not FactoryManager.has_interior(facility_id):
+			continue
+
+		var machines = FactoryManager.get_all_machines(facility_id)
+		for machine in machines:
+			var machine_def = DataManager.get_machine_data(machine.type)
+			if machine_def.is_empty():
+				continue
+
+			# Handle Input Hoppers: Facility → Machine network
+			if machine_def.get("is_input_node", false):
+				_process_input_hopper(facility_id, machine)
+
+			# Handle Output Depots: Machine network → Facility
+			elif machine_def.get("is_output_node", false):
+				_process_output_depot(facility_id, machine)
+
+
+func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
+	"""Input hopper pulls materials from facility inventory and distributes to adjacent machines"""
+
+	var hopper_id = hopper.get("id", "")
+	var grid_pos = hopper.get("grid_pos", Vector2i.ZERO)
+
+	# Check adjacent machines
+	var adjacent_positions = [
+		Vector2i(grid_pos.x, grid_pos.y - 1),  # North
+		Vector2i(grid_pos.x, grid_pos.y + 1),  # South
+		Vector2i(grid_pos.x - 1, grid_pos.y),  # West
+		Vector2i(grid_pos.x + 1, grid_pos.y),  # East
+	]
+
+	# For each adjacent machine, check what it needs
+	for adj_pos in adjacent_positions:
+		var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
+		if adj_machine.is_empty():
+			continue
+
+		var adj_machine_id = adj_machine.get("id", "")
+		var machine_def = DataManager.get_machine_data(adj_machine.type)
+		if machine_def.is_empty():
+			continue
+
+		var production_data = machine_def.get("production", {})
+		if production_data.is_empty():
+			continue
+
+		# Get what the adjacent machine needs
+		var input_product = production_data.get("input", "")
+		if input_product.is_empty():
+			continue
+
+		# Check if facility has this product
+		var facility_stock = get_inventory_item(facility_id, input_product)
+		if facility_stock <= 0:
+			continue
+
+		# Transfer from facility to hopper, then to adjacent machine
+		var transfer_amount = min(io_node_transfer_amount, facility_stock)
+		if _remove_from_inventory(facility_id, input_product, transfer_amount):
+			_add_to_machine_inventory(facility_id, adj_machine_id, input_product, transfer_amount)
+
+			print("Input Hopper: %d %s (facility → %s)" % [
+				transfer_amount,
+				input_product,
+				adj_machine_id
+			])
+
+
+func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
+	"""Output depot collects materials from adjacent machines and sends to facility inventory"""
+
+	var depot_id = depot.get("id", "")
+	var grid_pos = depot.get("grid_pos", Vector2i.ZERO)
+
+	# Check adjacent machines
+	var adjacent_positions = [
+		Vector2i(grid_pos.x, grid_pos.y - 1),  # North
+		Vector2i(grid_pos.x, grid_pos.y + 1),  # South
+		Vector2i(grid_pos.x - 1, grid_pos.y),  # West
+		Vector2i(grid_pos.x + 1, grid_pos.y),  # East
+	]
+
+	# Collect from each adjacent machine
+	for adj_pos in adjacent_positions:
+		var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
+		if adj_machine.is_empty():
+			continue
+
+		var adj_machine_id = adj_machine.get("id", "")
+
+		# Get machine's inventory
+		var machine_inventory = get_machine_inventory(facility_id, adj_machine_id)
+		if machine_inventory.is_empty():
+			continue
+
+		# Transfer all products from machine to facility
+		for product in machine_inventory.keys():
+			var quantity = machine_inventory[product]
+			if quantity <= 0:
+				continue
+
+			# Transfer up to io_node_transfer_amount
+			var transfer_amount = min(io_node_transfer_amount, quantity)
+			if _remove_from_machine_inventory(facility_id, adj_machine_id, product, transfer_amount):
+				_add_to_inventory(facility_id, product, transfer_amount)
+
+				print("Output Depot: %d %s (%s → facility)" % [
+					transfer_amount,
+					product,
+					adj_machine_id
+				])
+
+				# Check if product should be auto-sold
+				if auto_sell_enabled and _should_auto_sell(product):
+					_sell_product(facility_id, product, transfer_amount)
 
 
 # ========================================
@@ -349,7 +608,7 @@ func _on_production_changed(facility_id: String, is_producing: bool) -> void:
 
 
 func _on_machine_placed(factory_id: String, machine_data: Dictionary) -> void:
-	"""Handle machine placement - initialize production timer"""
+	"""Handle machine placement - initialize production timer and inventory"""
 	var machine_id = machine_data.get("id", "")
 	if machine_id.is_empty():
 		return
@@ -359,33 +618,37 @@ func _on_machine_placed(factory_id: String, machine_data: Dictionary) -> void:
 	if machine_def.is_empty():
 		return
 
-	var production_data = machine_def.get("production", {})
-	if production_data.is_empty():
-		# This machine doesn't produce anything (e.g., conveyor belt, input hopper)
-		return
-
-	var cycle_time = production_data.get("cycle_time", 5.0)
 	var machine_key = "%s:%s" % [factory_id, machine_id]
 
-	# Initialize production timer
-	machine_timers[machine_key] = cycle_time
-	machine_outputs[machine_key] = {}
+	# Initialize machine inventory (all machines have inventory)
+	machine_inventories[machine_key] = {}
 
-	print("Machine production initialized: %s in facility %s (cycle: %.1fs)" % [
-		machine_def.get("name", machine_type),
-		factory_id,
-		cycle_time
-	])
+	# Initialize production timer if machine produces
+	var production_data = machine_def.get("production", {})
+	if not production_data.is_empty():
+		var cycle_time = production_data.get("cycle_time", 5.0)
+		machine_timers[machine_key] = cycle_time
+
+		print("Machine production initialized: %s in facility %s (cycle: %.1fs)" % [
+			machine_def.get("name", machine_type),
+			factory_id,
+			cycle_time
+		])
+	else:
+		print("Machine placed: %s in facility %s (non-producing)" % [
+			machine_def.get("name", machine_type),
+			factory_id
+		])
 
 
 func _on_machine_removed(factory_id: String, machine_id: String) -> void:
-	"""Handle machine removal - cleanup timers and outputs"""
+	"""Handle machine removal - cleanup timers and inventory"""
 	var machine_key = "%s:%s" % [factory_id, machine_id]
 
 	machine_timers.erase(machine_key)
-	machine_outputs.erase(machine_key)
+	machine_inventories.erase(machine_key)
 
-	print("Machine production removed: %s from facility %s" % [machine_id, factory_id])
+	print("Machine removed: %s from facility %s" % [machine_id, factory_id])
 
 
 # ========================================
