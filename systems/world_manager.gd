@@ -10,8 +10,8 @@ extends Node
 # ========================================
 
 const GRID_SIZE = Vector2i(50, 50)
-const TILE_WIDTH = 32  # Width of isometric tile (2:1 ratio)
-const TILE_HEIGHT = 16  # Height of isometric tile
+const TILE_WIDTH = 64  # Width of isometric tile (2:1 ratio)
+const TILE_HEIGHT = 32  # Height of isometric tile
 const TILE_SIZE = 64  # Legacy reference for compatibility (use TILE_WIDTH/HEIGHT for isometric)
 
 # ========================================

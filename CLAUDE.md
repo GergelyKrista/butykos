@@ -67,7 +67,7 @@ EconomyManager.money
 ### Dual-Layer System
 
 **World Map (Strategic Layer):**
-- 50×50 **isometric grid** (32×16 pixel tiles, 2:1 ratio)
+- 50×50 **isometric grid** (64×32 pixel tiles, 2:1 ratio)
 - Facility placement with multi-tile support (2×2, 3×3, etc.)
 - Route creation for logistics
 - Scene: `scenes/world_map/world_map.tscn`
@@ -110,8 +110,8 @@ The world map uses **true isometric mathematics** (not 45° rotation hack):
 
 ### Constants (WorldManager)
 ```gdscript
-const TILE_WIDTH = 32   # Isometric tile width
-const TILE_HEIGHT = 16  # Isometric tile height (2:1 ratio)
+const TILE_WIDTH = 64   # Isometric tile width
+const TILE_HEIGHT = 32  # Isometric tile height (2:1 ratio)
 const GRID_SIZE = Vector2i(50, 50)
 ```
 
@@ -144,9 +144,9 @@ func iso_to_cart(iso_pos: Vector2) -> Vector2:
 
 3. **Diamond Shapes:** Facilities render as Polygon2D diamonds, not rectangles
    ```gdscript
-   # Diamond vertices for 32×16 tile
-   var half_width = TILE_WIDTH / 2.0   # 16
-   var half_height = TILE_HEIGHT / 2.0 # 8
+   # Diamond vertices for 64×32 tile
+   var half_width = TILE_WIDTH / 2.0   # 32
+   var half_height = TILE_HEIGHT / 2.0 # 16
    polygon.polygon = PackedVector2Array([
        Vector2(0, -half_height),     # Top
        Vector2(half_width, 0),       # Right
