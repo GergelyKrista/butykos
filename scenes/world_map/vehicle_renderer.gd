@@ -129,7 +129,7 @@ func _position_at_facility(vehicle_node: Node2D, vehicle: Dictionary, route_id: 
 	if route.is_empty():
 		return
 
-	var facility_id = route.get("source" if is_source else "destination", "")
+	var facility_id = route.get("source_id" if is_source else "destination_id", "")
 	var facility = WorldManager.get_facility(facility_id)
 	if facility.is_empty():
 		return
@@ -145,8 +145,8 @@ func _position_traveling(vehicle_node: Node2D, vehicle: Dictionary, route_id: St
 	if route.is_empty():
 		return
 
-	var source_facility = WorldManager.get_facility(route.get("source", ""))
-	var dest_facility = WorldManager.get_facility(route.get("destination", ""))
+	var source_facility = WorldManager.get_facility(route.get("source_id", ""))
+	var dest_facility = WorldManager.get_facility(route.get("destination_id", ""))
 
 	if source_facility.is_empty() or dest_facility.is_empty():
 		return

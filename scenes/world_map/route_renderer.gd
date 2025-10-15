@@ -35,8 +35,8 @@ func _redraw_all_routes() -> void:
 
 func _create_route_visual(route_id: String, route: Dictionary) -> void:
 	"""Create visual representation of a route"""
-	var source_id = route.get("source", "")
-	var destination_id = route.get("destination", "")
+	var source_id = route.get("source_id", "")
+	var destination_id = route.get("destination_id", "")
 
 	if source_id.is_empty() or destination_id.is_empty():
 		return
