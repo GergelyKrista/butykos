@@ -52,6 +52,7 @@ var product_prices: Dictionary = {
 
 	# Finished products (full value)
 	"ale": 100,
+	"packaged_ale": 150,  # Premium packaged version
 	"lager": 120,
 	"wheat_beer": 110,
 	"whiskey": 200,
@@ -661,7 +662,16 @@ func _process_storage_buffer(facility_id: String, storage: Dictionary) -> void:
 func _should_auto_sell(product: String) -> bool:
 	"""Check if a product should be auto-sold (is it a final product?)"""
 	# Final products that can be sold directly
-	var final_products = ["ale", "lager", "wheat_beer", "whiskey", "vodka", "premium_whiskey"]
+	var final_products = [
+		"ale",
+		"packaged_ale",  # Premium packaged ale
+		"lager",
+		"wheat_beer",
+		"whiskey",
+		"vodka",
+		"premium_whiskey",
+		"aged_spirit"
+	]
 	return product in final_products
 
 
@@ -672,14 +682,14 @@ func _sell_product(facility_id: String, product: String, quantity: int) -> void:
 	if not _remove_from_inventory(facility_id, product, quantity):
 		return
 
-	# Calculate revenue
-	var price_per_unit = default_sell_price
+	# Calculate revenue using product-specific pricing
+	var price_per_unit = product_prices.get(product, default_sell_price)
 	var revenue = price_per_unit * quantity
 
 	# Add money
 	EconomyManager.sell_product(product, quantity, price_per_unit)
 
-	print("Sold %d %s for $%d" % [quantity, product, revenue])
+	print("Sold %d %s for $%d ($%d/unit)" % [quantity, product, revenue, price_per_unit])
 
 
 # ========================================

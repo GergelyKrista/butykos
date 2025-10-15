@@ -1,0 +1,128 @@
+{
+	"barley": {
+		"id": "barley",
+		"name": "Barley",
+		"description": "Raw grain used for brewing and distilling",
+		"category": "raw_material",
+		"base_price": 5,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"wheat": {
+		"id": "wheat",
+		"name": "Wheat",
+		"description": "Raw grain for distilling and wheat beer",
+		"category": "raw_material",
+		"base_price": 5,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"malt": {
+		"id": "malt",
+		"name": "Malt",
+		"description": "Processed grain ready for mashing",
+		"category": "processed_material",
+		"base_price": 15,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"mash": {
+		"id": "mash",
+		"name": "Mash",
+		"description": "Grain converted to sugar-rich liquid",
+		"category": "processed_material",
+		"base_price": 20,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"fermented_wash": {
+		"id": "fermented_wash",
+		"name": "Fermented Wash",
+		"description": "Fermented liquid ready for distillation or bottling",
+		"category": "processed_material",
+		"base_price": 40,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"raw_spirit": {
+		"id": "raw_spirit",
+		"name": "Raw Spirit",
+		"description": "Distilled alcohol before aging",
+		"category": "processed_material",
+		"base_price": 50,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"ale": {
+		"id": "ale",
+		"name": "Ale",
+		"description": "Finished beer product ready for sale",
+		"category": "finished_product",
+		"base_price": 100,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"packaged_ale": {
+		"id": "packaged_ale",
+		"name": "Packaged Ale",
+		"description": "Premium packaged ale with higher market value",
+		"category": "finished_product",
+		"base_price": 150,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"lager": {
+		"id": "lager",
+		"name": "Lager",
+		"description": "Light beer product",
+		"category": "finished_product",
+		"base_price": 120,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"wheat_beer": {
+		"id": "wheat_beer",
+		"name": "Wheat Beer",
+		"description": "Beer made from wheat",
+		"category": "finished_product",
+		"base_price": 110,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"whiskey": {
+		"id": "whiskey",
+		"name": "Whiskey",
+		"description": "Distilled spirit product",
+		"category": "finished_product",
+		"base_price": 200,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"vodka": {
+		"id": "vodka",
+		"name": "Vodka",
+		"description": "Clear distilled spirit",
+		"category": "finished_product",
+		"base_price": 180,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"premium_whiskey": {
+		"id": "premium_whiskey",
+		"name": "Premium Whiskey",
+		"description": "High-quality aged whiskey",
+		"category": "finished_product",
+		"base_price": 300,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"aged_spirit": {
+		"id": "aged_spirit",
+		"name": "Aged Spirit",
+		"description": "Spirits aged in barrels for enhanced quality",
+		"category": "finished_product",
+		"base_price": 250,
+		"stack_size": 50,
+		"is_final_product": true
+	}
+}
