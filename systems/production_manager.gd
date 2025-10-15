@@ -372,6 +372,10 @@ func _try_transfer_to_adjacent(facility_id: String, machine_id: String, machine:
 			if adj_machine_id.is_empty():
 				continue
 
+			# Don't transfer to ourselves (for multi-tile machines)
+			if adj_machine_id == machine_id:
+				continue
+
 			# Check if adjacent machine needs this product
 			if _machine_needs_product(adj_machine, product):
 				# Try to transfer (transfer up to half of available, min 1)
