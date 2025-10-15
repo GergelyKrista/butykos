@@ -176,12 +176,12 @@ func _update_placement_preview_validity() -> void:
 
 
 func _modulate_preview(color: Color) -> void:
-	"""Apply color modulation to all preview rectangles"""
+	"""Apply color modulation to all preview children (sprites or rectangles)"""
 	if not placement_preview:
 		return
 
 	for child in placement_preview.get_children():
-		if child is ColorRect:
+		if child is ColorRect or child is Sprite2D:
 			child.modulate = color
 
 
@@ -213,18 +213,32 @@ func _create_placement_preview(machine_def: Dictionary) -> void:
 	var size = Vector2i(machine_def.get("size", [1, 1])[0], machine_def.get("size", [1, 1])[1])
 	var color = Color(machine_def.get("visual", {}).get("color", "#aaaaaa"))
 
-	# Create sprite for each tile (using ColorRect for semi-transparent preview)
-	for x in range(size.x):
-		for y in range(size.y):
-			var rect = ColorRect.new()
-			rect.size = Vector2(FactoryManager.INTERIOR_TILE_SIZE - 4, FactoryManager.INTERIOR_TILE_SIZE - 4)
-			rect.position = Vector2(
-				(x - size.x / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + 2,
-				(y - size.y / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + 2
-			)
-			rect.color = color
-			rect.color.a = 0.5
-			placement_preview.add_child(rect)
+	# Try to load sprite texture (machines use "sprite" field, not "icon")
+	var sprite_path = machine_def.get("visual", {}).get("sprite", "")
+	var texture = null
+	if not sprite_path.is_empty() and ResourceLoader.exists(sprite_path):
+		texture = load(sprite_path)
+
+	# If sprite exists, use it with transparency; otherwise fall back to colored rectangles
+	if texture:
+		var sprite = Sprite2D.new()
+		sprite.texture = texture
+		sprite.centered = true
+		sprite.modulate = Color(1, 1, 1, 0.7)  # Semi-transparent for preview
+		placement_preview.add_child(sprite)
+	else:
+		# Fallback: Create colored rectangle for each tile
+		for x in range(size.x):
+			for y in range(size.y):
+				var rect = ColorRect.new()
+				rect.size = Vector2(FactoryManager.INTERIOR_TILE_SIZE - 4, FactoryManager.INTERIOR_TILE_SIZE - 4)
+				rect.position = Vector2(
+					(x - size.x / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + 2,
+					(y - size.y / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + 2
+				)
+				rect.color = color
+				rect.color.a = 0.5
+				placement_preview.add_child(rect)
 
 
 func _try_place_machine() -> void:
@@ -477,17 +491,30 @@ func _create_machine_node(machine: Dictionary) -> Node2D:
 	var size = machine.size
 	var color = Color(machine_def.get("visual", {}).get("color", "#aaaaaa"))
 
-	# Create sprite for each tile (placeholder - can be replaced with real sprites)
-	for x in range(size.x):
-		for y in range(size.y):
-			var sprite = Sprite2D.new()
-			sprite.texture = _create_placeholder_texture(FactoryManager.INTERIOR_TILE_SIZE - 4, color)
-			# Sprite2D positions from center, so add TILE_SIZE/2 offset
-			sprite.position = Vector2(
-				(x - size.x / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + FactoryManager.INTERIOR_TILE_SIZE / 2.0,
-				(y - size.y / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + FactoryManager.INTERIOR_TILE_SIZE / 2.0
-			)
-			node.add_child(sprite)
+	# Try to load sprite texture (machines use "sprite" field, not "icon")
+	var sprite_path = machine_def.get("visual", {}).get("sprite", "")
+	var texture = null
+	if not sprite_path.is_empty() and ResourceLoader.exists(sprite_path):
+		texture = load(sprite_path)
+
+	# If sprite exists, use it; otherwise fall back to colored tiles
+	if texture:
+		var sprite = Sprite2D.new()
+		sprite.texture = texture
+		sprite.centered = true
+		node.add_child(sprite)
+	else:
+		# Fallback: Create colored tile for each grid cell
+		for x in range(size.x):
+			for y in range(size.y):
+				var sprite = Sprite2D.new()
+				sprite.texture = _create_placeholder_texture(FactoryManager.INTERIOR_TILE_SIZE - 4, color)
+				# Sprite2D positions from center, so add TILE_SIZE/2 offset
+				sprite.position = Vector2(
+					(x - size.x / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + FactoryManager.INTERIOR_TILE_SIZE / 2.0,
+					(y - size.y / 2.0) * FactoryManager.INTERIOR_TILE_SIZE + FactoryManager.INTERIOR_TILE_SIZE / 2.0
+				)
+				node.add_child(sprite)
 
 	# Add label
 	var label = Label.new()
