@@ -11,6 +11,7 @@ extends Node2D
 
 @onready var grid_renderer = $GridRenderer
 @onready var machines_container = $MachinesContainer
+@onready var connections_renderer: Node2D = null  # Will be created dynamically
 @onready var camera = $Camera2D
 @onready var ui = $UI
 
@@ -51,6 +52,12 @@ func _ready() -> void:
 
 	# Load existing machines
 	_load_existing_machines()
+
+	# Create connections renderer
+	connections_renderer = Node2D.new()
+	connections_renderer.name = "ConnectionsRenderer"
+	add_child(connections_renderer)
+	connections_renderer.z_index = -1  # Draw behind machines
 
 	# Center camera
 	camera.position = Vector2(
@@ -117,6 +124,9 @@ func _process(_delta: float) -> void:
 
 		# Update preview color based on validity
 		_update_placement_preview_validity()
+
+	# Update connection visuals every frame
+	_update_connections()
 
 
 func _update_placement_preview_validity() -> void:
@@ -314,3 +324,110 @@ func exit_factory() -> void:
 func _on_machine_button_pressed(machine_id: String) -> void:
 	"""Handle machine button press from UI"""
 	start_placement_mode(machine_id)
+
+
+# ========================================
+# CONNECTION VISUALIZATION
+# ========================================
+
+func _update_connections() -> void:
+	"""Draw lines showing connections between adjacent machines"""
+	if not connections_renderer:
+		return
+
+	# Clear previous connections (remove all children)
+	for child in connections_renderer.get_children():
+		child.queue_free()
+
+	# Get all machines
+	var machines = FactoryManager.get_all_machines(facility_id)
+
+	# Draw connections for each machine
+	for machine in machines:
+		_draw_machine_connections(machine)
+
+
+func _draw_machine_connections(machine: Dictionary) -> void:
+	"""Draw connection lines from this machine to adjacent machines"""
+	var machine_id = machine.get("id", "")
+	var grid_pos = machine.get("grid_pos", Vector2i.ZERO)
+	var world_pos = machine.get("world_pos", Vector2.ZERO)
+	var machine_def = DataManager.get_machine_data(machine.type)
+
+	# Check what this machine produces
+	var production_data = machine_def.get("production", {})
+	if production_data.is_empty():
+		return  # No production, no output connections
+
+	var output_product = production_data.get("output", "")
+	if output_product.is_empty():
+		return
+
+	# Check all four adjacent directions
+	var adjacent_offsets = [
+		{"offset": Vector2i(0, -1), "dir": Vector2(0, -1)},  # North
+		{"offset": Vector2i(0, 1), "dir": Vector2(0, 1)},    # South
+		{"offset": Vector2i(-1, 0), "dir": Vector2(-1, 0)},  # West
+		{"offset": Vector2i(1, 0), "dir": Vector2(1, 0)},    # East
+	]
+
+	for adj in adjacent_offsets:
+		var adj_pos = grid_pos + adj.offset
+		var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
+
+		if adj_machine.is_empty():
+			continue
+
+		var adj_machine_id = adj_machine.get("id", "")
+		if adj_machine_id == machine_id:  # Skip self
+			continue
+
+		# Check if adjacent machine needs our output
+		var adj_machine_def = DataManager.get_machine_data(adj_machine.type)
+		var adj_production_data = adj_machine_def.get("production", {})
+
+		if adj_production_data.is_empty():
+			continue
+
+		var adj_input_product = adj_production_data.get("input", "")
+		if adj_input_product != output_product:
+			continue  # Adjacent machine doesn't need our output
+
+		# Draw connection line!
+		var adj_world_pos = adj_machine.get("world_pos", Vector2.ZERO)
+		_draw_connection_line(world_pos, adj_world_pos, adj.dir)
+
+
+func _draw_connection_line(from_pos: Vector2, to_pos: Vector2, direction: Vector2) -> void:
+	"""Draw a single connection line with an arrow"""
+	var line = Line2D.new()
+	line.width = 3.0
+	line.default_color = Color(0.3, 0.8, 1.0, 0.8)  # Light blue
+	line.add_point(from_pos)
+	line.add_point(to_pos)
+	connections_renderer.add_child(line)
+
+	# Draw arrow at midpoint
+	var midpoint = (from_pos + to_pos) / 2.0
+	var arrow = _create_arrow(midpoint, direction)
+	connections_renderer.add_child(arrow)
+
+
+func _create_arrow(position: Vector2, direction: Vector2) -> Polygon2D:
+	"""Create an arrow polygon pointing in the given direction"""
+	var arrow = Polygon2D.new()
+	arrow.color = Color(1.0, 0.8, 0.2, 0.9)  # Orange/yellow
+	arrow.position = position
+
+	# Arrow size
+	var arrow_size = 12.0
+
+	# Create arrow shape (triangle pointing in direction)
+	var angle = atan2(direction.y, direction.x)
+	var tip = Vector2(arrow_size, 0).rotated(angle)
+	var left = Vector2(-arrow_size / 2, -arrow_size / 2).rotated(angle)
+	var right = Vector2(-arrow_size / 2, arrow_size / 2).rotated(angle)
+
+	arrow.polygon = PackedVector2Array([tip, left, right])
+
+	return arrow
