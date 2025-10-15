@@ -461,6 +461,10 @@ func _update_io_nodes(delta: float) -> void:
 			elif machine_def.get("is_market_outlet", false):
 				_process_market_outlet(facility_id, machine)
 
+			# Handle Storage Buffers: Actively transfer stored products to connected machines
+			elif machine_def.get("is_storage_buffer", false):
+				_process_storage_buffer(facility_id, machine)
+
 
 func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
 	"""Input hopper pulls materials from facility inventory and distributes to connected machines"""
@@ -598,6 +602,56 @@ func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
 					revenue,
 					price_per_unit
 				])
+
+
+func _process_storage_buffer(facility_id: String, storage: Dictionary) -> void:
+	"""Storage buffer actively transfers stored products to connected machines (like Market Outlet)"""
+
+	var storage_id = storage.get("id", "")
+
+	# Get storage's inventory
+	var storage_inventory = get_machine_inventory(facility_id, storage_id)
+	if storage_inventory.is_empty():
+		return
+
+	# Get all connections FROM this storage
+	var connections = FactoryManager.get_connections_from(facility_id, storage_id)
+	if connections.is_empty():
+		return
+
+	# Try to transfer each product to connected machines
+	for product in storage_inventory.keys():
+		var available_quantity = storage_inventory[product]
+		if available_quantity <= 0:
+			continue
+
+		# Try each connection
+		for conn in connections:
+			var destination_machine_id = conn.get("to", "")
+			if destination_machine_id.is_empty():
+				continue
+
+			var destination_machine = FactoryManager.get_machine(facility_id, destination_machine_id)
+			if destination_machine.is_empty():
+				continue
+
+			# Transfer up to io_node_transfer_amount
+			var transfer_amount = min(io_node_transfer_amount, available_quantity)
+
+			if _remove_from_machine_inventory(facility_id, storage_id, product, transfer_amount):
+				_add_to_machine_inventory(facility_id, destination_machine_id, product, transfer_amount)
+
+				print("Storage Buffer: Transferred %d %s (%s → %s)" % [
+					transfer_amount,
+					product,
+					storage_id,
+					destination_machine_id
+				])
+
+				# Update available quantity for next transfer
+				available_quantity -= transfer_amount
+				if available_quantity <= 0:
+					break
 
 
 # ========================================

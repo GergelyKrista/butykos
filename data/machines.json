@@ -131,7 +131,7 @@
 
   "storage_tank": {
     "name": "Storage Tank",
-    "description": "Stores intermediate products",
+    "description": "Stores intermediate products and buffers production flow",
     "category": "storage",
     "size": [2, 2],
     "cost": 250,
@@ -140,6 +140,7 @@
       "sprite": "res://assets/machines/storage_tank.png"
     },
     "storage_capacity": 100,
+    "is_storage_buffer": true,
     "requires_facility": ["brewery", "distillery"]
   },
 
