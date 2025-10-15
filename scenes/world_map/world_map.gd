@@ -145,8 +145,8 @@ func _create_placement_preview(facility_def: Dictionary) -> void:
 		for y in range(size.y):
 			var polygon = Polygon2D.new()
 
-			# Create isometric diamond shape
-			var tile_offset_cart = Vector2(x - size.x / 2.0, y - size.y / 2.0)
+			# Create isometric diamond shape (center tiles at 0.5 offset for grid alignment)
+			var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
 			var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
 
 			# Define diamond vertices (isometric tile shape)
@@ -269,8 +269,8 @@ func _create_facility_node(facility: Dictionary) -> Area2D:
 		for y in range(size.y):
 			var polygon = Polygon2D.new()
 
-			# Calculate tile position in isometric space (relative to facility center)
-			var tile_offset_cart = Vector2(x - size.x / 2.0, y - size.y / 2.0)
+			# Calculate tile position in isometric space (center tiles at 0.5 offset for grid alignment)
+			var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
 			var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
 
 			# Define diamond vertices (isometric tile shape)
