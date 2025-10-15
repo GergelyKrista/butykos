@@ -54,15 +54,10 @@ func _ready() -> void:
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
 
-	# Rotate the world for isometric view (grid + facilities)
-	grid_renderer.rotation_degrees = 45
-	facilities_container.rotation_degrees = 45
-
-	# Center camera on grid
-	camera.position = Vector2(
-		WorldManager.GRID_SIZE.x * WorldManager.TILE_SIZE / 2.0,
-		WorldManager.GRID_SIZE.y * WorldManager.TILE_SIZE / 2.0
-	)
+	# Center camera on isometric grid
+	# The center of the grid in cartesian is (25, 25), convert to isometric
+	var center_cart = Vector2(WorldManager.GRID_SIZE.x / 2.0, WorldManager.GRID_SIZE.y / 2.0)
+	camera.position = WorldManager.cart_to_iso(center_cart)
 
 
 # ========================================
@@ -70,12 +65,10 @@ func _ready() -> void:
 # ========================================
 
 func _input(event: InputEvent) -> void:
-	# Update mouse position
+	# Update mouse position using proper isometric conversion
 	if event is InputEventMouse:
-		var screen_pos = camera.get_global_mouse_position()
-		# Adjust for 45-degree rotation of the world
-		var rotated_pos = screen_pos.rotated(-deg_to_rad(45))
-		mouse_grid_pos = WorldManager.world_to_grid(rotated_pos)
+		var world_pos = camera.get_global_mouse_position()
+		mouse_grid_pos = WorldManager.world_to_grid(world_pos)
 
 	# Placement mode input
 	if placement_mode:
@@ -106,15 +99,12 @@ func _process(_delta: float) -> void:
 		var facility_def = DataManager.get_facility_data(placement_facility_id)
 		var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
 
-		# Calculate center position (same logic as actual placement)
+		# Calculate center position using isometric coordinates
 		var center_grid_pos = Vector2(
 			mouse_grid_pos.x + size.x / 2.0,
 			mouse_grid_pos.y + size.y / 2.0
 		)
-		var world_pos = Vector2(
-			center_grid_pos.x * WorldManager.TILE_SIZE,
-			center_grid_pos.y * WorldManager.TILE_SIZE
-		)
+		var world_pos = WorldManager.cart_to_iso(center_grid_pos)
 
 		placement_preview.position = world_pos
 
@@ -143,25 +133,35 @@ func start_placement_mode(facility_id: String) -> void:
 
 
 func _create_placement_preview(facility_def: Dictionary) -> void:
-	"""Create visual preview for placement"""
+	"""Create visual preview for placement using isometric tiles"""
 	placement_preview = Node2D.new()
 	add_child(placement_preview)
 
 	var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
 	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
 
-	# Create rectangle for each tile
+	# Create diamond-shaped preview for each tile
 	for x in range(size.x):
 		for y in range(size.y):
-			var rect = ColorRect.new()
-			rect.size = Vector2(WorldManager.TILE_SIZE - 4, WorldManager.TILE_SIZE - 4)
-			rect.position = Vector2(
-				(x - size.x / 2.0) * WorldManager.TILE_SIZE + 2,
-				(y - size.y / 2.0) * WorldManager.TILE_SIZE + 2
-			)
-			rect.color = color
-			rect.color.a = 0.5
-			placement_preview.add_child(rect)
+			var polygon = Polygon2D.new()
+
+			# Create isometric diamond shape (center tiles at 0.5 offset for grid alignment)
+			var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
+			var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
+
+			# Define diamond vertices (isometric tile shape)
+			var half_width = WorldManager.TILE_WIDTH / 2.0
+			var half_height = WorldManager.TILE_HEIGHT / 2.0
+			polygon.polygon = PackedVector2Array([
+				tile_center_iso + Vector2(0, -half_height),      # Top
+				tile_center_iso + Vector2(half_width, 0),        # Right
+				tile_center_iso + Vector2(0, half_height),       # Bottom
+				tile_center_iso + Vector2(-half_width, 0)        # Left
+			])
+
+			polygon.color = color
+			polygon.color.a = 0.5
+			placement_preview.add_child(polygon)
 
 
 func _update_placement_preview_validity() -> void:
@@ -184,12 +184,12 @@ func _update_placement_preview_validity() -> void:
 
 
 func modulate_preview(color: Color) -> void:
-	"""Apply color modulation to all preview rectangles"""
+	"""Apply color modulation to all preview polygons"""
 	if not placement_preview:
 		return
 
 	for child in placement_preview.get_children():
-		if child is ColorRect:
+		if child is Polygon2D:
 			child.modulate = color
 
 
@@ -255,7 +255,7 @@ func _on_facility_placed(facility: Dictionary) -> void:
 
 
 func _create_facility_node(facility: Dictionary) -> Area2D:
-	"""Create a visual node for a facility with clickable area"""
+	"""Create a visual node for a facility with clickable area (isometric)"""
 	var area = Area2D.new()
 	area.name = facility.id
 	area.position = facility.world_pos
@@ -264,34 +264,49 @@ func _create_facility_node(facility: Dictionary) -> Area2D:
 	var size = facility.size
 	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
 
-	# Create sprite for each tile (placeholder - can be replaced with real sprites)
+	# Create isometric diamond for each tile
 	for x in range(size.x):
 		for y in range(size.y):
-			var sprite = Sprite2D.new()
-			sprite.texture = _create_placeholder_texture(WorldManager.TILE_SIZE - 4, color)
-			# Sprite2D positions from center, so add TILE_SIZE/2 offset
-			sprite.position = Vector2(
-				(x - size.x / 2.0) * WorldManager.TILE_SIZE + WorldManager.TILE_SIZE / 2.0,
-				(y - size.y / 2.0) * WorldManager.TILE_SIZE + WorldManager.TILE_SIZE / 2.0
-			)
-			area.add_child(sprite)
+			var polygon = Polygon2D.new()
 
-	# Add collision shape covering entire facility for click detection
+			# Calculate tile position in isometric space (center tiles at 0.5 offset for grid alignment)
+			var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
+			var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
+
+			# Define diamond vertices (isometric tile shape)
+			var half_width = WorldManager.TILE_WIDTH / 2.0
+			var half_height = WorldManager.TILE_HEIGHT / 2.0
+			polygon.polygon = PackedVector2Array([
+				tile_center_iso + Vector2(0, -half_height),      # Top
+				tile_center_iso + Vector2(half_width, 0),        # Right
+				tile_center_iso + Vector2(0, half_height),       # Bottom
+				tile_center_iso + Vector2(-half_width, 0)        # Left
+			])
+
+			polygon.color = color
+			area.add_child(polygon)
+
+	# Add collision shape covering entire facility (approximate with rectangle for now)
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
-	shape.size = Vector2(
-		size.x * WorldManager.TILE_SIZE - 8,
-		size.y * WorldManager.TILE_SIZE - 8
-	)
+	# Approximate size in isometric space
+	var iso_width = (size.x + size.y) * WorldManager.TILE_WIDTH / 2.0
+	var iso_height = (size.x + size.y) * WorldManager.TILE_HEIGHT / 2.0
+	shape.size = Vector2(iso_width, iso_height)
 	collision.shape = shape
 	area.add_child(collision)
 
-	# Add label
+	# Add label above facility
 	var label = Label.new()
 	label.text = facility_def.get("name", facility.type)
-	label.position = Vector2(-WorldManager.TILE_SIZE / 2, -size.y * WorldManager.TILE_SIZE / 2 - 20)
+	# Position label at top of facility
+	var top_offset = -(size.x + size.y) * WorldManager.TILE_HEIGHT / 2.0 - 20
+	label.position = Vector2(-50, top_offset)  # Center label approximately
 	label.add_theme_font_size_override("font_size", 12)
 	area.add_child(label)
+
+	# Set Z-index for proper rendering order (facilities further back render first)
+	area.z_index = facility.grid_pos.y * 100 + facility.grid_pos.x
 
 	# Connect click signal
 	area.input_event.connect(_on_facility_clicked.bind(facility.id))

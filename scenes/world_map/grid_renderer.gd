@@ -29,21 +29,24 @@ func _draw() -> void:
 
 
 func _draw_grid() -> void:
-	"""Draw the grid lines"""
-	var tile_size = WorldManager.TILE_SIZE
+	"""Draw the isometric diamond grid lines"""
 	var grid_size = WorldManager.GRID_SIZE
 
-	# Draw vertical lines
-	for x in range(grid_size.x + 1):
-		var start = Vector2(x * tile_size, 0)
-		var end = Vector2(x * tile_size, grid_size.y * tile_size)
-		draw_line(start, end, grid_color, grid_line_width)
-
-	# Draw horizontal lines
+	# Draw diagonal lines from top-left to bottom-right (rows)
 	for y in range(grid_size.y + 1):
-		var start = Vector2(0, y * tile_size)
-		var end = Vector2(grid_size.x * tile_size, y * tile_size)
-		draw_line(start, end, grid_color, grid_line_width)
+		var start_cart = Vector2(0, y)
+		var end_cart = Vector2(grid_size.x, y)
+		var start_iso = WorldManager.cart_to_iso(start_cart)
+		var end_iso = WorldManager.cart_to_iso(end_cart)
+		draw_line(start_iso, end_iso, grid_color, grid_line_width)
+
+	# Draw diagonal lines from top-right to bottom-left (columns)
+	for x in range(grid_size.x + 1):
+		var start_cart = Vector2(x, 0)
+		var end_cart = Vector2(x, grid_size.y)
+		var start_iso = WorldManager.cart_to_iso(start_cart)
+		var end_iso = WorldManager.cart_to_iso(end_cart)
+		draw_line(start_iso, end_iso, grid_color, grid_line_width)
 
 	# Optionally draw coordinate labels
 	if show_coordinates:
@@ -51,12 +54,13 @@ func _draw_grid() -> void:
 
 
 func _draw_coordinates() -> void:
-	"""Draw coordinate labels (for debugging)"""
-	var tile_size = WorldManager.TILE_SIZE
+	"""Draw coordinate labels (for debugging) in isometric space"""
 	var grid_size = WorldManager.GRID_SIZE
 
 	for x in range(0, grid_size.x, 5):
 		for y in range(0, grid_size.y, 5):
-			var pos = Vector2(x * tile_size + 5, y * tile_size + 15)
+			var cart_pos = Vector2(x, y)
+			var iso_pos = WorldManager.cart_to_iso(cart_pos)
+			iso_pos += Vector2(5, 5)  # Offset for readability
 			var text = "%d,%d" % [x, y]
-			draw_string(ThemeDB.fallback_font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
+			draw_string(ThemeDB.fallback_font, iso_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
