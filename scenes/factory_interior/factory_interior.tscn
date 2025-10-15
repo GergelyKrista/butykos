@@ -31,10 +31,17 @@ offset_right = 280.0
 offset_bottom = 60.0
 text = "Connect Machines"
 
-[node name="FactoryLabel" type="Label" parent="UI"]
-offset_left = 300.0
+[node name="DeleteConnectionButton" type="Button" parent="UI"]
+offset_left = 290.0
 offset_top = 20.0
-offset_right = 560.0
+offset_right = 480.0
+offset_bottom = 60.0
+text = "Delete Connection"
+
+[node name="FactoryLabel" type="Label" parent="UI"]
+offset_left = 500.0
+offset_top = 20.0
+offset_right = 760.0
 offset_bottom = 60.0
 theme_override_font_sizes/font_size = 24
 text = "Factory Interior"
@@ -86,4 +93,5 @@ theme_override_constants/separation = 8
 
 [connection signal="back_button_pressed" from="UI" to="." method="_on_back_button_pressed"]
 [connection signal="connect_button_pressed" from="UI" to="." method="_on_connect_button_pressed"]
+[connection signal="delete_connection_button_pressed" from="UI" to="." method="_on_delete_connection_button_pressed"]
 [connection signal="machine_button_pressed" from="UI" to="." method="_on_machine_button_pressed"]

@@ -32,6 +32,9 @@ var connection_mode: bool = false
 var connection_source_machine_id: String = ""
 var connection_source_visual: Node2D = null
 
+# Connection deletion mode
+var connection_delete_mode: bool = false
+
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 
@@ -110,12 +113,22 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_connection_mode()
 
+	# Connection deletion mode input
+	elif connection_delete_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				_on_delete_connection_click()
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_delete_connection_mode()
+
 	# Cancel placement/connection with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
 		elif connection_mode:
 			_cancel_connection_mode()
+		elif connection_delete_mode:
+			_cancel_delete_connection_mode()
 
 
 func _process(_delta: float) -> void:
@@ -367,6 +380,72 @@ func _cancel_connection_mode() -> void:
 
 
 # ========================================
+# CONNECTION DELETION MODE
+# ========================================
+
+func start_delete_connection_mode() -> void:
+	"""Enter connection deletion mode - click machines to delete their connection"""
+	connection_delete_mode = true
+	print("Delete connection mode started - Click first machine (source of connection)")
+
+
+func _on_delete_connection_click() -> void:
+	"""Handle mouse click in deletion mode - click two machines to delete their connection"""
+	# Get machine at clicked position
+	var clicked_machine = FactoryManager.get_machine_at_position(facility_id, mouse_grid_pos)
+
+	if clicked_machine.is_empty():
+		print("No machine at clicked position")
+		return
+
+	var clicked_machine_id = clicked_machine.get("id", "")
+
+	# First click - select source machine
+	if connection_source_machine_id.is_empty():
+		connection_source_machine_id = clicked_machine_id
+		print("Source machine selected: %s - Now click destination machine" % clicked_machine_id)
+
+		# Create visual highlight for source machine
+		_create_source_highlight(clicked_machine)
+
+	# Second click - select destination and delete connection
+	else:
+		var destination_machine_id = clicked_machine_id
+
+		# Try to remove connection
+		var success = FactoryManager.remove_connection(
+			facility_id,
+			connection_source_machine_id,
+			destination_machine_id
+		)
+
+		if success:
+			print("Connection deleted: %s → %s" % [connection_source_machine_id, destination_machine_id])
+		else:
+			print("No connection found between %s → %s" % [connection_source_machine_id, destination_machine_id])
+
+		# Reset for next deletion
+		connection_source_machine_id = ""
+		if connection_source_visual:
+			connection_source_visual.queue_free()
+			connection_source_visual = null
+
+		print("Click next source machine or press Escape to exit deletion mode")
+
+
+func _cancel_delete_connection_mode() -> void:
+	"""Cancel connection deletion mode"""
+	connection_delete_mode = false
+	connection_source_machine_id = ""
+
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+		connection_source_visual = null
+
+	print("Delete connection mode cancelled")
+
+
+# ========================================
 # MACHINE VISUALIZATION
 # ========================================
 
@@ -453,6 +532,11 @@ func _on_machine_button_pressed(machine_id: String) -> void:
 func _on_connect_button_pressed() -> void:
 	"""Handle connect button press from UI"""
 	start_connection_mode()
+
+
+func _on_delete_connection_button_pressed() -> void:
+	"""Handle delete connection button press from UI"""
+	start_delete_connection_mode()
 
 
 # ========================================
