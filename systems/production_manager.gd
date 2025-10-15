@@ -435,27 +435,26 @@ func _update_io_nodes(delta: float) -> void:
 
 
 func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
-	"""Input hopper pulls materials from facility inventory and distributes to adjacent machines"""
+	"""Input hopper pulls materials from facility inventory and distributes to connected machines"""
 
 	var hopper_id = hopper.get("id", "")
-	var grid_pos = hopper.get("grid_pos", Vector2i.ZERO)
 
-	# Check adjacent machines
-	var adjacent_positions = [
-		Vector2i(grid_pos.x, grid_pos.y - 1),  # North
-		Vector2i(grid_pos.x, grid_pos.y + 1),  # South
-		Vector2i(grid_pos.x - 1, grid_pos.y),  # West
-		Vector2i(grid_pos.x + 1, grid_pos.y),  # East
-	]
+	# Get all connections FROM this input hopper
+	var connections = FactoryManager.get_connections_from(facility_id, hopper_id)
+	if connections.is_empty():
+		return
 
-	# For each adjacent machine, check what it needs
-	for adj_pos in adjacent_positions:
-		var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
-		if adj_machine.is_empty():
+	# For each connected machine, check what it needs
+	for conn in connections:
+		var destination_machine_id = conn.get("to", "")
+		if destination_machine_id.is_empty():
 			continue
 
-		var adj_machine_id = adj_machine.get("id", "")
-		var machine_def = DataManager.get_machine_data(adj_machine.type)
+		var destination_machine = FactoryManager.get_machine(facility_id, destination_machine_id)
+		if destination_machine.is_empty():
+			continue
+
+		var machine_def = DataManager.get_machine_data(destination_machine.type)
 		if machine_def.is_empty():
 			continue
 
@@ -463,7 +462,7 @@ func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
 		if production_data.is_empty():
 			continue
 
-		# Get what the adjacent machine needs
+		# Get what the connected machine needs
 		var input_product = production_data.get("input", "")
 		if input_product.is_empty():
 			continue
@@ -473,42 +472,36 @@ func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
 		if facility_stock <= 0:
 			continue
 
-		# Transfer from facility to hopper, then to adjacent machine
+		# Transfer from facility to connected machine
 		var transfer_amount = min(io_node_transfer_amount, facility_stock)
 		if _remove_from_inventory(facility_id, input_product, transfer_amount):
-			_add_to_machine_inventory(facility_id, adj_machine_id, input_product, transfer_amount)
+			_add_to_machine_inventory(facility_id, destination_machine_id, input_product, transfer_amount)
 
 			print("Input Hopper: %d %s (facility → %s)" % [
 				transfer_amount,
 				input_product,
-				adj_machine_id
+				destination_machine_id
 			])
 
 
 func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
-	"""Output depot collects materials from adjacent machines and sends to facility inventory"""
+	"""Output depot collects materials from connected machines and sends to facility inventory"""
 
 	var depot_id = depot.get("id", "")
-	var grid_pos = depot.get("grid_pos", Vector2i.ZERO)
 
-	# Check adjacent machines
-	var adjacent_positions = [
-		Vector2i(grid_pos.x, grid_pos.y - 1),  # North
-		Vector2i(grid_pos.x, grid_pos.y + 1),  # South
-		Vector2i(grid_pos.x - 1, grid_pos.y),  # West
-		Vector2i(grid_pos.x + 1, grid_pos.y),  # East
-	]
+	# Get all connections TO this output depot
+	var connections = FactoryManager.get_connections_to(facility_id, depot_id)
+	if connections.is_empty():
+		return
 
-	# Collect from each adjacent machine
-	for adj_pos in adjacent_positions:
-		var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
-		if adj_machine.is_empty():
+	# Collect from each connected machine
+	for conn in connections:
+		var source_machine_id = conn.get("from", "")
+		if source_machine_id.is_empty():
 			continue
 
-		var adj_machine_id = adj_machine.get("id", "")
-
 		# Get machine's inventory
-		var machine_inventory = get_machine_inventory(facility_id, adj_machine_id)
+		var machine_inventory = get_machine_inventory(facility_id, source_machine_id)
 		if machine_inventory.is_empty():
 			continue
 
@@ -520,13 +513,13 @@ func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
 
 			# Transfer up to io_node_transfer_amount
 			var transfer_amount = min(io_node_transfer_amount, quantity)
-			if _remove_from_machine_inventory(facility_id, adj_machine_id, product, transfer_amount):
+			if _remove_from_machine_inventory(facility_id, source_machine_id, product, transfer_amount):
 				_add_to_inventory(facility_id, product, transfer_amount)
 
 				print("Output Depot: %d %s (%s → facility)" % [
 					transfer_amount,
 					product,
-					adj_machine_id
+					source_machine_id
 				])
 
 				# Check if product should be auto-sold
