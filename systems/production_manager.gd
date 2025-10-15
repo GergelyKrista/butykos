@@ -333,27 +333,21 @@ func get_machine_inventory_item(facility_id: String, machine_id: String, product
 
 
 # ========================================
-# ADJACENT MACHINE TRANSFER
+# MANUAL CONNECTION TRANSFER
 # ========================================
 
 func _try_transfer_to_adjacent(facility_id: String, machine_id: String, machine: Dictionary) -> void:
-	"""Try to transfer machine's output to adjacent machines that need it"""
+	"""Try to transfer machine's output through manual connections"""
 
 	# Get machine's current inventory
 	var inventory = get_machine_inventory(facility_id, machine_id)
 	if inventory.is_empty():
 		return
 
-	# Get machine's grid position
-	var grid_pos = machine.get("grid_pos", Vector2i.ZERO)
-
-	# Check all four adjacent directions (N, S, E, W)
-	var adjacent_positions = [
-		Vector2i(grid_pos.x, grid_pos.y - 1),  # North
-		Vector2i(grid_pos.x, grid_pos.y + 1),  # South
-		Vector2i(grid_pos.x - 1, grid_pos.y),  # West
-		Vector2i(grid_pos.x + 1, grid_pos.y),  # East
-	]
+	# Get all connections FROM this machine
+	var connections = FactoryManager.get_connections_from(facility_id, machine_id)
+	if connections.is_empty():
+		return
 
 	# Try to transfer each product in our inventory
 	for product in inventory.keys():
@@ -361,34 +355,29 @@ func _try_transfer_to_adjacent(facility_id: String, machine_id: String, machine:
 		if available_quantity <= 0:
 			continue
 
-		# Try each adjacent position
-		for adj_pos in adjacent_positions:
-			# Get machine at adjacent position
-			var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
-			if adj_machine.is_empty():
+		# Try each connection
+		for conn in connections:
+			var destination_machine_id = conn.get("to", "")
+			if destination_machine_id.is_empty():
 				continue
 
-			var adj_machine_id = adj_machine.get("id", "")
-			if adj_machine_id.is_empty():
+			var destination_machine = FactoryManager.get_machine(facility_id, destination_machine_id)
+			if destination_machine.is_empty():
 				continue
 
-			# Don't transfer to ourselves (for multi-tile machines)
-			if adj_machine_id == machine_id:
-				continue
-
-			# Check if adjacent machine needs this product
-			if _machine_needs_product(adj_machine, product):
+			# Check if destination machine needs this product
+			if _machine_needs_product(destination_machine, product):
 				# Try to transfer (transfer up to half of available, min 1)
 				var transfer_amount = max(1, available_quantity / 2)
 
 				if _remove_from_machine_inventory(facility_id, machine_id, product, transfer_amount):
-					_add_to_machine_inventory(facility_id, adj_machine_id, product, transfer_amount)
+					_add_to_machine_inventory(facility_id, destination_machine_id, product, transfer_amount)
 
 					print("Transferred %d %s: %s → %s" % [
 						transfer_amount,
 						product,
 						machine_id,
-						adj_machine_id
+						destination_machine_id
 					])
 
 					# Update available quantity for next transfer

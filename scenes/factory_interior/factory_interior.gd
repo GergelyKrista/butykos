@@ -27,6 +27,11 @@ var placement_mode: bool = false
 var placement_machine_id: String = ""
 var placement_preview: Node2D = null
 
+# Connection mode
+var connection_mode: bool = false
+var connection_source_machine_id: String = ""
+var connection_source_visual: Node2D = null
+
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 
@@ -97,10 +102,20 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_placement()
 
-	# Cancel placement with Escape
+	# Connection mode input
+	elif connection_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				_on_connection_mode_click()
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_connection_mode()
+
+	# Cancel placement/connection with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
+		elif connection_mode:
+			_cancel_connection_mode()
 
 
 func _process(_delta: float) -> void:
@@ -243,6 +258,115 @@ func _cancel_placement() -> void:
 
 
 # ========================================
+# CONNECTION MODE
+# ========================================
+
+func start_connection_mode() -> void:
+	"""Enter connection mode - click two machines to connect them"""
+	connection_mode = true
+	connection_source_machine_id = ""
+
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+		connection_source_visual = null
+
+	print("Connection mode started - Click first machine (source)")
+
+
+func _on_connection_mode_click() -> void:
+	"""Handle mouse click in connection mode"""
+	# Get machine at clicked position
+	var clicked_machine = FactoryManager.get_machine_at_position(facility_id, mouse_grid_pos)
+
+	if clicked_machine.is_empty():
+		print("No machine at clicked position")
+		return
+
+	var clicked_machine_id = clicked_machine.get("id", "")
+
+	# First click - select source machine
+	if connection_source_machine_id.is_empty():
+		connection_source_machine_id = clicked_machine_id
+		print("Source machine selected: %s" % clicked_machine_id)
+
+		# Create visual highlight for source machine
+		_create_source_highlight(clicked_machine)
+
+	# Second click - select destination and create connection
+	else:
+		var destination_machine_id = clicked_machine_id
+
+		# Can't connect machine to itself
+		if destination_machine_id == connection_source_machine_id:
+			print("Cannot connect machine to itself")
+			return
+
+		# Create connection
+		var success = FactoryManager.create_connection(
+			facility_id,
+			connection_source_machine_id,
+			destination_machine_id
+		)
+
+		if success:
+			print("Connection created: %s → %s" % [connection_source_machine_id, destination_machine_id])
+
+			# Reset for next connection
+			connection_source_machine_id = ""
+			if connection_source_visual:
+				connection_source_visual.queue_free()
+				connection_source_visual = null
+
+			print("Click next source machine or press Escape to exit connection mode")
+		else:
+			print("Failed to create connection (may already exist)")
+
+
+func _create_source_highlight(machine: Dictionary) -> void:
+	"""Create visual highlight for selected source machine"""
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+
+	connection_source_visual = Node2D.new()
+	connection_source_visual.z_index = 100  # Draw on top
+	add_child(connection_source_visual)
+
+	var machine_def = DataManager.get_machine_data(machine.type)
+	var size = machine.size
+	var world_pos = machine.world_pos
+
+	# Draw yellow outline around source machine
+	var outline = Polygon2D.new()
+	outline.color = Color(1.0, 1.0, 0.0, 0.5)  # Yellow semi-transparent
+	outline.position = world_pos
+
+	# Create larger diamond outline
+	var half_width = (size.x * FactoryManager.INTERIOR_TILE_SIZE) / 2.0 + 4
+	var half_height = (size.y * FactoryManager.INTERIOR_TILE_SIZE) / 2.0 + 4
+
+	outline.polygon = PackedVector2Array([
+		Vector2(-half_width, 0),
+		Vector2(0, -half_height),
+		Vector2(half_width, 0),
+		Vector2(0, half_height)
+	])
+
+	connection_source_visual.add_child(outline)
+
+
+func _cancel_connection_mode() -> void:
+	"""Cancel connection mode"""
+	connection_mode = false
+	connection_source_machine_id = ""
+
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+		connection_source_visual = null
+
+	print("Connection mode cancelled")
+
+
+# ========================================
 # MACHINE VISUALIZATION
 # ========================================
 
@@ -326,12 +450,17 @@ func _on_machine_button_pressed(machine_id: String) -> void:
 	start_placement_mode(machine_id)
 
 
+func _on_connect_button_pressed() -> void:
+	"""Handle connect button press from UI"""
+	start_connection_mode()
+
+
 # ========================================
 # CONNECTION VISUALIZATION
 # ========================================
 
 func _update_connections() -> void:
-	"""Draw lines showing connections between adjacent machines"""
+	"""Draw lines showing manual connections between machines"""
 	if not connections_renderer:
 		return
 
@@ -339,63 +468,27 @@ func _update_connections() -> void:
 	for child in connections_renderer.get_children():
 		child.queue_free()
 
-	# Get all machines
-	var machines = FactoryManager.get_all_machines(facility_id)
+	# Get all manual connections from FactoryManager
+	var connections = FactoryManager.get_connections(facility_id)
 
-	# Draw connections for each machine
-	for machine in machines:
-		_draw_machine_connections(machine)
+	# Draw each connection
+	for conn in connections:
+		var from_machine_id = conn.get("from", "")
+		var to_machine_id = conn.get("to", "")
 
+		var from_machine = FactoryManager.get_machine(facility_id, from_machine_id)
+		var to_machine = FactoryManager.get_machine(facility_id, to_machine_id)
 
-func _draw_machine_connections(machine: Dictionary) -> void:
-	"""Draw connection lines from this machine to adjacent machines"""
-	var machine_id = machine.get("id", "")
-	var grid_pos = machine.get("grid_pos", Vector2i.ZERO)
-	var world_pos = machine.get("world_pos", Vector2.ZERO)
-	var machine_def = DataManager.get_machine_data(machine.type)
-
-	# Check what this machine produces
-	var production_data = machine_def.get("production", {})
-	if production_data.is_empty():
-		return  # No production, no output connections
-
-	var output_product = production_data.get("output", "")
-	if output_product.is_empty():
-		return
-
-	# Check all four adjacent directions
-	var adjacent_offsets = [
-		{"offset": Vector2i(0, -1), "dir": Vector2(0, -1)},  # North
-		{"offset": Vector2i(0, 1), "dir": Vector2(0, 1)},    # South
-		{"offset": Vector2i(-1, 0), "dir": Vector2(-1, 0)},  # West
-		{"offset": Vector2i(1, 0), "dir": Vector2(1, 0)},    # East
-	]
-
-	for adj in adjacent_offsets:
-		var adj_pos = grid_pos + adj.offset
-		var adj_machine = FactoryManager.get_machine_at_position(facility_id, adj_pos)
-
-		if adj_machine.is_empty():
+		if from_machine.is_empty() or to_machine.is_empty():
 			continue
 
-		var adj_machine_id = adj_machine.get("id", "")
-		if adj_machine_id == machine_id:  # Skip self
-			continue
+		var from_pos = from_machine.get("world_pos", Vector2.ZERO)
+		var to_pos = to_machine.get("world_pos", Vector2.ZERO)
 
-		# Check if adjacent machine needs our output
-		var adj_machine_def = DataManager.get_machine_data(adj_machine.type)
-		var adj_production_data = adj_machine_def.get("production", {})
+		# Calculate direction for arrow
+		var direction = (to_pos - from_pos).normalized()
 
-		if adj_production_data.is_empty():
-			continue
-
-		var adj_input_product = adj_production_data.get("input", "")
-		if adj_input_product != output_product:
-			continue  # Adjacent machine doesn't need our output
-
-		# Draw connection line!
-		var adj_world_pos = adj_machine.get("world_pos", Vector2.ZERO)
-		_draw_connection_line(world_pos, adj_world_pos, adj.dir)
+		_draw_connection_line(from_pos, to_pos, direction)
 
 
 func _draw_connection_line(from_pos: Vector2, to_pos: Vector2, direction: Vector2) -> void:
