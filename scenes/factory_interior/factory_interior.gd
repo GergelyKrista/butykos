@@ -205,8 +205,8 @@ func _try_place_machine() -> void:
 		print("Cannot place machine: insufficient funds (need $%d)" % cost)
 		return
 
-	# Purchase machine
-	if not EconomyManager.purchase(cost, "Machine: %s" % machine_def.get("name", placement_machine_id)):
+	# Purchase machine (subtract money)
+	if not EconomyManager.subtract_money(cost, "Machine: %s" % machine_def.get("name", placement_machine_id)):
 		print("Cannot place machine: purchase failed")
 		return
 
