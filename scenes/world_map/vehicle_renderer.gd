@@ -154,10 +154,8 @@ func _position_traveling(vehicle_node: Node2D, vehicle: Dictionary, route_id: St
 	var source_pos = _get_facility_center_position(source_facility)
 	var dest_pos = _get_facility_center_position(dest_facility)
 
-	# Get travel progress (0.0 to 1.0)
-	var travel_timer = vehicle.get("travel_timer", 0.0)
-	var travel_time = vehicle.get("travel_time", 1.0)
-	var progress = 1.0 - (travel_timer / travel_time) if travel_time > 0 else 0.0
+	# Get travel progress (0.0 to 1.0) directly from vehicle
+	var progress = vehicle.get("travel_progress", 0.0)
 
 	# Interpolate position along route
 	vehicle_node.position = source_pos.lerp(dest_pos, progress)
