@@ -10,7 +10,9 @@ extends Node
 # ========================================
 
 const GRID_SIZE = Vector2i(50, 50)
-const TILE_SIZE = 64  # pixels per tile
+const TILE_WIDTH = 32  # Width of isometric tile (2:1 ratio)
+const TILE_HEIGHT = 16  # Height of isometric tile
+const TILE_SIZE = 64  # Legacy reference for compatibility (use TILE_WIDTH/HEIGHT for isometric)
 
 # ========================================
 # STATE
@@ -85,15 +87,12 @@ func place_facility(facility_type: String, grid_pos: Vector2i, facility_data: Di
 	_next_facility_id += 1
 
 	# Create facility data
-	# Calculate world position at center of facility (not just top-left tile)
+	# Calculate world position at center of facility using isometric coordinates
 	var center_grid_pos = Vector2(
 		grid_pos.x + size.x / 2.0,
 		grid_pos.y + size.y / 2.0
 	)
-	var world_pos = Vector2(
-		center_grid_pos.x * TILE_SIZE,
-		center_grid_pos.y * TILE_SIZE
-	)
+	var world_pos = cart_to_iso(center_grid_pos)
 
 	var facility = {
 		"id": facility_id,
@@ -231,19 +230,33 @@ func complete_construction(facility_id: String) -> void:
 # COORDINATE CONVERSION
 # ========================================
 
+func cart_to_iso(cart_pos: Vector2) -> Vector2:
+	"""Convert cartesian (grid) coordinates to isometric screen coordinates"""
+	var iso_x = (cart_pos.x - cart_pos.y) * (TILE_WIDTH / 2.0)
+	var iso_y = (cart_pos.x + cart_pos.y) * (TILE_HEIGHT / 2.0)
+	return Vector2(iso_x, iso_y)
+
+
+func iso_to_cart(iso_pos: Vector2) -> Vector2:
+	"""Convert isometric screen coordinates to cartesian (grid) coordinates"""
+	var cart_x = (iso_pos.x / (TILE_WIDTH / 2.0) + iso_pos.y / (TILE_HEIGHT / 2.0)) / 2.0
+	var cart_y = (iso_pos.y / (TILE_HEIGHT / 2.0) - iso_pos.x / (TILE_WIDTH / 2.0)) / 2.0
+	return Vector2(cart_x, cart_y)
+
+
 func grid_to_world(grid_pos: Vector2i) -> Vector2:
-	"""Convert grid coordinates to world pixel coordinates (center of tile)"""
-	return Vector2(
-		grid_pos.x * TILE_SIZE + TILE_SIZE / 2.0,
-		grid_pos.y * TILE_SIZE + TILE_SIZE / 2.0
-	)
+	"""Convert grid coordinates to world pixel coordinates (isometric)"""
+	# Convert to cartesian float first for accurate isometric conversion
+	var cart_pos = Vector2(grid_pos.x, grid_pos.y)
+	return cart_to_iso(cart_pos)
 
 
 func world_to_grid(world_pos: Vector2) -> Vector2i:
-	"""Convert world pixel coordinates to grid coordinates"""
+	"""Convert world pixel coordinates to grid coordinates (isometric)"""
+	var cart_pos = iso_to_cart(world_pos)
 	return Vector2i(
-		int(world_pos.x / TILE_SIZE),
-		int(world_pos.y / TILE_SIZE)
+		int(floor(cart_pos.x)),
+		int(floor(cart_pos.y))
 	)
 
 
