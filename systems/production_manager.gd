@@ -9,11 +9,19 @@ extends Node
 # STATE
 # ========================================
 
+# Facility production
 # Dictionary of production timers: { facility_id: time_remaining }
 var production_timers: Dictionary = {}
 
 # Dictionary of production outputs: { facility_id: {product_id: quantity} }
 var production_outputs: Dictionary = {}
+
+# Machine production
+# Dictionary of machine production timers: { "facility_id:machine_id": time_remaining }
+var machine_timers: Dictionary = {}
+
+# Dictionary of machine outputs: { "facility_id:machine_id": {product_id: quantity} }
+var machine_outputs: Dictionary = {}
 
 # ========================================
 # CONFIGURATION
@@ -35,9 +43,14 @@ func _ready() -> void:
 	EventBus.facility_constructed.connect(_on_facility_constructed)
 	EventBus.production_changed.connect(_on_production_changed)
 
+	# Connect to machine events
+	EventBus.machine_placed.connect(_on_machine_placed)
+	EventBus.machine_removed.connect(_on_machine_removed)
+
 
 func _process(delta: float) -> void:
 	_update_production(delta)
+	_update_machine_production(delta)
 
 
 # ========================================
@@ -116,6 +129,100 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 	])
 
 	# Auto-sell if enabled (only if this is a final product with no downstream use)
+	if auto_sell_enabled and _should_auto_sell(output_product):
+		_sell_product(facility_id, output_product, output_quantity)
+
+
+# ========================================
+# MACHINE PRODUCTION UPDATES
+# ========================================
+
+func _update_machine_production(delta: float) -> void:
+	"""Update production timers for all active machines"""
+
+	for machine_key in machine_timers.keys():
+		# Parse composite key "facility_id:machine_id"
+		var parts = machine_key.split(":", false)
+		if parts.size() != 2:
+			continue
+
+		var facility_id = parts[0]
+		var machine_id = parts[1]
+
+		# Get machine data
+		var machine = FactoryManager.get_machine(facility_id, machine_id)
+		if machine.is_empty():
+			continue
+
+		# Check if machine should be producing (facility must be operational)
+		var facility = WorldManager.get_facility(facility_id)
+		if facility.is_empty() or not facility.get("production_active", false):
+			continue
+
+		# Update timer
+		machine_timers[machine_key] -= delta
+
+		# Check if production cycle complete
+		if machine_timers[machine_key] <= 0:
+			_complete_machine_production_cycle(facility_id, machine_id, machine)
+
+
+func _complete_machine_production_cycle(facility_id: String, machine_id: String, machine: Dictionary) -> void:
+	"""Complete a production cycle for a machine"""
+
+	var machine_def = DataManager.get_machine_data(machine.type)
+	if machine_def.is_empty():
+		return
+
+	var production_data = machine_def.get("production", {})
+	if production_data.is_empty():
+		return
+
+	var output_product = production_data.get("output", "")
+	var output_quantity = production_data.get("quantity", 0)
+	var cycle_time = production_data.get("cycle_time", 5.0)
+
+	if output_product.is_empty() or output_quantity == 0:
+		return
+
+	# Check if machine requires inputs
+	var input_product = production_data.get("input", "")
+	var input_quantity = production_data.get("input_quantity", 0)
+
+	if not input_product.is_empty() and input_quantity > 0:
+		# Check facility inventory for input materials
+		var current_input = get_inventory_item(facility_id, input_product)
+		if current_input < input_quantity:
+			# Not enough inputs, can't produce
+			print("Machine production blocked: %s needs %d %s from facility (has %d)" % [
+				machine_def.get("name", machine.type),
+				input_quantity,
+				input_product,
+				current_input
+			])
+			# Reset timer to try again
+			var machine_key = "%s:%s" % [facility_id, machine_id]
+			machine_timers[machine_key] = cycle_time
+			return
+
+		# Consume inputs from facility inventory
+		_remove_from_inventory(facility_id, input_product, input_quantity)
+		print("Machine consumed %d %s from facility inventory" % [input_quantity, input_product])
+
+	# Add output to facility inventory (machines feed facility)
+	_add_to_inventory(facility_id, output_product, output_quantity)
+
+	# Reset timer
+	var machine_key = "%s:%s" % [facility_id, machine_id]
+	machine_timers[machine_key] = cycle_time
+
+	print("Machine production complete: %s produced %d %s" % [
+		machine_def.get("name", machine.type),
+		output_quantity,
+		output_product
+	])
+
+	# Auto-sell if enabled and product is final
 	if auto_sell_enabled and _should_auto_sell(output_product):
 		_sell_product(facility_id, output_product, output_quantity)
 
@@ -239,6 +346,46 @@ func _on_production_changed(facility_id: String, is_producing: bool) -> void:
 		print("Production enabled for: %s" % facility_id)
 	else:
 		print("Production disabled for: %s" % facility_id)
+
+
+func _on_machine_placed(factory_id: String, machine_data: Dictionary) -> void:
+	"""Handle machine placement - initialize production timer"""
+	var machine_id = machine_data.get("id", "")
+	if machine_id.is_empty():
+		return
+
+	var machine_type = machine_data.get("type", "")
+	var machine_def = DataManager.get_machine_data(machine_type)
+	if machine_def.is_empty():
+		return
+
+	var production_data = machine_def.get("production", {})
+	if production_data.is_empty():
+		# This machine doesn't produce anything (e.g., conveyor belt, input hopper)
+		return
+
+	var cycle_time = production_data.get("cycle_time", 5.0)
+	var machine_key = "%s:%s" % [factory_id, machine_id]
+
+	# Initialize production timer
+	machine_timers[machine_key] = cycle_time
+	machine_outputs[machine_key] = {}
+
+	print("Machine production initialized: %s in facility %s (cycle: %.1fs)" % [
+		machine_def.get("name", machine_type),
+		factory_id,
+		cycle_time
+	])
+
+
+func _on_machine_removed(factory_id: String, machine_id: String) -> void:
+	"""Handle machine removal - cleanup timers and outputs"""
+	var machine_key = "%s:%s" % [factory_id, machine_id]
+
+	machine_timers.erase(machine_key)
+	machine_outputs.erase(machine_key)
+
+	print("Machine production removed: %s from facility %s" % [machine_id, factory_id])
 
 
 # ========================================

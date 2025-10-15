@@ -115,6 +115,37 @@ func _process(_delta: float) -> void:
 
 		placement_preview.position = world_pos
 
+		# Update preview color based on validity
+		_update_placement_preview_validity()
+
+
+func _update_placement_preview_validity() -> void:
+	"""Update preview color based on whether placement is valid"""
+	if not placement_preview:
+		return
+
+	var machine_def = DataManager.get_machine_data(placement_machine_id)
+	var size = Vector2i(machine_def.get("size", [1, 1])[0], machine_def.get("size", [1, 1])[1])
+
+	var can_place = FactoryManager.can_place_machine(facility_id, mouse_grid_pos, size)
+	var can_afford = EconomyManager.can_afford(machine_def.get("cost", 0))
+
+	# Set color: green if valid, red if invalid
+	if can_place and can_afford:
+		_modulate_preview(Color(0.5, 1.0, 0.5, 0.7))
+	else:
+		_modulate_preview(Color(1.0, 0.3, 0.3, 0.7))
+
+
+func _modulate_preview(color: Color) -> void:
+	"""Apply color modulation to all preview rectangles"""
+	if not placement_preview:
+		return
+
+	for child in placement_preview.get_children():
+		if child is ColorRect:
+			child.modulate = color
+
 
 # ========================================
 # MACHINE PLACEMENT
@@ -162,10 +193,21 @@ func _try_place_machine() -> void:
 	"""Attempt to place machine at current mouse position"""
 	var machine_def = DataManager.get_machine_data(placement_machine_id)
 	var size = Vector2i(machine_def.get("size", [1, 1])[0], machine_def.get("size", [1, 1])[1])
+	var cost = machine_def.get("cost", 0)
 
 	# Check placement validity
 	if not FactoryManager.can_place_machine(facility_id, mouse_grid_pos, size):
 		print("Cannot place machine: invalid location")
+		return
+
+	# Check if player can afford
+	if not EconomyManager.can_afford(cost):
+		print("Cannot place machine: insufficient funds (need $%d)" % cost)
+		return
+
+	# Purchase machine
+	if not EconomyManager.purchase(cost, "Machine: %s" % machine_def.get("name", placement_machine_id)):
+		print("Cannot place machine: purchase failed")
 		return
 
 	# Place machine
@@ -174,7 +216,7 @@ func _try_place_machine() -> void:
 	})
 
 	if not machine_id.is_empty():
-		print("Machine placed successfully: %s" % machine_id)
+		print("Machine placed successfully: %s (cost: $%d)" % [machine_id, cost])
 		_create_machine_visual(machine_id)
 
 
