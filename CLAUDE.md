@@ -1,204 +1,274 @@
-# Alcohol Empire Tycoon - Development Guidelines
+# CLAUDE.md
 
-## Isometric Grid System Requirements
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-### CRITICAL: Grid Perspective for World Map
+## Project Overview
 
-The **world map layer** uses **isometric perspective** for proper visual presentation of the tycoon game, while **factory interiors remain top-down** for easier machine placement.
+**Alcohol Empire Tycoon** - OTTD-inspired business tycoon game built in Godot 4.2
+- **Theme:** Build and manage an alcohol production empire (beer, spirits)
+- **Dual-layer gameplay:** Strategic world map + Tactical factory interiors
+- **Engine:** Godot 4.2 with GDScript
+- **Status:** Dual-layer MVP complete, ready for interior production implementation
 
-### Why Isometric for World Map?
+## Running the Project
 
-For an OTTD-style tycoon game, isometric view is essential because:
+**Prerequisites:**
+- Godot 4.2 or later
 
-1. **Visual depth**: Facilities and buildings look 3D while remaining 2D sprites
-2. **Readability**: Multiple facilities visible simultaneously without overlapping
-3. **Industry standard**: All classic tycoon games (OTTD, RollerCoaster Tycoon, SimCity 2000) use isometric
-4. **Sprite efficiency**: Single sprite shows multiple sides of a building
-5. **Spatial clarity**: Players can easily understand layout and connections between facilities
+**To run:**
+1. Open the project in Godot Editor
+2. Press F5 or click "Run Project"
+3. Main scene: `res://scenes/world_map/world_map.tscn`
 
-### Dual-Layer Architecture
+**No build step required** - Godot projects run directly in the editor during development.
+
+## Git Workflow
+
+**Branch Strategy:**
+- `main` - Production branch (stable releases)
+- `dev` - Development branch (permanent, never deleted)
+- Feature branches - Merge into `dev` first, then `dev` → `main` when ready
+
+**Workflow:**
+1. Create feature branch from `dev`
+2. Develop and commit changes
+3. Merge feature → `dev`, test
+4. Merge `dev` → `main` for production release
+5. Delete feature branches after merge
+
+## Architecture Overview
+
+### Singleton Autoload System
+
+The game uses singleton managers (autoloaded in `project.godot`) for global state:
+
+```
+core/
+├── event_bus.gd         # Signal hub (40+ signals for decoupled communication)
+├── game_manager.gd      # Game state, scene transitions, active_factory_id tracking
+├── data_manager.gd      # JSON data loading with helper filters
+└── save_manager.gd      # Save/load framework (not fully implemented)
+
+systems/
+├── world_manager.gd     # 50×50 isometric grid, facility placement, coordinate conversion
+├── economy_manager.gd   # Money tracking, transactions
+├── production_manager.gd # Input-based production cycles, inventory
+├── logistics_manager.gd  # Routes, vehicles, cargo transport
+└── factory_manager.gd   # 20×20 factory interiors per facility, machine placement
+```
+
+**Access pattern:** All managers are globally accessible:
+```gdscript
+WorldManager.place_facility(...)
+EventBus.facility_placed.emit(facility)
+EconomyManager.money
+```
+
+### Dual-Layer System
 
 **World Map (Strategic Layer):**
-- Isometric view (2:1 ratio tiles)
-- 50×50 grid
-- Camera/world rotated 45°
-- Tile size: 32×16 pixels (width×height)
+- 50×50 **isometric grid** (32×16 pixel tiles, 2:1 ratio)
+- Facility placement with multi-tile support (2×2, 3×3, etc.)
+- Route creation for logistics
+- Scene: `scenes/world_map/world_map.tscn`
 
 **Factory Interior (Tactical Layer):**
-- Top-down orthogonal view
-- 20×20 grid
-- No rotation
-- Tile size: 64×64 pixels
+- 20×20 **orthogonal top-down grid** (64×64 pixel tiles)
+- Machine placement within facilities
+- Independent state per facility
+- Scene: `scenes/factory_interior/factory_interior.tscn`
 
-## Technical Specifications
+**Scene Transition:**
+- Double-click or Shift+click facility → Enter interior
+- `GameManager.active_factory_id` tracks current factory
+- State persists across transitions
 
-### Isometric Grid Properties
+### Signal-Based Communication
 
-- **Tile dimensions**: 32×16 pixels (2:1 ratio)
-- **Grid size**: 50×50 tiles
-- **Rotation**: 45° world rotation
-- **View angle**: ~26.565° from horizontal
-
-### Coordinate System
-
-#### World Map Isometric Conversion
+All system communication goes through `EventBus` to maintain loose coupling:
 
 ```gdscript
-# In WorldManager
-const TILE_SIZE = 32  # Width of isometric tile
-const TILE_HEIGHT = 16  # Height of isometric tile (2:1 ratio)
-const GRID_SIZE = Vector2i(50, 50)
+# Example: Facility placement flow
+WorldManager.place_facility(...)
+  → EventBus.facility_placed.emit(facility)
+  → ProductionManager starts production timers
+  → WorldMap creates visual representation
+```
 
-# Cartesian to Isometric
+### Data-Driven Design
+
+Game content defined in JSON files (`data/`):
+- `facilities.json` - Buildings (Barley Field, Grain Mill, Brewery)
+- `machines.json` - Interior machines (12 types: mash tuns, fermentation vats, etc.)
+- Future: `products.json`, `recipes.json`
+
+All costs, production times, and recipes in JSON for easy balancing.
+
+## Critical: Isometric Coordinate System
+
+The world map uses **true isometric mathematics** (not 45° rotation hack):
+
+### Constants (WorldManager)
+```gdscript
+const TILE_WIDTH = 32   # Isometric tile width
+const TILE_HEIGHT = 16  # Isometric tile height (2:1 ratio)
+const GRID_SIZE = Vector2i(50, 50)
+```
+
+### Coordinate Conversion Functions
+```gdscript
+# Cartesian (grid) to Isometric (screen)
 func cart_to_iso(cart_pos: Vector2) -> Vector2:
-    var iso_x = (cart_pos.x - cart_pos.y) * (TILE_SIZE / 2.0)
+    var iso_x = (cart_pos.x - cart_pos.y) * (TILE_WIDTH / 2.0)
     var iso_y = (cart_pos.x + cart_pos.y) * (TILE_HEIGHT / 2.0)
     return Vector2(iso_x, iso_y)
 
-# Isometric to Cartesian
+# Isometric (screen) to Cartesian (grid)
 func iso_to_cart(iso_pos: Vector2) -> Vector2:
-    var cart_x = (iso_pos.x / (TILE_SIZE / 2.0) + iso_pos.y / (TILE_HEIGHT / 2.0)) / 2.0
-    var cart_y = (iso_pos.y / (TILE_HEIGHT / 2.0) - iso_pos.x / (TILE_SIZE / 2.0)) / 2.0
+    var cart_x = (iso_pos.x / (TILE_WIDTH / 2.0) + iso_pos.y / (TILE_HEIGHT / 2.0)) / 2.0
+    var cart_y = (iso_pos.y / (TILE_HEIGHT / 2.0) - iso_pos.x / (TILE_WIDTH / 2.0)) / 2.0
     return Vector2(cart_x, cart_y)
 ```
 
-#### Factory Interior (Orthogonal)
+### Key Rules for Isometric Code
 
+1. **Tile Alignment:** Tiles sit *between* grid lines, not *on* them
+   - Grid lines at integer coords (0, 1, 2...)
+   - Tile centers at half-integer coords (0.5, 1.5, 2.5...)
+   - Always add `+ 0.5` offset when positioning tiles
+
+2. **Z-Index Sorting:** Required for proper depth
+   ```gdscript
+   facility.z_index = grid_pos.y * 100 + grid_pos.x
+   ```
+
+3. **Diamond Shapes:** Facilities render as Polygon2D diamonds, not rectangles
+   ```gdscript
+   # Diamond vertices for 32×16 tile
+   var half_width = TILE_WIDTH / 2.0   # 16
+   var half_height = TILE_HEIGHT / 2.0 # 8
+   polygon.polygon = PackedVector2Array([
+       Vector2(0, -half_height),     # Top
+       Vector2(half_width, 0),       # Right
+       Vector2(0, half_height),      # Bottom
+       Vector2(-half_width, 0)       # Left
+   ])
+   ```
+
+4. **Mouse Input:** Use `WorldManager.world_to_grid()` directly (handles isometric conversion)
+
+5. **Factory Interiors:** Stay orthogonal (top-down), use `FactoryManager.INTERIOR_TILE_SIZE = 64`
+
+## Production System Flow
+
+**3-Stage Chain Example:**
+1. **Barley Field** (source) → produces barley every 5s
+2. **Grain Mill** (processor) → consumes barley, produces malt every 3s
+3. **Brewery** (final) → consumes malt, produces ale → **auto-sells for profit**
+
+**Key Rules:**
+- Intermediate products (barley, malt) stay in facility inventory
+- Final products auto-sell immediately
+- Production requires inputs (checked via ProductionManager)
+- Routes transport goods between facilities (LogisticsManager)
+
+## Code Style Requirements
+
+**Type Hints:**
 ```gdscript
-# In FactoryManager
-const INTERIOR_TILE_SIZE = 64  # Square tiles
-const INTERIOR_GRID_SIZE = Vector2i(20, 20)
-
-# Simple orthogonal conversion (no rotation)
-func grid_to_world(grid_pos: Vector2i) -> Vector2:
-    return Vector2(
-        grid_pos.x * INTERIOR_TILE_SIZE + INTERIOR_TILE_SIZE / 2.0,
-        grid_pos.y * INTERIOR_TILE_SIZE + INTERIOR_TILE_SIZE / 2.0
-    )
+func place_facility(facility_type: String, grid_pos: Vector2i) -> String:
+    # Always use explicit types for parameters and returns
 ```
 
-### Mouse Input Handling
-
-For world map with 45° rotation:
-
+**Coordinate Comments:**
 ```gdscript
-func _input(event: InputEvent) -> void:
-    if event is InputEventMouse:
-        var screen_pos = camera.get_global_mouse_position()
-        # Adjust for 45-degree rotation of the world
-        var rotated_pos = screen_pos.rotated(-deg_to_rad(45))
-        mouse_grid_pos = WorldManager.world_to_grid(rotated_pos)
+# Convert from cartesian grid space to isometric screen space
+var world_pos = cart_to_iso(center_grid_pos)
 ```
 
-### Rendering Order (Z-Index)
+**Separation of Concerns:**
+- Isometric logic → `WorldManager` and `scenes/world_map/`
+- Orthogonal logic → `FactoryManager` and `scenes/factory_interior/`
+- Never mix coordinate systems
 
-Critical for isometric: Objects further "back" render first.
+## Common Gotchas
 
-```gdscript
-# Calculate Z-index for proper rendering order
-# Higher Y + Higher X = render first (behind)
-facility.z_index = grid_y * 100 + grid_x
+1. **Autoload not recognized:** Restart Godot editor (known issue)
+2. **Tiles misaligned with grid:** Add 0.5 offset to tile positions
+3. **Facilities render in wrong order:** Check Z-index calculation
+4. **Mouse picking fails:** Ensure using proper isometric conversion
+5. **Factory interior broken:** Never apply isometric logic to factory scenes
+
+## File Structure
+
+```
+butykos/
+├── core/              # Singleton managers (autoloaded)
+├── systems/           # Game system managers (autoloaded)
+├── scenes/
+│   ├── world_map/     # Strategic layer (isometric)
+│   └── factory_interior/ # Tactical layer (orthogonal)
+├── data/              # JSON configuration files
+├── assets/            # Sprites, textures (currently placeholders)
+└── ui/                # UI components
+
+Documentation:
+├── DEVELOPMENT_STATUS.md  # Current progress, milestones
+├── TESTING_GUIDE.md       # Production chain testing
+├── DUAL_LAYER_TEST.md     # Factory interior testing
+├── SPRITE_ASSET_GUIDE.md  # Asset replacement guide
+└── TROUBLESHOOTING.md     # Common issues
 ```
 
-## Asset Requirements
+## Next Development Priorities
 
-### World Map Sprites (Isometric)
+Based on `DEVELOPMENT_STATUS.md`:
 
-All facility/building sprites for the world map must be drawn from **isometric perspective**:
+**Phase 4B - Machine Production (current):**
+- Add machine placement UI in factory interiors
+- Connect machine production to facility output
+- Machines process materials inside factories
 
-**Isometric building appearance:**
-```
-      ╱╲
-     ╱  ╲      ← Roof visible
-    ╱────╲
-   │      │    ← Front face visible
-   │      │    ← Side face visible
-   └──────┘
-```
+**Phase 4C - Interior Logistics:**
+- Conveyor belts between machines
+- Input/output nodes connecting to facility logistics
 
-**Key requirements:**
-- View from above at ~30-35° angle
-- Shows top, front, and right side of buildings (or left side - pick one and be consistent)
-- All sprites at the same isometric angle
+**Phase 5 - Content Expansion:**
+- More facility types (distillery, wheat farm, packaging)
+- More machine types (20+ total)
+- Multiple production chains
 
-**Dimensions:**
-- Fit within 64×64 pixel area (but maintain isometric shape)
-- Use 32×16 base tile for smaller facilities
-- Larger facilities can span multiple tiles (2×2, 3×3, etc.)
+## Asset Guidelines
 
-**Pivot points:**
-- Set sprite origin/pivot to **bottom-center** of the isometric diamond
-- Ensures proper vertical sorting
+**World Map Sprites (Isometric):**
+- Draw from ~30-35° viewing angle
+- Show top, front, and one side
+- Fit within 64×64 but maintain isometric diamond shape
+- Pivot: bottom-center of diamond
 
-### Factory Interior Sprites (Top-Down)
+**Factory Interior Sprites (Top-Down):**
+- Simple orthogonal view (straight down)
+- 64×64 square tiles
+- Pivot: center
 
-Machine sprites use simple **orthogonal top-down** view:
+**Current Implementation:**
+Using `Polygon2D` colored diamonds as placeholders - easy to replace with sprite textures.
 
-**Dimensions:**
-- Fit within 64×64 pixel area
-- Machines can be 1×1, 2×2, 2×3, etc. tiles
-- Simple top-down perspective (looking straight down)
+## Testing the Game
 
-**Pivot points:**
-- Center of sprite
+**Basic Playthrough:**
+1. Place Barley Field ($100) - produces barley
+2. Place Grain Mill ($300) - waits for barley
+3. Create route: Field → Mill (click "Create Route" button, click both facilities)
+4. Mill converts barley to malt
+5. Place Brewery ($500) - waits for malt
+6. Create route: Mill → Brewery
+7. Brewery produces ale → money increases
+8. Double-click Brewery to enter interior (20×20 grid with machines)
+9. Click "Back" to return to world map
 
-### Placeholder Sprites (Current Implementation)
-
-For now, using colored Sprite2D placeholders:
-
-```gdscript
-func _create_placeholder_texture(tile_size: int, color: Color) -> ImageTexture:
-    var image = Image.create(tile_size, tile_size, false, Image.FORMAT_RGBA8)
-    image.fill(color)
-    return ImageTexture.create_from_image(image)
-```
-
-**Colors from data/facilities.json:**
-- Barley Field: #7cba3f (green)
-- Grain Mill: #8b6f47 (brown)
-- Brewery: #c97a3f (orange)
-
-## Implementation Checklist
-
-### Phase 1: Current State (Main Branch)
-- [x] World map with 45° rotation
-- [x] Grid visible and rotated
-- [x] Basic mouse input adjusted for rotation
-- [x] Placeholder colored squares for facilities
-- [x] Factory interior stays top-down
-
-### Phase 2: Proper Isometric (New Branch)
-- [ ] Update WorldManager with proper isometric conversion functions
-- [ ] Adjust TILE_SIZE to 32×16 for isometric
-- [ ] Fix mouse input for true isometric coordinate conversion
-- [ ] Update facility placement preview for isometric tiles
-- [ ] Adjust collision shapes for isometric diamond tiles
-- [ ] Implement proper Z-index sorting
-- [ ] Create isometric placeholder diamonds (not squares)
-- [ ] Test multi-tile facility placement in isometric
-- [ ] Ensure factory interior stays unchanged
-
-### Phase 3: Asset Integration (Future)
-- [ ] Design/commission isometric facility sprites
-- [ ] Replace placeholders with real isometric art
-- [ ] Add building animations (smoke, activity indicators)
-- [ ] Design top-down machine sprites for factory interiors
-- [ ] Implement sprite atlases for performance
-
-## Code Style Guidelines
-
-- Use explicit type hints for all function parameters and returns
-- Comment coordinate space conversions clearly
-- Keep isometric logic in WorldManager
-- Keep orthogonal logic in FactoryManager
-- Test both layers independently
-
-## Testing Notes
-
-When testing isometric implementation:
-1. Verify grid lines form perfect diamonds
-2. Check mouse clicks land on correct grid tiles
-3. Test facility placement at all grid positions
-4. Verify facilities don't overlap incorrectly
-5. Ensure factory interior still works in top-down
-6. Test scene transitions between layers
+**Current Limitations:**
+- No machine placement UI yet (interior build menu not implemented)
+- No visual route lines
+- No vehicle sprites (transport is invisible but functional)
+- Camera zoom not implemented
