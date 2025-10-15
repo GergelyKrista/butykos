@@ -1,7 +1,7 @@
 # Development Status - Alcohol Empire Tycoon
 
-**Last Updated:** 2025-10-14
-**Current Phase:** Dual-Layer MVP Complete - Ready for Testing
+**Last Updated:** 2025-10-15
+**Current Phase:** Dual-Layer MVP Complete - Phase 4B Next
 **Target:** 15-18 months to Early Access
 
 ## 🎯 Project Vision
@@ -149,42 +149,61 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
    - Transfer materials in/out of factory
    - Visualize incoming/outgoing cargo
 
+### Phase 4D: Logistics Visualization (1-2 sessions)
+6. **Visual route lines on world map**
+   - Draw lines/paths between connected facilities
+   - Show route direction (arrows or flow indicators)
+   - Color-code by product type or efficiency
+   - Highlight routes on hover/selection
+
+7. **Vehicle visuals and animations**
+   - Add vehicle sprites (trucks, carts, etc.)
+   - Animate vehicles moving along routes
+   - Show cargo type on vehicles
+   - Vehicle speed based on distance/efficiency
+
+8. **Route statistics and feedback**
+   - Display cargo flow rate per route
+   - Show route congestion/bottlenecks
+   - Efficiency indicators
+   - Route management UI (pause, delete, assign vehicles)
+
 ### Phase 5: Content Expansion (3-5 sessions)
-6. **Additional facilities**
+9. **Additional facilities**
    - Distillery (whiskey production)
    - Wheat farm (alternative grain)
    - Packaging facilities
    - Storage warehouses
 
-7. **More machines**
+10. **More machines**
    - Distillation columns
    - Aging barrels
    - Bottling lines
    - Quality control stations
 
 ### Phase 6: Economic Depth (5-7 sessions)
-8. **Market system**
+11. **Market system**
    - Dynamic pricing
    - Supply and demand
    - Market trends
 
-9. **Upgrades and research**
+12. **Upgrades and research**
    - Facility upgrades
    - Machine efficiency improvements
    - Unlock new recipes
 
 ### Phase 7: Polish & Systems (7-10 sessions)
-10. **Save/Load system**
+13. **Save/Load system**
     - Complete SaveManager implementation
     - JSON save file format
     - Autosave functionality
 
-11. **Visual improvements**
+14. **Visual improvements**
     - Replace placeholder sprites
     - Production animations
     - UI polish and tooltips
 
-12. **Tutorial and progression**
+15. **Tutorial and progression**
     - Onboarding for new players
     - Unlock progression
     - Achievement system
@@ -339,22 +358,23 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 ## 🎯 Session Summary
 
 ### What Was Just Completed (This Session)
-1. ✅ Created `data/machines.json` with 12 machine types
-2. ✅ Updated DataManager with machine helper methods
-3. ✅ Created `DUAL_LAYER_TEST.md` testing guide
-4. ✅ Updated `DEVELOPMENT_STATUS.md` with current progress
+1. ✅ Implemented proper isometric coordinate system (32×16 → 64×32 tiles)
+2. ✅ Fixed tile alignment with grid (0.5 offset)
+3. ✅ Created comprehensive CLAUDE.md for future AI instances
+4. ✅ Added Phase 4D: Logistics Visualization to roadmap
+5. ✅ Updated git workflow (main/dev branching strategy)
 
 ### Previously Completed (Earlier Sessions)
-- ✅ FactoryManager implementation
-- ✅ Factory interior scene and scripts
+- ✅ Dual-layer factory interior system
+- ✅ Machine placement and data definitions
+- ✅ Isometric grid rendering with diamond tiles
 - ✅ Scene transition system
-- ✅ Machine placement logic
-- ✅ State persistence system
+- ✅ State persistence across layers
 
-### Ready for User Testing
-- The dual-layer system is ready for testing
-- Follow DUAL_LAYER_TEST.md for step-by-step testing
-- Report any issues or unexpected behavior
+### Next Focus
+- Phase 4B: Machine production UI and logic
+- Phase 4C: Interior logistics (conveyor belts)
+- Phase 4D: Logistics visualization (route lines, vehicles)
 
 ## 📝 Notes
 
@@ -375,9 +395,9 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 ### User Feedback Integration
 - ✅ Multi-tile facilities preferred over single-tile
 - ✅ Sprite-based system for easy asset replacement
-- ✅ Conveyor belts planned for future phase
+- ✅ Conveyor belts planned for Phase 4C
 - ✅ Dual-layer system (strategic + tactical) implemented
-- ✅ No visual route lines for now (intentional)
+- 🔄 Visual route lines and vehicles planned for Phase 4D
 
 ### Git History
 ```
