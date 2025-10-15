@@ -164,6 +164,7 @@ func place_machine(facility_id: String, machine_type: String, grid_pos: Vector2i
 			grid[grid_pos.x + x][grid_pos.y + y] = machine_id
 
 	print("Machine placed: %s at %s in factory %s" % [machine_type, grid_pos, facility_id])
+	EventBus.machine_placed.emit(facility_id, machine)
 
 	return machine_id
 
