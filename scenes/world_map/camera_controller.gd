@@ -135,17 +135,24 @@ func _handle_edge_pan(delta: float) -> void:
 # ========================================
 
 func _clamp_camera_position() -> void:
-	"""Keep camera within grid bounds"""
+	"""Keep camera within isometric grid bounds"""
 	var grid_size = WorldManager.GRID_SIZE
-	var tile_size = WorldManager.TILE_SIZE
-
 	var viewport_size = get_viewport_rect().size / zoom
 
-	# Calculate bounds
-	var min_x = viewport_size.x / 2.0
-	var max_x = grid_size.x * tile_size - viewport_size.x / 2.0
+	# Calculate isometric grid bounds
+	# Top corner (0,0) -> iso (0,0)
+	# Right corner (50,0) -> iso (800, 400)
+	# Left corner (0,50) -> iso (-800, 400)
+	# Bottom corner (50,50) -> iso (0, 800)
+	var iso_half_width = grid_size.x * WorldManager.TILE_WIDTH / 2.0
+	var iso_half_height = grid_size.y * WorldManager.TILE_HEIGHT / 2.0
+	var iso_total_height = (grid_size.x + grid_size.y) * WorldManager.TILE_HEIGHT / 2.0
+
+	# Calculate bounds with viewport padding
+	var min_x = -iso_half_width + viewport_size.x / 2.0
+	var max_x = iso_half_width - viewport_size.x / 2.0
 	var min_y = viewport_size.y / 2.0
-	var max_y = grid_size.y * tile_size - viewport_size.y / 2.0
+	var max_y = iso_total_height - viewport_size.y / 2.0
 
 	# Clamp position
 	position.x = clamp(position.x, min_x, max_x)
