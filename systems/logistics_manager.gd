@@ -154,12 +154,14 @@ func _create_vehicle(route_id: String, source_id: String, destination_id: String
 	vehicles[vehicle_id] = vehicle
 
 	EventBus.vehicle_created.emit(vehicle)
+	EventBus.vehicle_spawned.emit(vehicle)  # Alias for visualization
 
 	return vehicle_id
 
 
 func _remove_vehicle(vehicle_id: String) -> void:
 	"""Remove a vehicle"""
+	EventBus.vehicle_removed.emit(vehicle_id)
 	vehicles.erase(vehicle_id)
 
 

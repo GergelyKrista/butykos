@@ -11,6 +11,7 @@ extends Node2D
 
 @onready var grid_renderer = $GridRenderer
 @onready var machines_container = $MachinesContainer
+@onready var connections_renderer: Node2D = null  # Will be created dynamically
 @onready var camera = $Camera2D
 @onready var ui = $UI
 
@@ -25,6 +26,14 @@ var interior_data: Dictionary = {}
 var placement_mode: bool = false
 var placement_machine_id: String = ""
 var placement_preview: Node2D = null
+
+# Connection mode
+var connection_mode: bool = false
+var connection_source_machine_id: String = ""
+var connection_source_visual: Node2D = null
+
+# Connection deletion mode
+var connection_delete_mode: bool = false
 
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
@@ -51,6 +60,12 @@ func _ready() -> void:
 
 	# Load existing machines
 	_load_existing_machines()
+
+	# Create connections renderer
+	connections_renderer = Node2D.new()
+	connections_renderer.name = "ConnectionsRenderer"
+	add_child(connections_renderer)
+	connections_renderer.z_index = -1  # Draw behind machines
 
 	# Center camera
 	camera.position = Vector2(
@@ -90,10 +105,30 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_placement()
 
-	# Cancel placement with Escape
+	# Connection mode input
+	elif connection_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				_on_connection_mode_click()
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_connection_mode()
+
+	# Connection deletion mode input
+	elif connection_delete_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				_on_delete_connection_click()
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_delete_connection_mode()
+
+	# Cancel placement/connection with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
+		elif connection_mode:
+			_cancel_connection_mode()
+		elif connection_delete_mode:
+			_cancel_delete_connection_mode()
 
 
 func _process(_delta: float) -> void:
@@ -117,6 +152,9 @@ func _process(_delta: float) -> void:
 
 		# Update preview color based on validity
 		_update_placement_preview_validity()
+
+	# Update connection visuals every frame
+	_update_connections()
 
 
 func _update_placement_preview_validity() -> void:
@@ -233,6 +271,181 @@ func _cancel_placement() -> void:
 
 
 # ========================================
+# CONNECTION MODE
+# ========================================
+
+func start_connection_mode() -> void:
+	"""Enter connection mode - click two machines to connect them"""
+	connection_mode = true
+	connection_source_machine_id = ""
+
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+		connection_source_visual = null
+
+	print("Connection mode started - Click first machine (source)")
+
+
+func _on_connection_mode_click() -> void:
+	"""Handle mouse click in connection mode"""
+	# Get machine at clicked position
+	var clicked_machine = FactoryManager.get_machine_at_position(facility_id, mouse_grid_pos)
+
+	if clicked_machine.is_empty():
+		print("No machine at clicked position")
+		return
+
+	var clicked_machine_id = clicked_machine.get("id", "")
+
+	# First click - select source machine
+	if connection_source_machine_id.is_empty():
+		connection_source_machine_id = clicked_machine_id
+		print("Source machine selected: %s" % clicked_machine_id)
+
+		# Create visual highlight for source machine
+		_create_source_highlight(clicked_machine)
+
+	# Second click - select destination and create connection
+	else:
+		var destination_machine_id = clicked_machine_id
+
+		# Can't connect machine to itself
+		if destination_machine_id == connection_source_machine_id:
+			print("Cannot connect machine to itself")
+			return
+
+		# Create connection
+		var success = FactoryManager.create_connection(
+			facility_id,
+			connection_source_machine_id,
+			destination_machine_id
+		)
+
+		if success:
+			print("Connection created: %s → %s" % [connection_source_machine_id, destination_machine_id])
+
+			# Reset for next connection
+			connection_source_machine_id = ""
+			if connection_source_visual:
+				connection_source_visual.queue_free()
+				connection_source_visual = null
+
+			print("Click next source machine or press Escape to exit connection mode")
+		else:
+			print("Failed to create connection (may already exist)")
+
+
+func _create_source_highlight(machine: Dictionary) -> void:
+	"""Create visual highlight for selected source machine"""
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+
+	connection_source_visual = Node2D.new()
+	connection_source_visual.z_index = 100  # Draw on top
+	add_child(connection_source_visual)
+
+	var machine_def = DataManager.get_machine_data(machine.type)
+	var size = machine.size
+	var world_pos = machine.world_pos
+
+	# Draw yellow outline around source machine
+	var outline = Polygon2D.new()
+	outline.color = Color(1.0, 1.0, 0.0, 0.5)  # Yellow semi-transparent
+	outline.position = world_pos
+
+	# Create larger diamond outline
+	var half_width = (size.x * FactoryManager.INTERIOR_TILE_SIZE) / 2.0 + 4
+	var half_height = (size.y * FactoryManager.INTERIOR_TILE_SIZE) / 2.0 + 4
+
+	outline.polygon = PackedVector2Array([
+		Vector2(-half_width, 0),
+		Vector2(0, -half_height),
+		Vector2(half_width, 0),
+		Vector2(0, half_height)
+	])
+
+	connection_source_visual.add_child(outline)
+
+
+func _cancel_connection_mode() -> void:
+	"""Cancel connection mode"""
+	connection_mode = false
+	connection_source_machine_id = ""
+
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+		connection_source_visual = null
+
+	print("Connection mode cancelled")
+
+
+# ========================================
+# CONNECTION DELETION MODE
+# ========================================
+
+func start_delete_connection_mode() -> void:
+	"""Enter connection deletion mode - click machines to delete their connection"""
+	connection_delete_mode = true
+	print("Delete connection mode started - Click first machine (source of connection)")
+
+
+func _on_delete_connection_click() -> void:
+	"""Handle mouse click in deletion mode - click two machines to delete their connection"""
+	# Get machine at clicked position
+	var clicked_machine = FactoryManager.get_machine_at_position(facility_id, mouse_grid_pos)
+
+	if clicked_machine.is_empty():
+		print("No machine at clicked position")
+		return
+
+	var clicked_machine_id = clicked_machine.get("id", "")
+
+	# First click - select source machine
+	if connection_source_machine_id.is_empty():
+		connection_source_machine_id = clicked_machine_id
+		print("Source machine selected: %s - Now click destination machine" % clicked_machine_id)
+
+		# Create visual highlight for source machine
+		_create_source_highlight(clicked_machine)
+
+	# Second click - select destination and delete connection
+	else:
+		var destination_machine_id = clicked_machine_id
+
+		# Try to remove connection
+		var success = FactoryManager.remove_connection(
+			facility_id,
+			connection_source_machine_id,
+			destination_machine_id
+		)
+
+		if success:
+			print("Connection deleted: %s → %s" % [connection_source_machine_id, destination_machine_id])
+		else:
+			print("No connection found between %s → %s" % [connection_source_machine_id, destination_machine_id])
+
+		# Reset for next deletion
+		connection_source_machine_id = ""
+		if connection_source_visual:
+			connection_source_visual.queue_free()
+			connection_source_visual = null
+
+		print("Click next source machine or press Escape to exit deletion mode")
+
+
+func _cancel_delete_connection_mode() -> void:
+	"""Cancel connection deletion mode"""
+	connection_delete_mode = false
+	connection_source_machine_id = ""
+
+	if connection_source_visual:
+		connection_source_visual.queue_free()
+		connection_source_visual = null
+
+	print("Delete connection mode cancelled")
+
+
+# ========================================
 # MACHINE VISUALIZATION
 # ========================================
 
@@ -314,3 +527,84 @@ func exit_factory() -> void:
 func _on_machine_button_pressed(machine_id: String) -> void:
 	"""Handle machine button press from UI"""
 	start_placement_mode(machine_id)
+
+
+func _on_connect_button_pressed() -> void:
+	"""Handle connect button press from UI"""
+	start_connection_mode()
+
+
+func _on_delete_connection_button_pressed() -> void:
+	"""Handle delete connection button press from UI"""
+	start_delete_connection_mode()
+
+
+# ========================================
+# CONNECTION VISUALIZATION
+# ========================================
+
+func _update_connections() -> void:
+	"""Draw lines showing manual connections between machines"""
+	if not connections_renderer:
+		return
+
+	# Clear previous connections (remove all children)
+	for child in connections_renderer.get_children():
+		child.queue_free()
+
+	# Get all manual connections from FactoryManager
+	var connections = FactoryManager.get_connections(facility_id)
+
+	# Draw each connection
+	for conn in connections:
+		var from_machine_id = conn.get("from", "")
+		var to_machine_id = conn.get("to", "")
+
+		var from_machine = FactoryManager.get_machine(facility_id, from_machine_id)
+		var to_machine = FactoryManager.get_machine(facility_id, to_machine_id)
+
+		if from_machine.is_empty() or to_machine.is_empty():
+			continue
+
+		var from_pos = from_machine.get("world_pos", Vector2.ZERO)
+		var to_pos = to_machine.get("world_pos", Vector2.ZERO)
+
+		# Calculate direction for arrow
+		var direction = (to_pos - from_pos).normalized()
+
+		_draw_connection_line(from_pos, to_pos, direction)
+
+
+func _draw_connection_line(from_pos: Vector2, to_pos: Vector2, direction: Vector2) -> void:
+	"""Draw a single connection line with an arrow"""
+	var line = Line2D.new()
+	line.width = 3.0
+	line.default_color = Color(0.3, 0.8, 1.0, 0.8)  # Light blue
+	line.add_point(from_pos)
+	line.add_point(to_pos)
+	connections_renderer.add_child(line)
+
+	# Draw arrow at midpoint
+	var midpoint = (from_pos + to_pos) / 2.0
+	var arrow = _create_arrow(midpoint, direction)
+	connections_renderer.add_child(arrow)
+
+
+func _create_arrow(position: Vector2, direction: Vector2) -> Polygon2D:
+	"""Create an arrow polygon pointing in the given direction"""
+	var arrow = Polygon2D.new()
+	arrow.color = Color(1.0, 0.8, 0.2, 0.9)  # Orange/yellow
+	arrow.position = position
+
+	# Arrow size
+	var arrow_size = 12.0
+
+	# Create arrow shape (triangle pointing in direction)
+	var angle = atan2(direction.y, direction.x)
+	var tip = Vector2(arrow_size, 0).rotated(angle)
+	var left = Vector2(-arrow_size / 2, -arrow_size / 2).rotated(angle)
+	var right = Vector2(-arrow_size / 2, arrow_size / 2).rotated(angle)
+
+	arrow.polygon = PackedVector2Array([tip, left, right])
+
+	return arrow

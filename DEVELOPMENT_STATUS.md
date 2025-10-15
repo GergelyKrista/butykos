@@ -138,18 +138,28 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
    - Machine inventory feeds facility output
    - Production efficiency based on layout
 
-### Phase 4C: Interior Logistics (2-3 sessions)
-4. **Implement conveyor belts**
-   - Visual connections between machines
-   - Automatic material flow
-   - Belt placement and routing
+### Phase 4C: Interior Logistics (2-3 sessions) ✅ COMPLETE
+4. ✅ **Manual connection system**
+   - Click-to-connect machines (no adjacency required)
+   - Visual connection lines with arrows
+   - Input/Output nodes use connections
+   - Flexible factory layouts
 
-5. **Add input/output nodes**
-   - Connect facility logistics to interior
-   - Transfer materials in/out of factory
-   - Visualize incoming/outgoing cargo
+### Phase 4D: Early Game Economy (1 session) ⭐ NEW - HIGH PRIORITY
+5. **Raw material selling for bootstrap income**
+   - Add "Market Outlet" machine type (low cost: $50-100)
+   - Sells intermediate products for reduced profit:
+     - Barley: $5 per unit (vs. ale at $100)
+     - Malt: $15 per unit
+     - Mash: $20 per unit
+     - Fermented wash: $40 per unit
+   - Allows players to generate income before affording expensive machines
+   - Optional: Add to world map as "Trading Post" facility
+   - Balancing: Raw sales should be less profitable than finished products
 
-### Phase 4D: Logistics Visualization (1-2 sessions)
+   **Design Goal:** Players can place cheap Market Outlet to sell barley/malt early, generate $200-500, then invest in Fermentation Vat ($500) or Bottling Line ($600)
+
+### Phase 4E: Logistics Visualization (1-2 sessions)
 6. **Visual route lines on world map**
    - Draw lines/paths between connected facilities
    - Show route direction (arrows or flow indicators)
@@ -322,11 +332,12 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 - ✅ Scene transitions and state persistence
 - 🔄 **Testing in progress**
 
-### Milestone 2: Interior Production (Next, 2-3 weeks)
-- [ ] Machine production logic
-- [ ] Interior logistics (conveyors)
-- [ ] Machine build menu UI
-- [ ] Input/output nodes
+### Milestone 2: Interior Production ✅ 90% COMPLETE (Next, 2-3 weeks)
+- [x] Machine production logic
+- [x] Interior logistics (manual connections)
+- [x] Machine build menu UI
+- [x] Input/output nodes
+- [ ] ⭐ **Early game economy fix (bootstrap income)**
 - [ ] Production efficiency system
 
 ### Milestone 3: Content Expansion (4-6 weeks)
@@ -358,23 +369,28 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 ## 🎯 Session Summary
 
 ### What Was Just Completed (This Session)
-1. ✅ Implemented proper isometric coordinate system (32×16 → 64×32 tiles)
-2. ✅ Fixed tile alignment with grid (0.5 offset)
-3. ✅ Created comprehensive CLAUDE.md for future AI instances
-4. ✅ Added Phase 4D: Logistics Visualization to roadmap
-5. ✅ Updated git workflow (main/dev branching strategy)
+1. ✅ **Manual connection system** - Click-to-connect machines (no adjacency!)
+2. ✅ Visual connection lines with directional arrows
+3. ✅ Input/Output nodes updated to use manual connections
+4. ✅ "Connect Machines" button in factory interior UI
+5. ✅ Full machine production chain working with connections
+6. ✅ **Identified critical issue:** Early game economy needs bootstrap income
+7. ✅ Added Phase 4D: Early Game Economy to roadmap
 
 ### Previously Completed (Earlier Sessions)
 - ✅ Dual-layer factory interior system
-- ✅ Machine placement and data definitions
+- ✅ Machine placement and production logic
+- ✅ Machine inventory system (per-machine, not shared)
 - ✅ Isometric grid rendering with diamond tiles
 - ✅ Scene transition system
 - ✅ State persistence across layers
 
-### Next Focus
-- Phase 4B: Machine production UI and logic
-- Phase 4C: Interior logistics (conveyor belts)
-- Phase 4D: Logistics visualization (route lines, vehicles)
+### Next Focus (HIGH PRIORITY)
+- **Phase 4D: Early Game Economy** - Market Outlet for selling raw materials
+  - Allows players to bootstrap income before expensive machines
+  - Critical gameplay issue discovered during testing
+- Phase 4E: Logistics visualization (route lines, vehicles)
+- Phase 5: Content expansion (more facilities, machines)
 
 ## 📝 Notes
 

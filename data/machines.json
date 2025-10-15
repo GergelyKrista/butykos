@@ -131,7 +131,7 @@
 
   "storage_tank": {
     "name": "Storage Tank",
-    "description": "Stores intermediate products",
+    "description": "Stores intermediate products and buffers production flow",
     "category": "storage",
     "size": [2, 2],
     "cost": 250,
@@ -140,6 +140,7 @@
       "sprite": "res://assets/machines/storage_tank.png"
     },
     "storage_capacity": 100,
+    "is_storage_buffer": true,
     "requires_facility": ["brewery", "distillery"]
   },
 
@@ -168,6 +169,20 @@
       "sprite": "res://assets/machines/output_depot.png"
     },
     "is_output_node": true,
+    "requires_facility": ["brewery", "distillery"]
+  },
+
+  "market_outlet": {
+    "name": "Market Outlet",
+    "description": "Sells raw and intermediate products for reduced profit (bootstrap income)",
+    "category": "logistics",
+    "size": [1, 1],
+    "cost": 75,
+    "visual": {
+      "color": "#32CD32",
+      "sprite": "res://assets/machines/market_outlet.png"
+    },
+    "is_market_outlet": true,
     "requires_facility": ["brewery", "distillery"]
   },
 

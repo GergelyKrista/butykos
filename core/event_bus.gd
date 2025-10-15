@@ -66,6 +66,12 @@ signal route_removed(route_id: String)
 ## Emitted when a vehicle is created
 signal vehicle_created(vehicle_data: Dictionary)
 
+## Emitted when a vehicle spawns on a route (alias for vehicle_created)
+signal vehicle_spawned(vehicle_data: Dictionary)
+
+## Emitted when a vehicle is removed
+signal vehicle_removed(vehicle_id: String)
+
 ## Emitted when cargo is delivered
 signal cargo_delivered(vehicle_id: String, cargo_data: Dictionary)
 

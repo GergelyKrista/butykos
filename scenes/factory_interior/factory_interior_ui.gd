@@ -10,12 +10,16 @@ extends CanvasLayer
 
 signal back_button_pressed()
 signal machine_button_pressed(machine_id: String)
+signal connect_button_pressed()
+signal delete_connection_button_pressed()
 
 # ========================================
 # REFERENCES
 # ========================================
 
 @onready var back_button: Button = $BackButton
+@onready var connect_button: Button = $ConnectButton
+@onready var delete_connection_button: Button = $DeleteConnectionButton
 @onready var factory_label: Label = $FactoryLabel
 @onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
 
@@ -27,6 +31,14 @@ func _ready() -> void:
 	# Connect back button
 	if back_button:
 		back_button.pressed.connect(_on_back_button_clicked)
+
+	# Connect connect button
+	if connect_button:
+		connect_button.pressed.connect(_on_connect_button_clicked)
+
+	# Connect delete connection button
+	if delete_connection_button:
+		delete_connection_button.pressed.connect(_on_delete_connection_button_clicked)
 
 	# Update factory label
 	_update_factory_label()
@@ -63,6 +75,18 @@ func _on_back_button_clicked() -> void:
 	"""Handle back button click"""
 	print("Back button clicked")
 	back_button_pressed.emit()
+
+
+func _on_connect_button_clicked() -> void:
+	"""Handle connect button click"""
+	print("Connect button clicked")
+	connect_button_pressed.emit()
+
+
+func _on_delete_connection_button_clicked() -> void:
+	"""Handle delete connection button click"""
+	print("Delete connection button clicked")
+	delete_connection_button_pressed.emit()
 
 
 # ========================================
