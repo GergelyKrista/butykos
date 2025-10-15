@@ -5,7 +5,9 @@
       "Bash(git commit:*)",
       "WebFetch(domain:playbooks.com)",
       "WebSearch",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
