@@ -140,28 +140,42 @@ func _create_placement_preview(facility_def: Dictionary) -> void:
 	var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
 	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
 
-	# Create diamond-shaped preview for each tile
-	for x in range(size.x):
-		for y in range(size.y):
-			var polygon = Polygon2D.new()
+	# Try to load sprite texture
+	var sprite_path = facility_def.get("visual", {}).get("icon", "")
+	var texture = null
+	if not sprite_path.is_empty() and ResourceLoader.exists(sprite_path):
+		texture = load(sprite_path)
 
-			# Create isometric diamond shape (center tiles at 0.5 offset for grid alignment)
-			var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
-			var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
+	# If sprite exists, use it with transparency; otherwise fall back to colored diamonds
+	if texture:
+		var sprite = Sprite2D.new()
+		sprite.texture = texture
+		sprite.centered = true
+		sprite.modulate = Color(1, 1, 1, 0.7)  # Semi-transparent for preview
+		placement_preview.add_child(sprite)
+	else:
+		# Fallback: Create diamond-shaped preview for each tile
+		for x in range(size.x):
+			for y in range(size.y):
+				var polygon = Polygon2D.new()
 
-			# Define diamond vertices (isometric tile shape)
-			var half_width = WorldManager.TILE_WIDTH / 2.0
-			var half_height = WorldManager.TILE_HEIGHT / 2.0
-			polygon.polygon = PackedVector2Array([
-				tile_center_iso + Vector2(0, -half_height),      # Top
-				tile_center_iso + Vector2(half_width, 0),        # Right
-				tile_center_iso + Vector2(0, half_height),       # Bottom
-				tile_center_iso + Vector2(-half_width, 0)        # Left
-			])
+				# Create isometric diamond shape (center tiles at 0.5 offset for grid alignment)
+				var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
+				var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
 
-			polygon.color = color
-			polygon.color.a = 0.5
-			placement_preview.add_child(polygon)
+				# Define diamond vertices (isometric tile shape)
+				var half_width = WorldManager.TILE_WIDTH / 2.0
+				var half_height = WorldManager.TILE_HEIGHT / 2.0
+				polygon.polygon = PackedVector2Array([
+					tile_center_iso + Vector2(0, -half_height),      # Top
+					tile_center_iso + Vector2(half_width, 0),        # Right
+					tile_center_iso + Vector2(0, half_height),       # Bottom
+					tile_center_iso + Vector2(-half_width, 0)        # Left
+				])
+
+				polygon.color = color
+				polygon.color.a = 0.5
+				placement_preview.add_child(polygon)
 
 
 func _update_placement_preview_validity() -> void:
@@ -184,12 +198,12 @@ func _update_placement_preview_validity() -> void:
 
 
 func modulate_preview(color: Color) -> void:
-	"""Apply color modulation to all preview polygons"""
+	"""Apply color modulation to all preview children (sprites or polygons)"""
 	if not placement_preview:
 		return
 
 	for child in placement_preview.get_children():
-		if child is Polygon2D:
+		if child is Polygon2D or child is Sprite2D:
 			child.modulate = color
 
 
@@ -264,27 +278,40 @@ func _create_facility_node(facility: Dictionary) -> Area2D:
 	var size = facility.size
 	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
 
-	# Create isometric diamond for each tile
-	for x in range(size.x):
-		for y in range(size.y):
-			var polygon = Polygon2D.new()
+	# Try to load sprite texture
+	var sprite_path = facility_def.get("visual", {}).get("icon", "")
+	var texture = null
+	if not sprite_path.is_empty() and ResourceLoader.exists(sprite_path):
+		texture = load(sprite_path)
 
-			# Calculate tile position in isometric space (center tiles at 0.5 offset for grid alignment)
-			var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
-			var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
+	# If sprite exists, use it; otherwise fall back to colored diamonds
+	if texture:
+		var sprite = Sprite2D.new()
+		sprite.texture = texture
+		sprite.centered = true
+		area.add_child(sprite)
+	else:
+		# Fallback: Create isometric diamond for each tile
+		for x in range(size.x):
+			for y in range(size.y):
+				var polygon = Polygon2D.new()
 
-			# Define diamond vertices (isometric tile shape)
-			var half_width = WorldManager.TILE_WIDTH / 2.0
-			var half_height = WorldManager.TILE_HEIGHT / 2.0
-			polygon.polygon = PackedVector2Array([
-				tile_center_iso + Vector2(0, -half_height),      # Top
-				tile_center_iso + Vector2(half_width, 0),        # Right
-				tile_center_iso + Vector2(0, half_height),       # Bottom
-				tile_center_iso + Vector2(-half_width, 0)        # Left
-			])
+				# Calculate tile position in isometric space (center tiles at 0.5 offset for grid alignment)
+				var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
+				var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
 
-			polygon.color = color
-			area.add_child(polygon)
+				# Define diamond vertices (isometric tile shape)
+				var half_width = WorldManager.TILE_WIDTH / 2.0
+				var half_height = WorldManager.TILE_HEIGHT / 2.0
+				polygon.polygon = PackedVector2Array([
+					tile_center_iso + Vector2(0, -half_height),      # Top
+					tile_center_iso + Vector2(half_width, 0),        # Right
+					tile_center_iso + Vector2(0, half_height),       # Bottom
+					tile_center_iso + Vector2(-half_width, 0)        # Left
+				])
+
+				polygon.color = color
+				area.add_child(polygon)
 
 	# Add collision shape covering entire facility (approximate with rectangle for now)
 	var collision = CollisionShape2D.new()
