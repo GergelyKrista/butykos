@@ -171,6 +171,20 @@
     "requires_facility": ["brewery", "distillery"]
   },
 
+  "market_outlet": {
+    "name": "Market Outlet",
+    "description": "Sells raw and intermediate products for reduced profit (bootstrap income)",
+    "category": "logistics",
+    "size": [1, 1],
+    "cost": 75,
+    "visual": {
+      "color": "#32CD32",
+      "sprite": "res://assets/machines/market_outlet.png"
+    },
+    "is_market_outlet": true,
+    "requires_facility": ["brewery", "distillery"]
+  },
+
   "boiler": {
     "name": "Steam Boiler",
     "description": "Provides power to nearby machines",

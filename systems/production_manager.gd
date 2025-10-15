@@ -36,6 +36,30 @@ var io_node_transfer_amount: int = 10  # How much to transfer per cycle
 var io_node_timer: float = 0.0  # Timer for periodic IO node operations
 const IO_NODE_CYCLE_TIME: float = 2.0  # How often IO nodes transfer (seconds)
 
+# Product pricing for market outlets (bootstrap income)
+var product_prices: Dictionary = {
+	# Raw materials (lowest value)
+	"barley": 5,
+	"wheat": 5,
+	"corn": 5,
+	"water": 1,
+
+	# Processed materials (medium value)
+	"malt": 15,
+	"mash": 20,
+	"fermented_wash": 40,
+	"raw_spirit": 50,
+
+	# Finished products (full value)
+	"ale": 100,
+	"lager": 120,
+	"wheat_beer": 110,
+	"whiskey": 200,
+	"vodka": 180,
+	"premium_whiskey": 300,
+	"aged_spirit": 250
+}
+
 # ========================================
 # INITIALIZATION
 # ========================================
@@ -433,6 +457,10 @@ func _update_io_nodes(delta: float) -> void:
 			elif machine_def.get("is_output_node", false):
 				_process_output_depot(facility_id, machine)
 
+			# Handle Market Outlets: Machine network → Sell for reduced profit
+			elif machine_def.get("is_market_outlet", false):
+				_process_market_outlet(facility_id, machine)
+
 
 func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
 	"""Input hopper pulls materials from facility inventory and distributes to connected machines"""
@@ -525,6 +553,51 @@ func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
 				# Check if product should be auto-sold
 				if auto_sell_enabled and _should_auto_sell(product):
 					_sell_product(facility_id, product, transfer_amount)
+
+
+func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
+	"""Market outlet collects materials from connected machines and sells them for reduced profit"""
+
+	var outlet_id = outlet.get("id", "")
+
+	# Get all connections TO this market outlet
+	var connections = FactoryManager.get_connections_to(facility_id, outlet_id)
+	if connections.is_empty():
+		return
+
+	# Collect from each connected machine and sell immediately
+	for conn in connections:
+		var source_machine_id = conn.get("from", "")
+		if source_machine_id.is_empty():
+			continue
+
+		# Get machine's inventory
+		var machine_inventory = get_machine_inventory(facility_id, source_machine_id)
+		if machine_inventory.is_empty():
+			continue
+
+		# Sell all products from machine inventory
+		for product in machine_inventory.keys():
+			var quantity = machine_inventory[product]
+			if quantity <= 0:
+				continue
+
+			# Transfer up to io_node_transfer_amount
+			var transfer_amount = min(io_node_transfer_amount, quantity)
+			if _remove_from_machine_inventory(facility_id, source_machine_id, product, transfer_amount):
+				# Get price for this product (use default if not in pricing table)
+				var price_per_unit = product_prices.get(product, default_sell_price)
+				var revenue = price_per_unit * transfer_amount
+
+				# Add money directly (no inventory needed)
+				EconomyManager.add_money(revenue, "Market Outlet: %s" % product)
+
+				print("Market Outlet: Sold %d %s for $%d ($%d/unit)" % [
+					transfer_amount,
+					product,
+					revenue,
+					price_per_unit
+				])
 
 
 # ========================================
