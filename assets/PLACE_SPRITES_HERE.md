@@ -22,8 +22,12 @@ assets/
 | Sprite File | Size | Facility |
 |------------|------|----------|
 | `barley_field.png` | 128×64 | Barley Field (2×2 grid) |
+| `wheat_farm.png` | 128×64 | Wheat Farm (2×2 grid) |
 | `grain_mill.png` | 128×64 | Grain Mill (2×2 grid) |
 | `brewery.png` | 192×96 | Brewery (3×3 grid) |
+| `distillery.png` | 192×96 | Distillery (3×3 grid) |
+| `packaging_plant.png` | 128×192 | Packaging Plant (2×3 grid) |
+| `storage_warehouse.png` | 192×128 | Storage Warehouse (3×2 grid) |
 
 **To add a sprite:**
 1. Save PNG file as exact name above

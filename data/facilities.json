@@ -71,5 +71,101 @@
 			"icon": "res://assets/sprites/brewery.png"
 		},
 		"has_interior": true
+	},
+	"wheat_farm": {
+		"id": "wheat_farm",
+		"name": "Wheat Farm",
+		"description": "Grows wheat for distilling. Alternative grain source for spirits.",
+		"category": "agriculture",
+		"size": [2, 2],
+		"cost": 550,
+		"construction_time": 3.0,
+		"maintenance_cost": 12,
+		"unlock_requirements": {
+			"money": 1500
+		},
+		"production": {
+			"output": "wheat",
+			"quantity": 10,
+			"cycle_time": 5.0
+		},
+		"visual": {
+			"color": "#daa520",
+			"icon": "res://assets/sprites/wheat_farm.png"
+		}
+	},
+	"distillery": {
+		"id": "distillery",
+		"name": "Distillery",
+		"description": "Produces spirits from grain. Requires wheat or barley input.",
+		"category": "production",
+		"size": [3, 3],
+		"cost": 2000,
+		"construction_time": 12.0,
+		"maintenance_cost": 40,
+		"unlock_requirements": {
+			"money": 3000,
+			"facilities_built": {
+				"grain_mill": 1
+			}
+		},
+		"production": {
+			"input": "malt",
+			"input_quantity": 10,
+			"output": "raw_spirit",
+			"quantity": 6,
+			"cycle_time": 10.0
+		},
+		"visual": {
+			"color": "#b8860b",
+			"icon": "res://assets/sprites/distillery.png"
+		},
+		"has_interior": true
+	},
+	"packaging_plant": {
+		"id": "packaging_plant",
+		"name": "Packaging Plant",
+		"description": "Packages finished alcohol products for premium pricing.",
+		"category": "processing",
+		"size": [2, 3],
+		"cost": 1200,
+		"construction_time": 8.0,
+		"maintenance_cost": 25,
+		"unlock_requirements": {
+			"money": 2500,
+			"facilities_built": {
+				"brewery": 1
+			}
+		},
+		"production": {
+			"input": "ale",
+			"input_quantity": 5,
+			"output": "packaged_ale",
+			"quantity": 5,
+			"cycle_time": 4.0
+		},
+		"visual": {
+			"color": "#4682b4",
+			"icon": "res://assets/sprites/packaging_plant.png"
+		}
+	},
+	"storage_warehouse": {
+		"id": "storage_warehouse",
+		"name": "Storage Warehouse",
+		"description": "Stores large quantities of products. Buffers production chains.",
+		"category": "storage",
+		"size": [3, 2],
+		"cost": 900,
+		"construction_time": 6.0,
+		"maintenance_cost": 20,
+		"unlock_requirements": {
+			"money": 1800
+		},
+		"production": {},
+		"storage_capacity": 500,
+		"visual": {
+			"color": "#696969",
+			"icon": "res://assets/sprites/storage_warehouse.png"
+		}
 	}
 }
