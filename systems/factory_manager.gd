@@ -50,6 +50,7 @@ func create_factory_interior(facility_id: String) -> Dictionary:
 		"facility_id": facility_id,
 		"grid": _initialize_interior_grid(),
 		"machines": {},
+		"connections": [],  # Array of {from: machine_id, to: machine_id}
 		"created_date": GameManager.current_date.duplicate()
 	}
 
@@ -229,6 +230,77 @@ func get_all_machines(facility_id: String) -> Array[Dictionary]:
 	var interior = get_factory_interior(facility_id)
 	var result: Array[Dictionary] = []
 	result.assign(interior.machines.values())
+	return result
+
+
+# ========================================
+# MACHINE CONNECTIONS
+# ========================================
+
+func create_connection(facility_id: String, from_machine_id: String, to_machine_id: String) -> bool:
+	"""Create a connection between two machines"""
+	var interior = get_factory_interior(facility_id)
+
+	# Check if machines exist
+	if not interior.machines.has(from_machine_id) or not interior.machines.has(to_machine_id):
+		return false
+
+	# Check if connection already exists
+	for conn in interior.connections:
+		if conn.from == from_machine_id and conn.to == to_machine_id:
+			return false  # Connection already exists
+
+	# Create connection
+	interior.connections.append({
+		"from": from_machine_id,
+		"to": to_machine_id
+	})
+
+	print("Connection created: %s → %s" % [from_machine_id, to_machine_id])
+	return true
+
+
+func remove_connection(facility_id: String, from_machine_id: String, to_machine_id: String) -> bool:
+	"""Remove a connection between two machines"""
+	var interior = get_factory_interior(facility_id)
+
+	for i in range(interior.connections.size()):
+		var conn = interior.connections[i]
+		if conn.from == from_machine_id and conn.to == to_machine_id:
+			interior.connections.remove_at(i)
+			print("Connection removed: %s → %s" % [from_machine_id, to_machine_id])
+			return true
+
+	return false
+
+
+func get_connections(facility_id: String) -> Array:
+	"""Get all connections in a factory"""
+	var interior = get_factory_interior(facility_id)
+	return interior.connections
+
+
+func get_connections_from(facility_id: String, machine_id: String) -> Array:
+	"""Get all connections from a specific machine"""
+	var interior = get_factory_interior(facility_id)
+	var result = []
+
+	for conn in interior.connections:
+		if conn.from == machine_id:
+			result.append(conn)
+
+	return result
+
+
+func get_connections_to(facility_id: String, machine_id: String) -> Array:
+	"""Get all connections to a specific machine"""
+	var interior = get_factory_interior(facility_id)
+	var result = []
+
+	for conn in interior.connections:
+		if conn.to == machine_id:
+			result.append(conn)
+
 	return result
 
 
