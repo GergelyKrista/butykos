@@ -32,6 +32,7 @@ var route_product: String = ""
 
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
+var hovered_facility_id: String = ""
 
 # ========================================
 # INITIALIZATION
@@ -102,6 +103,11 @@ func _input(event: InputEvent) -> void:
 	# Quick load with F9
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
 		_quick_load()
+
+	# Delete hovered facility with Delete key
+	if event is InputEventKey and event.pressed and event.keycode == KEY_DELETE:
+		if not hovered_facility_id.is_empty():
+			_delete_facility(hovered_facility_id)
 
 
 func _process(_delta: float) -> void:
@@ -573,11 +579,13 @@ func _is_in_mode() -> bool:
 
 func _on_facility_mouse_entered(facility_id: String) -> void:
 	"""Show tooltip when mouse enters facility"""
+	hovered_facility_id = facility_id
 	_show_facility_tooltip(facility_id)
 
 
 func _on_facility_mouse_exited(_facility_id: String) -> void:
 	"""Hide tooltip when mouse exits facility"""
+	hovered_facility_id = ""
 	_hide_tooltip()
 
 
@@ -628,3 +636,24 @@ func _show_facility_tooltip(facility_id: String) -> void:
 func _hide_tooltip() -> void:
 	"""Hide the tooltip"""
 	tooltip.visible = false
+
+
+# ========================================
+# FACILITY DELETION (FOR TESTING)
+# ========================================
+
+func _delete_facility(facility_id: String) -> void:
+	"""Delete a facility (for testing/debugging)"""
+	var facility = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return
+
+	print("Deleting facility: %s" % facility_id)
+
+	# Remove from WorldManager (this will emit facility_removed signal)
+	WorldManager.remove_facility(facility_id)
+
+	# Hide tooltip if it was showing for this facility
+	if hovered_facility_id == facility_id:
+		hovered_facility_id = ""
+		_hide_tooltip()
