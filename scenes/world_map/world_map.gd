@@ -17,6 +17,8 @@ extends Node2D
 @onready var help_panel = $UI/HUD/HelpPanel
 @onready var production_panel = $UI/HUD/ProductionPanel
 @onready var production_button = $UI/HUD/ProductionButton
+@onready var mode_panel = $UI/HUD/ModePanel
+@onready var mode_label = $UI/HUD/ModePanel/ModeLabel
 
 # ========================================
 # STATE
@@ -483,6 +485,14 @@ func _on_build_button_pressed(facility_id: String) -> void:
 	if placement_mode:
 		_cancel_placement()
 
+	# Cancel route mode if active
+	if route_mode:
+		_cancel_route_mode()
+
+	# Cancel demolish mode if active
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_placement_mode(facility_id)
 
 
@@ -495,6 +505,7 @@ func start_route_mode() -> void:
 	route_mode = true
 	route_source_id = ""
 	route_destination_id = ""
+	_update_mode_display("📦 ROUTE MODE", Color(0.3, 0.8, 1.0))
 	print("Route mode started - Click any facility to start")
 
 
@@ -532,6 +543,7 @@ func _cancel_route_mode() -> void:
 	route_source_id = ""
 	route_destination_id = ""
 	route_product = ""
+	_hide_mode_display()
 	print("Route mode cancelled")
 
 
@@ -565,6 +577,7 @@ func _on_create_route_button_pressed() -> void:
 func start_demolish_mode() -> void:
 	"""Enter demolish mode"""
 	demolish_mode = true
+	_update_mode_display("🔨 DEMOLISH MODE", Color(1.0, 0.3, 0.3))
 	print("Demolish mode started - Click any facility to demolish it")
 
 
@@ -595,6 +608,7 @@ func _demolish_facility(facility_id: String) -> void:
 func _cancel_demolish_mode() -> void:
 	"""Cancel demolish mode"""
 	demolish_mode = false
+	_hide_mode_display()
 	print("Demolish mode cancelled")
 
 
@@ -690,11 +704,22 @@ func _is_mouse_over_ui() -> bool:
 func _on_facility_mouse_entered(facility_id: String) -> void:
 	"""Show tooltip when mouse enters facility"""
 	hovered_facility_id = facility_id
-	_show_facility_tooltip(facility_id)
+
+	# Visual feedback for demolish mode
+	if demolish_mode:
+		_highlight_facility(facility_id, Color(1.0, 0.3, 0.3, 1.0))  # Red highlight
+
+	# Only show tooltip if not in demolish mode
+	if not demolish_mode:
+		_show_facility_tooltip(facility_id)
 
 
-func _on_facility_mouse_exited(_facility_id: String) -> void:
+func _on_facility_mouse_exited(facility_id: String) -> void:
 	"""Hide tooltip when mouse exits facility"""
+	# Remove highlight
+	if demolish_mode:
+		_unhighlight_facility(facility_id)
+
 	hovered_facility_id = ""
 	_hide_tooltip()
 
@@ -828,6 +853,24 @@ func _create_production_item(facility: Dictionary, facility_def: Dictionary) -> 
 		vbox.add_child(inv_label)
 
 	return panel
+
+
+# ========================================
+# MODE DISPLAY
+# ========================================
+
+func _update_mode_display(text: String, color: Color) -> void:
+	"""Show mode indicator panel"""
+	if mode_panel and mode_label:
+		mode_label.text = text
+		mode_label.add_theme_color_override("font_color", color)
+		mode_panel.visible = true
+
+
+func _hide_mode_display() -> void:
+	"""Hide mode indicator panel"""
+	if mode_panel:
+		mode_panel.visible = false
 
 
 # ========================================

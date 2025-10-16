@@ -63,6 +63,26 @@ offset_right = 200.0
 offset_bottom = 135.0
 text = "📊 Production Stats"
 
+[node name="ModePanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -180.0
+offset_top = 15.0
+offset_right = 180.0
+offset_bottom = 65.0
+grow_horizontal = 2
+
+[node name="ModeLabel" type="Label" parent="UI/HUD/ModePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 24
+text = "🔨 DEMOLISH MODE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Tooltip" type="PanelContainer" parent="UI/HUD"]
 visible = false
 layout_mode = 0

@@ -14,6 +14,8 @@ extends Node2D
 @onready var connections_renderer: Node2D = null  # Will be created dynamically
 @onready var camera = $Camera2D
 @onready var ui = $UI
+@onready var mode_panel = $UI/ModePanel
+@onready var mode_label = $UI/ModePanel/ModeLabel
 
 # ========================================
 # STATE
@@ -312,6 +314,7 @@ func start_connection_mode() -> void:
 		connection_source_visual.queue_free()
 		connection_source_visual = null
 
+	_update_mode_display("🔗 CONNECT MODE", Color(0.3, 0.8, 1.0))
 	print("Connection mode started - Click first machine (source)")
 
 
@@ -405,6 +408,7 @@ func _cancel_connection_mode() -> void:
 		connection_source_visual.queue_free()
 		connection_source_visual = null
 
+	_hide_mode_display()
 	print("Connection mode cancelled")
 
 
@@ -415,6 +419,7 @@ func _cancel_connection_mode() -> void:
 func start_delete_connection_mode() -> void:
 	"""Enter connection deletion mode - click machines to delete their connection"""
 	connection_delete_mode = true
+	_update_mode_display("✂️ DELETE CONNECTION", Color(1.0, 0.6, 0.2))
 	print("Delete connection mode started - Click first machine (source of connection)")
 
 
@@ -471,6 +476,7 @@ func _cancel_delete_connection_mode() -> void:
 		connection_source_visual.queue_free()
 		connection_source_visual = null
 
+	_hide_mode_display()
 	print("Delete connection mode cancelled")
 
 
@@ -605,6 +611,7 @@ func _on_demolish_button_pressed() -> void:
 func start_demolish_mode() -> void:
 	"""Enter demolish mode - click machines to demolish them"""
 	demolish_mode = true
+	_update_mode_display("🔨 DEMOLISH MODE", Color(1.0, 0.3, 0.3))
 	print("Demolish mode started - Click any machine to demolish it")
 
 
@@ -648,6 +655,7 @@ func _demolish_machine(machine_id: String) -> void:
 func _cancel_demolish_mode() -> void:
 	"""Cancel demolish mode"""
 	demolish_mode = false
+	_hide_mode_display()
 	print("Demolish mode cancelled")
 
 
@@ -720,6 +728,24 @@ func _create_arrow(position: Vector2, direction: Vector2) -> Polygon2D:
 	arrow.polygon = PackedVector2Array([tip, left, right])
 
 	return arrow
+
+
+# ========================================
+# MODE DISPLAY
+# ========================================
+
+func _update_mode_display(text: String, color: Color) -> void:
+	"""Show mode indicator panel"""
+	if mode_panel and mode_label:
+		mode_label.text = text
+		mode_label.add_theme_color_override("font_color", color)
+		mode_panel.visible = true
+
+
+func _hide_mode_display() -> void:
+	"""Hide mode indicator panel"""
+	if mode_panel:
+		mode_panel.visible = false
 
 
 # ========================================
