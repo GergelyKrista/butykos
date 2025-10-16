@@ -267,12 +267,14 @@ func _gather_factory_data() -> Dictionary:
 			connections_data.append({"from": conn.from, "to": conn.to})
 
 		factories_data[facility_id] = {
-			"next_machine_id": interior.next_machine_id,
 			"machines": machines_data,
 			"connections": connections_data
 		}
 
-	return factories_data
+	return {
+		"next_machine_id": FactoryManager._next_machine_id,
+		"interiors": factories_data
+	}
 
 
 func _gather_logistics_data() -> Dictionary:
@@ -411,24 +413,30 @@ func _restore_world_data(data: Dictionary) -> void:
 
 func _restore_factory_data(data: Dictionary) -> void:
 	"""Restore factory interiors state"""
+	# Restore global machine ID counter
+	FactoryManager._next_machine_id = data.get("next_machine_id", 1)
+
+	var interiors_data = data.get("interiors", {})
 	var factory_count = 0
 
-	for facility_id in data:
-		var interior_data = data[facility_id]
+	for facility_id in interiors_data:
+		var interior_data = interiors_data[facility_id]
 		var machines_data = interior_data.get("machines", {})
 		var connections_data = interior_data.get("connections", [])
 
-		# Reconstruct interior dictionary
+		# Reconstruct interior dictionary (without next_machine_id - it's global)
 		var interior = {
-			"next_machine_id": interior_data.get("next_machine_id", 1),
+			"facility_id": facility_id,
+			"grid": FactoryManager._initialize_interior_grid(),
 			"machines": {},
-			"connections": []  # Array of connection objects, not dictionary
+			"connections": [],
+			"created_date": GameManager.current_date
 		}
 
 		# Restore machines
 		for machine_id in machines_data:
 			var mach_data = machines_data[machine_id]
-			interior.machines[machine_id] = {
+			var machine = {
 				"id": mach_data.id,
 				"type": mach_data.type,
 				"grid_pos": Vector2i(mach_data.grid_pos.x, mach_data.grid_pos.y),
@@ -437,6 +445,14 @@ func _restore_factory_data(data: Dictionary) -> void:
 				"active": mach_data.get("active", true),
 				"inventory": mach_data.get("inventory", {})
 			}
+			interior.machines[machine_id] = machine
+
+			# Occupy grid tiles
+			var grid_pos = machine.grid_pos
+			var size = machine.size
+			for x in range(size.x):
+				for y in range(size.y):
+					interior.grid[grid_pos.x + x][grid_pos.y + y] = machine_id
 
 		# Restore connections (array of {from, to} objects)
 		for conn in connections_data:
