@@ -11,6 +11,8 @@ extends CanvasLayer
 @onready var money_label: Label = $HUD/MoneyLabel
 @onready var date_label: Label = $HUD/DateLabel
 @onready var build_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
+@onready var build_scroll_container: ScrollContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer
+@onready var bottom_bar: Panel = $BottomBar
 
 # ========================================
 # SIGNALS
@@ -35,6 +37,44 @@ func _ready() -> void:
 
 	# Create build menu buttons
 	_create_build_menu()
+
+
+func _input(event: InputEvent) -> void:
+	"""Handle input events for navbar scrolling"""
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			# Check if mouse is over the bottom bar (navbar)
+			if _is_mouse_over_navbar():
+				# Handle horizontal scrolling
+				_handle_navbar_scroll(event)
+				# Consume the event to prevent map zoom
+				get_viewport().set_input_as_handled()
+
+
+func _is_mouse_over_navbar() -> bool:
+	"""Check if mouse is over the bottom navbar"""
+	if not bottom_bar:
+		return false
+
+	var mouse_pos = get_viewport().get_mouse_position()
+	var bar_rect = Rect2(bottom_bar.global_position, bottom_bar.size)
+	return bar_rect.has_point(mouse_pos)
+
+
+func _handle_navbar_scroll(event: InputEventMouseButton) -> void:
+	"""Handle horizontal scrolling in the navbar"""
+	if not build_scroll_container:
+		return
+
+	# Scroll amount (pixels per wheel tick)
+	var scroll_amount = 50.0
+
+	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		# Scroll left
+		build_scroll_container.scroll_horizontal -= int(scroll_amount)
+	elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		# Scroll right
+		build_scroll_container.scroll_horizontal += int(scroll_amount)
 
 
 # ========================================
