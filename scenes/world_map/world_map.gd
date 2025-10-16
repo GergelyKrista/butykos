@@ -77,7 +77,9 @@ func _input(event: InputEvent) -> void:
 	if placement_mode:
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-				_try_place_facility()
+				# Don't place if clicking on UI
+				if not _is_mouse_over_ui():
+					_try_place_facility()
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_placement()
 
@@ -580,6 +582,32 @@ func _quick_load() -> void:
 func _is_in_mode() -> bool:
 	"""Check if we're in placement or route mode (for pause menu)"""
 	return placement_mode or route_mode
+
+
+func _is_mouse_over_ui() -> bool:
+	"""Check if mouse is over UI elements"""
+	var mouse_pos = get_viewport().get_mouse_position()
+
+	# Check if mouse is over bottom bar (build menu)
+	var bottom_bar = ui.get_node_or_null("BottomBar")
+	if bottom_bar:
+		var bottom_bar_rect = Rect2(
+			bottom_bar.global_position,
+			bottom_bar.size
+		)
+		if bottom_bar_rect.has_point(mouse_pos):
+			return true
+
+	# Check if mouse is over help panel
+	if help_panel and help_panel.visible:
+		var help_rect = Rect2(
+			help_panel.global_position,
+			help_panel.size
+		)
+		if help_rect.has_point(mouse_pos):
+			return true
+
+	return false
 
 
 # ========================================
