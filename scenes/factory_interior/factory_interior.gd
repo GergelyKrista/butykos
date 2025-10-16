@@ -101,7 +101,9 @@ func _input(event: InputEvent) -> void:
 	if placement_mode:
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-				_try_place_machine()
+				# Don't place if clicking on UI
+				if not _is_mouse_over_ui():
+					_try_place_machine()
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_placement()
 
@@ -553,6 +555,10 @@ func exit_factory() -> void:
 
 func _on_machine_button_pressed(machine_id: String) -> void:
 	"""Handle machine button press from UI"""
+	# Cancel current placement mode if already in one
+	if placement_mode:
+		_cancel_placement()
+
 	start_placement_mode(machine_id)
 
 
@@ -635,3 +641,34 @@ func _create_arrow(position: Vector2, direction: Vector2) -> Polygon2D:
 	arrow.polygon = PackedVector2Array([tip, left, right])
 
 	return arrow
+
+
+# ========================================
+# UI HELPERS
+# ========================================
+
+func _is_mouse_over_ui() -> bool:
+	"""Check if mouse is over UI elements"""
+	var mouse_pos = get_viewport().get_mouse_position()
+
+	# Check if mouse is over machine menu (right panel)
+	var machine_menu = ui.get_node_or_null("MachineMenu")
+	if machine_menu and machine_menu.visible:
+		var menu_rect = Rect2(
+			machine_menu.global_position,
+			machine_menu.size
+		)
+		if menu_rect.has_point(mouse_pos):
+			return true
+
+	# Check if mouse is over top bar (back button, etc)
+	var top_bar = ui.get_node_or_null("TopBar")
+	if top_bar:
+		var top_bar_rect = Rect2(
+			top_bar.global_position,
+			top_bar.size
+		)
+		if top_bar_rect.has_point(mouse_pos):
+			return true
+
+	return false
