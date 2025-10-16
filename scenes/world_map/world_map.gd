@@ -461,6 +461,10 @@ func _on_money_changed(_new_amount: int, _delta: int) -> void:
 
 func _on_build_button_pressed(facility_id: String) -> void:
 	"""Handle build button press from UI"""
+	# Cancel current placement mode if already in one
+	if placement_mode:
+		_cancel_placement()
+
 	start_placement_mode(facility_id)
 
 
