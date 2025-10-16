@@ -212,6 +212,7 @@ func _gather_save_data() -> Dictionary:
 		"factories": _gather_factory_data(),
 		"logistics": _gather_logistics_data(),
 		"economy": _gather_economy_data(),
+		"production": _gather_production_data(),
 	}
 
 
@@ -324,6 +325,17 @@ func _gather_economy_data() -> Dictionary:
 	}
 
 
+func _gather_production_data() -> Dictionary:
+	"""Gather production data from ProductionManager"""
+	return {
+		"production_timers": ProductionManager.production_timers,
+		"production_outputs": ProductionManager.production_outputs,
+		"machine_timers": ProductionManager.machine_timers,
+		"machine_inventories": ProductionManager.machine_inventories,
+		"facility_stats": ProductionManager.facility_stats
+	}
+
+
 func _apply_save_data(data: Dictionary) -> bool:
 	"""Apply loaded save data to game state"""
 
@@ -353,6 +365,9 @@ func _apply_save_data(data: Dictionary) -> bool:
 	if data.has("logistics"):
 		_restore_logistics_data(data.logistics)
 
+	if data.has("production"):
+		_restore_production_data(data.production)
+
 	print("Save data applied successfully")
 	return true
 
@@ -371,6 +386,13 @@ func _clear_game_state() -> void:
 	# Clear logistics
 	LogisticsManager.routes.clear()
 	LogisticsManager.vehicles.clear()
+
+	# Clear production
+	ProductionManager.production_timers.clear()
+	ProductionManager.production_outputs.clear()
+	ProductionManager.machine_timers.clear()
+	ProductionManager.machine_inventories.clear()
+	ProductionManager.facility_stats.clear()
 
 
 func _restore_economy_data(data: Dictionary) -> void:
@@ -412,6 +434,9 @@ func _restore_world_data(data: Dictionary) -> void:
 				var grid_x = facility.grid_pos.x + x
 				var grid_y = facility.grid_pos.y + y
 				WorldManager.grid[grid_x][grid_y] = facility_id
+
+		# Emit signal so world map can create visuals
+		EventBus.facility_placed.emit(facility)
 
 	print("World restored: %d facilities" % facilities_data.size())
 
@@ -482,7 +507,7 @@ func _restore_logistics_data(data: Dictionary) -> void:
 	var routes_data = data.get("routes", {})
 	for route_id in routes_data:
 		var route_data = routes_data[route_id]
-		LogisticsManager.routes[route_id] = {
+		var route = {
 			"id": route_data.id,
 			"source_id": route_data.source_id,
 			"destination_id": route_data.destination_id,
@@ -491,12 +516,16 @@ func _restore_logistics_data(data: Dictionary) -> void:
 			"vehicle_id": route_data.get("vehicle_id", ""),
 			"created_date": route_data.get("created_date", GameManager.current_date)
 		}
+		LogisticsManager.routes[route_id] = route
+
+		# Emit signal so route visuals are created
+		EventBus.route_created.emit(route)
 
 	# Restore vehicles
 	var vehicles_data = data.get("vehicles", {})
 	for vehicle_id in vehicles_data:
 		var vehicle_data = vehicles_data[vehicle_id]
-		LogisticsManager.vehicles[vehicle_id] = {
+		var vehicle = {
 			"id": vehicle_data.id,
 			"route_id": vehicle_data.route_id,
 			"source_id": vehicle_data.source_id,
@@ -506,8 +535,42 @@ func _restore_logistics_data(data: Dictionary) -> void:
 			"cargo": vehicle_data.get("cargo", {}),
 			"travel_progress": vehicle_data.get("travel_progress", 0.0)
 		}
+		LogisticsManager.vehicles[vehicle_id] = vehicle
+
+		# Emit signal so vehicle visuals are created
+		EventBus.vehicle_spawned.emit(vehicle)
 
 	print("Logistics restored: %d routes, %d vehicles" % [routes_data.size(), vehicles_data.size()])
+
+
+func _restore_production_data(data: Dictionary) -> void:
+	"""Restore production state"""
+	# Restore production timers
+	var timers = data.get("production_timers", {})
+	for facility_id in timers:
+		ProductionManager.production_timers[facility_id] = timers[facility_id]
+
+	# Restore production outputs (facility inventories)
+	var outputs = data.get("production_outputs", {})
+	for facility_id in outputs:
+		ProductionManager.production_outputs[facility_id] = outputs[facility_id].duplicate()
+
+	# Restore machine timers
+	var machine_timers = data.get("machine_timers", {})
+	for machine_key in machine_timers:
+		ProductionManager.machine_timers[machine_key] = machine_timers[machine_key]
+
+	# Restore machine inventories
+	var machine_inventories = data.get("machine_inventories", {})
+	for machine_key in machine_inventories:
+		ProductionManager.machine_inventories[machine_key] = machine_inventories[machine_key].duplicate()
+
+	# Restore facility stats
+	var stats = data.get("facility_stats", {})
+	for facility_id in stats:
+		ProductionManager.facility_stats[facility_id] = stats[facility_id].duplicate(true)
+
+	print("Production restored: %d facilities, %d machines" % [timers.size(), machine_timers.size()])
 
 
 func _write_save_file(slot_name: String, data: Dictionary) -> bool:
