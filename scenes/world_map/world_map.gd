@@ -13,6 +13,7 @@ extends Node2D
 @onready var facilities_container = $FacilitiesContainer
 @onready var camera = $Camera2D
 @onready var ui = $UI
+@onready var tooltip = $UI/HUD/Tooltip
 
 # ========================================
 # STATE
@@ -346,8 +347,10 @@ func _create_facility_node(facility: Dictionary) -> Area2D:
 	# Set Z-index for proper rendering order (facilities further back render first)
 	area.z_index = facility.grid_pos.y * 100 + facility.grid_pos.x
 
-	# Connect click signal
+	# Connect signals
 	area.input_event.connect(_on_facility_clicked.bind(facility.id))
+	area.mouse_entered.connect(_on_facility_mouse_entered.bind(facility.id))
+	area.mouse_exited.connect(_on_facility_mouse_exited.bind(facility.id))
 
 	return area
 
@@ -562,3 +565,66 @@ func _quick_load() -> void:
 func _is_in_mode() -> bool:
 	"""Check if we're in placement or route mode (for pause menu)"""
 	return placement_mode or route_mode
+
+
+# ========================================
+# TOOLTIP SYSTEM
+# ========================================
+
+func _on_facility_mouse_entered(facility_id: String) -> void:
+	"""Show tooltip when mouse enters facility"""
+	_show_facility_tooltip(facility_id)
+
+
+func _on_facility_mouse_exited(_facility_id: String) -> void:
+	"""Hide tooltip when mouse exits facility"""
+	_hide_tooltip()
+
+
+func _show_facility_tooltip(facility_id: String) -> void:
+	"""Display tooltip with facility information"""
+	var facility = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return
+
+	var facility_def = DataManager.get_facility_data(facility.type)
+
+	# Update tooltip content
+	tooltip.get_node("MarginContainer/VBoxContainer/FacilityName").text = facility_def.get("name", facility.type)
+	tooltip.get_node("MarginContainer/VBoxContainer/FacilityType").text = "Type: %s" % facility.type
+
+	# Production status
+	var production_active = facility.get("production_active", false)
+	var status_text = "Production: Active" if production_active else "Production: Inactive"
+	tooltip.get_node("MarginContainer/VBoxContainer/ProductionStatus").text = status_text
+
+	# Inventory
+	var inventory = facility.get("inventory", {})
+	var inventory_text = ""
+	if inventory.is_empty():
+		inventory_text = "  (empty)"
+	else:
+		for product in inventory:
+			var amount = inventory[product]
+			inventory_text += "  %s: %d\n" % [product, amount]
+
+	tooltip.get_node("MarginContainer/VBoxContainer/InventoryList").text = inventory_text.strip_edges()
+
+	# Position tooltip near mouse
+	var mouse_pos = tooltip.get_viewport().get_mouse_position()
+	tooltip.position = mouse_pos + Vector2(20, 20)
+
+	# Make sure tooltip stays on screen
+	var tooltip_size = tooltip.size
+	var viewport_size = tooltip.get_viewport_rect().size
+	if tooltip.position.x + tooltip_size.x > viewport_size.x:
+		tooltip.position.x = mouse_pos.x - tooltip_size.x - 20
+	if tooltip.position.y + tooltip_size.y > viewport_size.y:
+		tooltip.position.y = mouse_pos.y - tooltip_size.y - 20
+
+	tooltip.visible = true
+
+
+func _hide_tooltip() -> void:
+	"""Hide the tooltip"""
+	tooltip.visible = false

@@ -55,6 +55,54 @@ offset_bottom = 90.0
 theme_override_font_sizes/font_size = 18
 text = "Date: 1850-01-01"
 
+[node name="Tooltip" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 0
+offset_left = 100.0
+offset_top = 100.0
+offset_right = 400.0
+offset_bottom = 250.0
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/Tooltip"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/Tooltip/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="FacilityName" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Facility Name"
+
+[node name="FacilityType" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Type: barley_field"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ProductionStatus" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Production: Active"
+
+[node name="InventoryLabel" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Inventory:"
+
+[node name="InventoryList" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "  barley: 50
+  malt: 20"
+
 [node name="BottomBar" type="Panel" parent="UI"]
 anchors_preset = 12
 anchor_top = 1.0
