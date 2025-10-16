@@ -15,6 +15,8 @@ extends Node2D
 @onready var ui = $UI
 @onready var tooltip = $UI/HUD/Tooltip
 @onready var help_panel = $UI/HUD/HelpPanel
+@onready var production_panel = $UI/HUD/ProductionPanel
+@onready var production_button = $UI/HUD/ProductionButton
 
 # ========================================
 # STATE
@@ -53,6 +55,8 @@ func _ready() -> void:
 	# Initialize UI
 	_update_money_display()
 	EventBus.money_changed.connect(_on_money_changed)
+	production_button.pressed.connect(_toggle_production_panel)
+	production_panel.get_node("MarginContainer/VBoxContainer/HeaderHBox/CloseButton").pressed.connect(_toggle_production_panel)
 
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
@@ -669,6 +673,79 @@ func _hide_tooltip() -> void:
 func _toggle_help_panel() -> void:
 	"""Toggle the help panel visibility"""
 	help_panel.visible = not help_panel.visible
+
+
+# ========================================
+# PRODUCTION PANEL
+# ========================================
+
+func _toggle_production_panel() -> void:
+	"""Toggle production statistics panel"""
+	production_panel.visible = not production_panel.visible
+
+	if production_panel.visible:
+		_update_production_panel()
+
+
+func _update_production_panel() -> void:
+	"""Update production panel with current facility stats"""
+	var facility_list = production_panel.get_node("MarginContainer/VBoxContainer/ScrollContainer/FacilityList")
+
+	# Clear existing items
+	for child in facility_list.get_children():
+		child.queue_free()
+
+	# Get all facilities
+	var facilities = WorldManager.get_all_facilities()
+
+	if facilities.is_empty():
+		var label = Label.new()
+		label.text = "No facilities placed yet"
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		facility_list.add_child(label)
+		return
+
+	# Add each facility as a list item
+	for facility in facilities:
+		var facility_def = DataManager.get_facility_data(facility.type)
+		var item = _create_production_item(facility, facility_def)
+		facility_list.add_child(item)
+
+
+func _create_production_item(facility: Dictionary, facility_def: Dictionary) -> PanelContainer:
+	"""Create a single production item display"""
+	var panel = PanelContainer.new()
+
+	var vbox = VBoxContainer.new()
+	panel.add_child(vbox)
+
+	# Facility name
+	var name_label = Label.new()
+	name_label.text = "%s (%s)" % [facility_def.get("name", facility.type), facility.id]
+	name_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(name_label)
+
+	# Production status
+	var status_label = Label.new()
+	var is_active = facility.get("production_active", false)
+	status_label.text = "Status: %s" % ("Active" if is_active else "Inactive")
+	status_label.add_theme_font_size_override("font_size", 12)
+	status_label.add_theme_color_override("font_color", Color.GREEN if is_active else Color.GRAY)
+	vbox.add_child(status_label)
+
+	# Inventory
+	var inventory = facility.get("inventory", {})
+	if not inventory.is_empty():
+		var inv_label = Label.new()
+		var inv_text = "Inventory: "
+		var items = []
+		for product in inventory:
+			items.append("%s: %d" % [product, inventory[product]])
+		inv_label.text = inv_text + ", ".join(items)
+		inv_label.add_theme_font_size_override("font_size", 11)
+		vbox.add_child(inv_label)
+
+	return panel
 
 
 # ========================================

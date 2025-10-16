@@ -55,6 +55,14 @@ offset_bottom = 90.0
 theme_override_font_sizes/font_size = 18
 text = "Date: 1850-01-01"
 
+[node name="ProductionButton" type="Button" parent="UI/HUD"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 100.0
+offset_right = 200.0
+offset_bottom = 135.0
+text = "📊 Production Stats"
+
 [node name="Tooltip" type="PanelContainer" parent="UI/HUD"]
 visible = false
 layout_mode = 0
@@ -102,6 +110,57 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "  barley: 50
   malt: 20"
+
+[node name="ProductionPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -300.0
+offset_right = -10.0
+offset_bottom = 300.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/ProductionPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/ProductionPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "PRODUCTION"
+
+[node name="CloseButton" type="Button" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "X"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FacilityList" type="VBoxContainer" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="HelpPanel" type="PanelContainer" parent="UI/HUD"]
 visible = false
