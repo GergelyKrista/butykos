@@ -578,16 +578,44 @@ func _on_machine_button_pressed(machine_id: String) -> void:
 	if placement_mode:
 		_cancel_placement()
 
+	# Cancel connection mode if active
+	if connection_mode:
+		_cancel_connection_mode()
+
+	# Cancel connection delete mode if active
+	if connection_delete_mode:
+		_cancel_delete_connection_mode()
+
+	# Cancel demolish mode if active
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_placement_mode(machine_id)
 
 
 func _on_connect_button_pressed() -> void:
 	"""Handle connect button press from UI"""
+	# Cancel other modes
+	if placement_mode:
+		_cancel_placement()
+	if connection_delete_mode:
+		_cancel_delete_connection_mode()
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_connection_mode()
 
 
 func _on_delete_connection_button_pressed() -> void:
 	"""Handle delete connection button press from UI"""
+	# Cancel other modes
+	if placement_mode:
+		_cancel_placement()
+	if connection_mode:
+		_cancel_connection_mode()
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_delete_connection_mode()
 
 
