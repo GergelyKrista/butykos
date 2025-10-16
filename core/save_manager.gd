@@ -287,9 +287,9 @@ func _gather_logistics_data() -> Dictionary:
 		var route = LogisticsManager.routes[route_id]
 		routes_data[route_id] = {
 			"id": route.id,
-			"from_facility": route.from_facility,
-			"to_facility": route.to_facility,
-			"product_type": route.product_type,
+			"source_id": route.source_id,
+			"destination_id": route.destination_id,
+			"product": route.product,
 			"active": route.active
 		}
 
@@ -299,8 +299,11 @@ func _gather_logistics_data() -> Dictionary:
 		vehicles_data[vehicle_id] = {
 			"id": vehicle.id,
 			"route_id": vehicle.route_id,
+			"source_id": vehicle.source_id,
+			"destination_id": vehicle.destination_id,
+			"state": vehicle.state,
+			"position": {"x": vehicle.position.x, "y": vehicle.position.y},
 			"cargo": vehicle.cargo,
-			"cargo_amount": vehicle.cargo_amount,
 			"travel_progress": vehicle.travel_progress
 		}
 
@@ -479,10 +482,11 @@ func _restore_logistics_data(data: Dictionary) -> void:
 		var route_data = routes_data[route_id]
 		LogisticsManager.routes[route_id] = {
 			"id": route_data.id,
-			"from_facility": route_data.from_facility,
-			"to_facility": route_data.to_facility,
-			"product_type": route_data.product_type,
-			"active": route_data.get("active", true)
+			"source_id": route_data.source_id,
+			"destination_id": route_data.destination_id,
+			"product": route_data.product,
+			"active": route_data.get("active", true),
+			"created_date": GameManager.current_date
 		}
 
 	# Restore vehicles
@@ -492,8 +496,11 @@ func _restore_logistics_data(data: Dictionary) -> void:
 		LogisticsManager.vehicles[vehicle_id] = {
 			"id": vehicle_data.id,
 			"route_id": vehicle_data.route_id,
+			"source_id": vehicle_data.source_id,
+			"destination_id": vehicle_data.destination_id,
+			"state": vehicle_data.get("state", "at_source"),
+			"position": Vector2(vehicle_data.position.x, vehicle_data.position.y),
 			"cargo": vehicle_data.get("cargo", {}),
-			"cargo_amount": vehicle_data.get("cargo_amount", 0),
 			"travel_progress": vehicle_data.get("travel_progress", 0.0)
 		}
 
