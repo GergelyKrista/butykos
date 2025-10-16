@@ -90,7 +90,11 @@ func _input(event: InputEvent) -> void:
 	# Route mode input (clicking handled by Area2D signals now)
 	if route_mode:
 		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				# Don't allow clicking on UI to select facilities for routes
+				if _is_mouse_over_ui():
+					return
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_route_mode()
 
 	# Cancel placement/route mode with Escape
@@ -526,6 +530,10 @@ func _unhighlight_facility(facility_id: String) -> void:
 
 func _on_create_route_button_pressed() -> void:
 	"""Handle create route button press from UI"""
+	# Cancel placement mode if active
+	if placement_mode:
+		_cancel_placement()
+
 	start_route_mode()
 
 
