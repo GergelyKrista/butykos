@@ -18,6 +18,7 @@ extends CanvasLayer
 
 signal build_button_pressed(facility_id: String)
 signal create_route_button_pressed()
+signal demolish_button_pressed()
 
 # ========================================
 # INITIALIZATION
@@ -78,6 +79,13 @@ func _create_build_menu() -> void:
 	route_button.pressed.connect(_on_create_route_button_clicked)
 	build_menu.add_child(route_button)
 
+	# Add "Demolish" button
+	var demolish_button = Button.new()
+	demolish_button.text = "🔨 Demolish"
+	demolish_button.custom_minimum_size = Vector2(150, 60)
+	demolish_button.pressed.connect(_on_demolish_button_clicked)
+	build_menu.add_child(demolish_button)
+
 	# Add separator
 	var separator = VSeparator.new()
 	build_menu.add_child(separator)
@@ -114,3 +122,9 @@ func _on_create_route_button_clicked() -> void:
 	"""Handle create route button click"""
 	print("Create route button clicked")
 	create_route_button_pressed.emit()
+
+
+func _on_demolish_button_clicked() -> void:
+	"""Handle demolish button click"""
+	print("Demolish button clicked")
+	demolish_button_pressed.emit()

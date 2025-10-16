@@ -35,6 +35,9 @@ var connection_source_visual: Node2D = null
 # Connection deletion mode
 var connection_delete_mode: bool = false
 
+# Demolish mode
+var demolish_mode: bool = false
+
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 
@@ -123,7 +126,15 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_delete_connection_mode()
 
-	# Cancel placement/connection with Escape
+	# Demolish mode input
+	elif demolish_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				_on_demolish_click()
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_demolish_mode()
+
+	# Cancel placement/connection/demolish with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
@@ -131,6 +142,8 @@ func _input(event: InputEvent) -> void:
 			_cancel_connection_mode()
 		elif connection_delete_mode:
 			_cancel_delete_connection_mode()
+		elif demolish_mode:
+			_cancel_demolish_mode()
 
 
 func _process(_delta: float) -> void:
@@ -570,6 +583,72 @@ func _on_connect_button_pressed() -> void:
 func _on_delete_connection_button_pressed() -> void:
 	"""Handle delete connection button press from UI"""
 	start_delete_connection_mode()
+
+
+func _on_demolish_button_pressed() -> void:
+	"""Handle demolish button press from UI"""
+	# Cancel other modes
+	if placement_mode:
+		_cancel_placement()
+	if connection_mode:
+		_cancel_connection_mode()
+	if connection_delete_mode:
+		_cancel_delete_connection_mode()
+
+	start_demolish_mode()
+
+
+# ========================================
+# DEMOLISH MODE
+# ========================================
+
+func start_demolish_mode() -> void:
+	"""Enter demolish mode - click machines to demolish them"""
+	demolish_mode = true
+	print("Demolish mode started - Click any machine to demolish it")
+
+
+func _on_demolish_click() -> void:
+	"""Handle mouse click in demolish mode"""
+	# Get machine at clicked position
+	var clicked_machine = FactoryManager.get_machine_at_position(facility_id, mouse_grid_pos)
+
+	if clicked_machine.is_empty():
+		print("No machine at clicked position")
+		return
+
+	var machine_id = clicked_machine.get("id", "")
+	_demolish_machine(machine_id)
+
+
+func _demolish_machine(machine_id: String) -> void:
+	"""Demolish a machine and refund partial cost"""
+	var machine = FactoryManager.get_machine(facility_id, machine_id)
+	if machine.is_empty():
+		return
+
+	var machine_def = DataManager.get_machine_data(machine.type)
+	var refund = machine_def.get("cost", 0) / 2  # Refund 50% of cost
+
+	print("Demolishing machine: %s (refund: $%d)" % [machine_id, refund])
+
+	# Refund money
+	if refund > 0:
+		EconomyManager.add_money(refund)
+
+	# Remove machine visual
+	var machine_node = machines_container.get_node_or_null(machine_id)
+	if machine_node:
+		machine_node.queue_free()
+
+	# Remove machine from FactoryManager (this will also remove connections)
+	FactoryManager.remove_machine(facility_id, machine_id)
+
+
+func _cancel_demolish_mode() -> void:
+	"""Cancel demolish mode"""
+	demolish_mode = false
+	print("Demolish mode cancelled")
 
 
 # ========================================

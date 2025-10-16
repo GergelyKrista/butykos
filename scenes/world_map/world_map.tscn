@@ -265,3 +265,4 @@ theme_override_constants/separation = 8
 
 [connection signal="build_button_pressed" from="UI" to="." method="_on_build_button_pressed"]
 [connection signal="create_route_button_pressed" from="UI" to="." method="_on_create_route_button_pressed"]
+[connection signal="demolish_button_pressed" from="UI" to="." method="_on_demolish_button_pressed"]

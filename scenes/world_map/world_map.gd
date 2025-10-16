@@ -33,6 +33,9 @@ var route_source_id: String = ""
 var route_destination_id: String = ""
 var route_product: String = ""
 
+# Demolish mode
+var demolish_mode: bool = false
+
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 var hovered_facility_id: String = ""
@@ -97,13 +100,26 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_route_mode()
 
-	# Cancel placement/route mode with Escape
+	# Demolish mode input (clicking handled by Area2D signals now)
+	if demolish_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				# Don't allow clicking on UI
+				if _is_mouse_over_ui():
+					return
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_demolish_mode()
+
+	# Cancel placement/route/demolish mode with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
 			return  # Prevent pause menu from opening
 		elif route_mode:
 			_cancel_route_mode()
+			return  # Prevent pause menu from opening
+		elif demolish_mode:
+			_cancel_demolish_mode()
 			return  # Prevent pause menu from opening
 		# If not in any mode, ESC will be handled by pause menu
 
@@ -385,6 +401,11 @@ func _on_facility_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, f
 			_enter_factory(facility_id)
 			return
 
+		# Demolish mode: delete facility
+		if event.pressed and demolish_mode:
+			_demolish_facility(facility_id)
+			return
+
 		# Regular click: route mode
 		if event.pressed and route_mode:
 			_select_facility_for_route(facility_id)
@@ -535,6 +556,59 @@ func _on_create_route_button_pressed() -> void:
 		_cancel_placement()
 
 	start_route_mode()
+
+
+# ========================================
+# DEMOLISH MODE
+# ========================================
+
+func start_demolish_mode() -> void:
+	"""Enter demolish mode"""
+	demolish_mode = true
+	print("Demolish mode started - Click any facility to demolish it")
+
+
+func _demolish_facility(facility_id: String) -> void:
+	"""Demolish a facility and refund partial cost"""
+	var facility = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return
+
+	var facility_def = DataManager.get_facility_data(facility.type)
+	var refund = facility_def.get("cost", 0) / 2  # Refund 50% of cost
+
+	print("Demolishing facility: %s (refund: $%d)" % [facility_id, refund])
+
+	# Refund money
+	if refund > 0:
+		EconomyManager.add_money(refund)
+
+	# Remove facility from WorldManager (this will emit facility_removed signal)
+	WorldManager.remove_facility(facility_id)
+
+	# Hide tooltip if it was showing for this facility
+	if hovered_facility_id == facility_id:
+		hovered_facility_id = ""
+		_hide_tooltip()
+
+
+func _cancel_demolish_mode() -> void:
+	"""Cancel demolish mode"""
+	demolish_mode = false
+	print("Demolish mode cancelled")
+
+
+func _on_demolish_button_pressed() -> void:
+	"""Handle demolish button press from UI"""
+	# Cancel placement mode if active
+	if placement_mode:
+		_cancel_placement()
+
+	# Cancel route mode if active
+	if route_mode:
+		_cancel_route_mode()
+
+	start_demolish_mode()
 
 
 # ========================================

@@ -38,8 +38,15 @@ offset_right = 480.0
 offset_bottom = 60.0
 text = "Delete Connection"
 
+[node name="DemolishButton" type="Button" parent="UI"]
+offset_left = 490.0
+offset_top = 20.0
+offset_right = 640.0
+offset_bottom = 60.0
+text = "🔨 Demolish"
+
 [node name="FactoryLabel" type="Label" parent="UI"]
-offset_left = 500.0
+offset_left = 660.0
 offset_top = 20.0
 offset_right = 760.0
 offset_bottom = 60.0
@@ -94,4 +101,5 @@ theme_override_constants/separation = 8
 [connection signal="back_button_pressed" from="UI" to="." method="_on_back_button_pressed"]
 [connection signal="connect_button_pressed" from="UI" to="." method="_on_connect_button_pressed"]
 [connection signal="delete_connection_button_pressed" from="UI" to="." method="_on_delete_connection_button_pressed"]
+[connection signal="demolish_button_pressed" from="UI" to="." method="_on_demolish_button_pressed"]
 [connection signal="machine_button_pressed" from="UI" to="." method="_on_machine_button_pressed"]

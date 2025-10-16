@@ -12,6 +12,7 @@ signal back_button_pressed()
 signal machine_button_pressed(machine_id: String)
 signal connect_button_pressed()
 signal delete_connection_button_pressed()
+signal demolish_button_pressed()
 
 # ========================================
 # REFERENCES
@@ -20,6 +21,7 @@ signal delete_connection_button_pressed()
 @onready var back_button: Button = $BackButton
 @onready var connect_button: Button = $ConnectButton
 @onready var delete_connection_button: Button = $DeleteConnectionButton
+@onready var demolish_button: Button = $DemolishButton
 @onready var factory_label: Label = $FactoryLabel
 @onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
 
@@ -39,6 +41,10 @@ func _ready() -> void:
 	# Connect delete connection button
 	if delete_connection_button:
 		delete_connection_button.pressed.connect(_on_delete_connection_button_clicked)
+
+	# Connect demolish button
+	if demolish_button:
+		demolish_button.pressed.connect(_on_demolish_button_clicked)
 
 	# Update factory label
 	_update_factory_label()
@@ -87,6 +93,12 @@ func _on_delete_connection_button_clicked() -> void:
 	"""Handle delete connection button click"""
 	print("Delete connection button clicked")
 	delete_connection_button_pressed.emit()
+
+
+func _on_demolish_button_clicked() -> void:
+	"""Handle demolish button click"""
+	print("Demolish button clicked")
+	demolish_button_pressed.emit()
 
 
 # ========================================
