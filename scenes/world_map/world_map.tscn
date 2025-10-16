@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://b5bwe87xqf6oe"]
+[gd_scene load_steps=8 format=3 uid="uid://b5bwe87xqf6oe"]
 
 [ext_resource type="Script" path="res://scenes/world_map/world_map.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/world_map/grid_renderer.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scenes/world_map/world_map_ui.gd" id="4"]
 [ext_resource type="Script" path="res://scenes/world_map/route_renderer.gd" id="5"]
 [ext_resource type="Script" path="res://scenes/world_map/vehicle_renderer.gd" id="6"]
+[ext_resource type="PackedScene" uid="uid://dpq4m7xqf9pe" path="res://scenes/ui/pause_menu.tscn" id="7"]
 
 [node name="WorldMap" type="Node2D"]
 script = ExtResource("1")
@@ -97,6 +98,8 @@ vertical_scroll_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="PauseMenu" parent="." instance=ExtResource("7")]
 
 [connection signal="build_button_pressed" from="UI" to="." method="_on_build_button_pressed"]
 [connection signal="create_route_button_pressed" from="UI" to="." method="_on_create_route_button_pressed"]

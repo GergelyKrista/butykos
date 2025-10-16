@@ -88,8 +88,11 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
+			return  # Prevent pause menu from opening
 		elif route_mode:
 			_cancel_route_mode()
+			return  # Prevent pause menu from opening
+		# If not in any mode, ESC will be handled by pause menu
 
 	# Quick save with F5
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F5:
@@ -554,3 +557,8 @@ func _quick_load() -> void:
 		get_tree().reload_current_scene()
 	else:
 		print("✗ Load failed")
+
+
+func _is_in_mode() -> bool:
+	"""Check if we're in placement or route mode (for pause menu)"""
+	return placement_mode or route_mode
