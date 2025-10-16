@@ -371,3 +371,58 @@ Documentation:
 - Smooth vehicle animation
 - No memory leaks detected
 - Not tested with 50+ facilities (optimization may be needed)
+- memory **Development Priorities Order**
+Current (Phases 1-5): World map, facilities, factory interiors, production chains
+Next priorities:
+1. Save/Load System (critical, 10% done)
+2. Logistics System (routes, vehicles, pathfinding)
+3. Market System (demand, pricing, sales)
+4. Proper Isometric Grid (replace 45° rotation)
+5. Economy Manager (currency, contracts, profitability)
+6. UI/UX (stats, tooltips, notifications)
+- memory **GitHub Branch Protection**
+- main: Fully protected, production-ready only
+- dev: Default branch, protected, requires PR approval
+- feature/*: Contributors work here
+- Workflow: feature → dev (PR+approval) → main (when stable)
+- Only project owner can merge to main
+- #memory **Design Documentation Created**
+We have three comprehensive design documents:
+1. Gameplay Flow Development Guide - minute-by-minute player experience, session loops, progression
+2. Game Design Document (GDD) - complete systems design, market simulation, economic model, 15-18 month roadmap
+3. System Architecture Design - technical implementation, singleton patterns, dual-layer scene management
+
+These docs define the FULL vision. Current implementation is Phase 1-5 of a larger plan.
+
+#memory **Proper Isometric Grid Specifications** 
+The 45° camera rotation is a temporary workaround. Proper isometric implementation uses:
+- 2:1 ratio tiles: 64×32 pixels for world map
+- cart_to_iso() and iso_to_cart() coordinate conversion
+- Z-index sorting: z_index = grid_y * 100 + grid_x
+- All facility sprites need isometric perspective art (top + front + side visible)
+- This is documented in "Isometric Grid System Requirements" addendum
+- Factory interiors will remain orthogonal (top-down) for simplicity
+
+#memory **Sprite Alignment Formula**
+For perfect grid alignment:
+1. Sprite pivot at bottom-center of diamond shape
+2. Position = cart_to_iso(grid_x, grid_y)
+3. No manual offsets needed
+If sprites misalign, fix the pivot point in sprite settings, not position code.
+
+#memory **Full Game Scope (Early Access v1.0)**
+Current implementation is a subset. Full EA scope includes:
+- 1 region (currently building)
+- 6 products: Ale, Lager, Wheat Beer, Whiskey, Vodka, Premium Whiskey (some implemented)
+- 12 markets with dynamic pricing and AI competition (not yet implemented)
+- Logistics system with route visualization and vehicle simulation (not yet implemented)
+- Contract system for bonus revenue (not yet implemented)
+- Market Manager with supply/demand simulation (not yet implemented)
+- 25-35 hours total gameplay
+
+#memory **MCP Servers for Development**
+Two MCP servers configured:
+1. Godot MCP - For reading/writing .gd and .tscn files directly
+2. Aseprite MCP - For programmatically creating isometric sprite assets
+Both available at project setup for automated sprite generation once core systems work.
+- after each phase of development, ask me if I want to add any bugs to the md file

@@ -207,12 +207,114 @@ func _gather_save_data() -> Dictionary:
 		"date": GameManager.current_date,
 		"game_state": GameManager.GameState.keys()[GameManager.current_state],
 
-		# System data (will be populated by managers)
-		"world": {},
-		"factories": {},
-		"logistics": {},
-		"markets": {},
-		"economy": {},
+		# System data from managers
+		"world": _gather_world_data(),
+		"factories": _gather_factory_data(),
+		"logistics": _gather_logistics_data(),
+		"economy": _gather_economy_data(),
+	}
+
+
+func _gather_world_data() -> Dictionary:
+	"""Gather world map data from WorldManager"""
+	var facilities_data = {}
+
+	for facility_id in WorldManager.facilities:
+		var facility = WorldManager.facilities[facility_id]
+		facilities_data[facility_id] = {
+			"id": facility.id,
+			"type": facility.type,
+			"grid_pos": {"x": facility.grid_pos.x, "y": facility.grid_pos.y},
+			"size": {"x": facility.size.x, "y": facility.size.y},
+			"world_pos": {"x": facility.world_pos.x, "y": facility.world_pos.y},
+			"constructed": facility.constructed,
+			"construction_progress": facility.construction_progress,
+			"production_active": facility.production_active,
+			"inventory": facility.get("inventory", {}),
+			"created_date": facility.created_date
+		}
+
+	return {
+		"next_facility_id": WorldManager._next_facility_id,
+		"facilities": facilities_data
+	}
+
+
+func _gather_factory_data() -> Dictionary:
+	"""Gather factory interior data from FactoryManager"""
+	var factories_data = {}
+
+	for facility_id in FactoryManager.factory_interiors:
+		var interior = FactoryManager.factory_interiors[facility_id]
+		var machines_data = {}
+
+		# Save all machines
+		for machine_id in interior.machines:
+			var machine = interior.machines[machine_id]
+			machines_data[machine_id] = {
+				"id": machine.id,
+				"type": machine.type,
+				"grid_pos": {"x": machine.grid_pos.x, "y": machine.grid_pos.y},
+				"size": {"x": machine.size.x, "y": machine.size.y},
+				"world_pos": {"x": machine.world_pos.x, "y": machine.world_pos.y},
+				"active": machine.active,
+				"inventory": machine.get("inventory", {})
+			}
+
+		# Save connections as array of [from_id, to_id] pairs
+		var connections_data = []
+		for from_id in interior.connections:
+			for to_id in interior.connections[from_id]:
+				connections_data.append({"from": from_id, "to": to_id})
+
+		factories_data[facility_id] = {
+			"next_machine_id": interior.next_machine_id,
+			"machines": machines_data,
+			"connections": connections_data
+		}
+
+	return factories_data
+
+
+func _gather_logistics_data() -> Dictionary:
+	"""Gather logistics data from LogisticsManager"""
+	var routes_data = {}
+	var vehicles_data = {}
+
+	# Save all routes
+	for route_id in LogisticsManager.routes:
+		var route = LogisticsManager.routes[route_id]
+		routes_data[route_id] = {
+			"id": route.id,
+			"from_facility": route.from_facility,
+			"to_facility": route.to_facility,
+			"product_type": route.product_type,
+			"active": route.active
+		}
+
+	# Save all vehicles
+	for vehicle_id in LogisticsManager.vehicles:
+		var vehicle = LogisticsManager.vehicles[vehicle_id]
+		vehicles_data[vehicle_id] = {
+			"id": vehicle.id,
+			"route_id": vehicle.route_id,
+			"cargo": vehicle.cargo,
+			"cargo_amount": vehicle.cargo_amount,
+			"travel_progress": vehicle.travel_progress
+		}
+
+	return {
+		"next_route_id": LogisticsManager._next_route_id,
+		"next_vehicle_id": LogisticsManager._next_vehicle_id,
+		"routes": routes_data,
+		"vehicles": vehicles_data
+	}
+
+
+func _gather_economy_data() -> Dictionary:
+	"""Gather economy data from EconomyManager"""
+	return {
+		"money": EconomyManager.money
 	}
 
 
@@ -224,13 +326,166 @@ func _apply_save_data(data: Dictionary) -> bool:
 		push_error("Incompatible save version")
 		return false
 
+	print("Applying save data...")
+
+	# Clear existing state
+	_clear_game_state()
+
 	# Restore game manager state
 	GameManager.current_date = data.get("date", {"year": 1850, "month": 1, "day": 1})
 
-	# Systems will listen to after_load signal and restore their state
-	# from the data dictionary
+	# Restore each system
+	if data.has("economy"):
+		_restore_economy_data(data.economy)
 
+	if data.has("world"):
+		_restore_world_data(data.world)
+
+	if data.has("factories"):
+		_restore_factory_data(data.factories)
+
+	if data.has("logistics"):
+		_restore_logistics_data(data.logistics)
+
+	print("Save data applied successfully")
 	return true
+
+
+func _clear_game_state() -> void:
+	"""Clear all existing game state before loading"""
+	print("Clearing existing game state...")
+
+	# Clear world map
+	WorldManager.facilities.clear()
+	WorldManager._initialize_grid()
+
+	# Clear factories
+	FactoryManager.factory_interiors.clear()
+
+	# Clear logistics
+	LogisticsManager.routes.clear()
+	LogisticsManager.vehicles.clear()
+
+
+func _restore_economy_data(data: Dictionary) -> void:
+	"""Restore economy state"""
+	EconomyManager.money = data.get("money", 5000)
+	print("Economy restored: $%d" % EconomyManager.money)
+
+
+func _restore_world_data(data: Dictionary) -> void:
+	"""Restore world map state"""
+	# Restore facility ID counter
+	WorldManager._next_facility_id = data.get("next_facility_id", 1)
+
+	# Restore all facilities
+	var facilities_data = data.get("facilities", {})
+	for facility_id in facilities_data:
+		var fac_data = facilities_data[facility_id]
+
+		# Reconstruct facility dictionary
+		var facility = {
+			"id": fac_data.id,
+			"type": fac_data.type,
+			"grid_pos": Vector2i(fac_data.grid_pos.x, fac_data.grid_pos.y),
+			"size": Vector2i(fac_data.size.x, fac_data.size.y),
+			"world_pos": Vector2(fac_data.world_pos.x, fac_data.world_pos.y),
+			"constructed": fac_data.get("constructed", false),
+			"construction_progress": fac_data.get("construction_progress", 0.0),
+			"production_active": fac_data.get("production_active", false),
+			"inventory": fac_data.get("inventory", {}),
+			"created_date": fac_data.get("created_date", GameManager.current_date)
+		}
+
+		# Add to WorldManager
+		WorldManager.facilities[facility_id] = facility
+
+		# Occupy grid tiles
+		for x in range(facility.size.x):
+			for y in range(facility.size.y):
+				var grid_x = facility.grid_pos.x + x
+				var grid_y = facility.grid_pos.y + y
+				WorldManager.grid[grid_x][grid_y] = facility_id
+
+	print("World restored: %d facilities" % facilities_data.size())
+
+
+func _restore_factory_data(data: Dictionary) -> void:
+	"""Restore factory interiors state"""
+	var factory_count = 0
+
+	for facility_id in data:
+		var interior_data = data[facility_id]
+		var machines_data = interior_data.get("machines", {})
+		var connections_data = interior_data.get("connections", [])
+
+		# Reconstruct interior dictionary
+		var interior = {
+			"next_machine_id": interior_data.get("next_machine_id", 1),
+			"machines": {},
+			"connections": {}
+		}
+
+		# Restore machines
+		for machine_id in machines_data:
+			var mach_data = machines_data[machine_id]
+			interior.machines[machine_id] = {
+				"id": mach_data.id,
+				"type": mach_data.type,
+				"grid_pos": Vector2i(mach_data.grid_pos.x, mach_data.grid_pos.y),
+				"size": Vector2i(mach_data.size.x, mach_data.size.y),
+				"world_pos": Vector2(mach_data.world_pos.x, mach_data.world_pos.y),
+				"active": mach_data.get("active", true),
+				"inventory": mach_data.get("inventory", {})
+			}
+
+		# Restore connections
+		for conn in connections_data:
+			var from_id = conn.from
+			var to_id = conn.to
+
+			if not interior.connections.has(from_id):
+				interior.connections[from_id] = []
+
+			interior.connections[from_id].append(to_id)
+
+		FactoryManager.factory_interiors[facility_id] = interior
+		factory_count += 1
+
+	print("Factories restored: %d interiors" % factory_count)
+
+
+func _restore_logistics_data(data: Dictionary) -> void:
+	"""Restore logistics state"""
+	# Restore ID counters
+	LogisticsManager._next_route_id = data.get("next_route_id", 1)
+	LogisticsManager._next_vehicle_id = data.get("next_vehicle_id", 1)
+
+	# Restore routes
+	var routes_data = data.get("routes", {})
+	for route_id in routes_data:
+		var route_data = routes_data[route_id]
+		LogisticsManager.routes[route_id] = {
+			"id": route_data.id,
+			"from_facility": route_data.from_facility,
+			"to_facility": route_data.to_facility,
+			"product_type": route_data.product_type,
+			"active": route_data.get("active", true)
+		}
+
+	# Restore vehicles
+	var vehicles_data = data.get("vehicles", {})
+	for vehicle_id in vehicles_data:
+		var vehicle_data = vehicles_data[vehicle_id]
+		LogisticsManager.vehicles[vehicle_id] = {
+			"id": vehicle_data.id,
+			"route_id": vehicle_data.route_id,
+			"cargo": vehicle_data.get("cargo", {}),
+			"cargo_amount": vehicle_data.get("cargo_amount", 0),
+			"travel_progress": vehicle_data.get("travel_progress", 0.0)
+		}
+
+	print("Logistics restored: %d routes, %d vehicles" % [routes_data.size(), vehicles_data.size()])
 
 
 func _write_save_file(slot_name: String, data: Dictionary) -> bool:
