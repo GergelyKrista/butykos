@@ -14,8 +14,8 @@ extends Node2D
 @onready var connections_renderer: Node2D = null  # Will be created dynamically
 @onready var camera = $Camera2D
 @onready var ui = $UI
-@onready var mode_panel = $UI/ModePanel
-@onready var mode_label = $UI/ModePanel/ModeLabel
+@onready var mode_panel = $UI/HUD/ModePanel
+@onready var mode_label = $UI/HUD/ModePanel/ModeLabel
 
 # ========================================
 # STATE

@@ -18,11 +18,11 @@ signal demolish_button_pressed()
 # REFERENCES
 # ========================================
 
-@onready var back_button: Button = $BackButton
-@onready var connect_button: Button = $ConnectButton
-@onready var delete_connection_button: Button = $DeleteConnectionButton
-@onready var demolish_button: Button = $DemolishButton
-@onready var factory_label: Label = $FactoryLabel
+@onready var back_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/BackButton
+@onready var connect_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/ConnectButton
+@onready var delete_connection_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/DeleteConnectionButton
+@onready var demolish_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/DemolishButton
+@onready var factory_label: Label = $HUD/FactoryLabel
 @onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
 
 # ========================================
