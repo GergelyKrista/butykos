@@ -15,6 +15,10 @@ extends Node2D
 @onready var ui = $UI
 @onready var tooltip = $UI/HUD/Tooltip
 @onready var help_panel = $UI/HUD/HelpPanel
+@onready var production_panel = $UI/HUD/ProductionPanel
+@onready var production_button = $UI/HUD/ProductionButton
+@onready var mode_panel = $UI/HUD/ModePanel
+@onready var mode_label = $UI/HUD/ModePanel/ModeLabel
 
 # ========================================
 # STATE
@@ -30,6 +34,9 @@ var route_mode: bool = false
 var route_source_id: String = ""
 var route_destination_id: String = ""
 var route_product: String = ""
+
+# Demolish mode
+var demolish_mode: bool = false
 
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
@@ -53,6 +60,8 @@ func _ready() -> void:
 	# Initialize UI
 	_update_money_display()
 	EventBus.money_changed.connect(_on_money_changed)
+	production_button.pressed.connect(_toggle_production_panel)
+	production_panel.get_node("MarginContainer/VBoxContainer/HeaderHBox/CloseButton").pressed.connect(_toggle_production_panel)
 
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
@@ -86,16 +95,33 @@ func _input(event: InputEvent) -> void:
 	# Route mode input (clicking handled by Area2D signals now)
 	if route_mode:
 		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				# Don't allow clicking on UI to select facilities for routes
+				if _is_mouse_over_ui():
+					return
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_route_mode()
 
-	# Cancel placement/route mode with Escape
+	# Demolish mode input (clicking handled by Area2D signals now)
+	if demolish_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				# Don't allow clicking on UI
+				if _is_mouse_over_ui():
+					return
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_demolish_mode()
+
+	# Cancel placement/route/demolish mode with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
 			return  # Prevent pause menu from opening
 		elif route_mode:
 			_cancel_route_mode()
+			return  # Prevent pause menu from opening
+		elif demolish_mode:
+			_cancel_demolish_mode()
 			return  # Prevent pause menu from opening
 		# If not in any mode, ESC will be handled by pause menu
 
@@ -377,6 +403,11 @@ func _on_facility_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, f
 			_enter_factory(facility_id)
 			return
 
+		# Demolish mode: delete facility
+		if event.pressed and demolish_mode:
+			_demolish_facility(facility_id)
+			return
+
 		# Regular click: route mode
 		if event.pressed and route_mode:
 			_select_facility_for_route(facility_id)
@@ -454,6 +485,14 @@ func _on_build_button_pressed(facility_id: String) -> void:
 	if placement_mode:
 		_cancel_placement()
 
+	# Cancel route mode if active
+	if route_mode:
+		_cancel_route_mode()
+
+	# Cancel demolish mode if active
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_placement_mode(facility_id)
 
 
@@ -466,6 +505,7 @@ func start_route_mode() -> void:
 	route_mode = true
 	route_source_id = ""
 	route_destination_id = ""
+	_update_mode_display("📦 ROUTE MODE", Color(0.3, 0.8, 1.0))
 	print("Route mode started - Click any facility to start")
 
 
@@ -503,6 +543,7 @@ func _cancel_route_mode() -> void:
 	route_source_id = ""
 	route_destination_id = ""
 	route_product = ""
+	_hide_mode_display()
 	print("Route mode cancelled")
 
 
@@ -522,7 +563,66 @@ func _unhighlight_facility(facility_id: String) -> void:
 
 func _on_create_route_button_pressed() -> void:
 	"""Handle create route button press from UI"""
+	# Cancel placement mode if active
+	if placement_mode:
+		_cancel_placement()
+
 	start_route_mode()
+
+
+# ========================================
+# DEMOLISH MODE
+# ========================================
+
+func start_demolish_mode() -> void:
+	"""Enter demolish mode"""
+	demolish_mode = true
+	_update_mode_display("🔨 DEMOLISH MODE", Color(1.0, 0.3, 0.3))
+	print("Demolish mode started - Click any facility to demolish it")
+
+
+func _demolish_facility(facility_id: String) -> void:
+	"""Demolish a facility and refund partial cost"""
+	var facility = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return
+
+	var facility_def = DataManager.get_facility_data(facility.type)
+	var refund = facility_def.get("cost", 0) / 2  # Refund 50% of cost
+
+	print("Demolishing facility: %s (refund: $%d)" % [facility_id, refund])
+
+	# Refund money
+	if refund > 0:
+		EconomyManager.add_money(refund)
+
+	# Remove facility from WorldManager (this will emit facility_removed signal)
+	WorldManager.remove_facility(facility_id)
+
+	# Hide tooltip if it was showing for this facility
+	if hovered_facility_id == facility_id:
+		hovered_facility_id = ""
+		_hide_tooltip()
+
+
+func _cancel_demolish_mode() -> void:
+	"""Cancel demolish mode"""
+	demolish_mode = false
+	_hide_mode_display()
+	print("Demolish mode cancelled")
+
+
+func _on_demolish_button_pressed() -> void:
+	"""Handle demolish button press from UI"""
+	# Cancel placement mode if active
+	if placement_mode:
+		_cancel_placement()
+
+	# Cancel route mode if active
+	if route_mode:
+		_cancel_route_mode()
+
+	start_demolish_mode()
 
 
 # ========================================
@@ -604,11 +704,22 @@ func _is_mouse_over_ui() -> bool:
 func _on_facility_mouse_entered(facility_id: String) -> void:
 	"""Show tooltip when mouse enters facility"""
 	hovered_facility_id = facility_id
-	_show_facility_tooltip(facility_id)
+
+	# Visual feedback for demolish mode
+	if demolish_mode:
+		_highlight_facility(facility_id, Color(1.0, 0.3, 0.3, 1.0))  # Red highlight
+
+	# Only show tooltip if not in demolish mode
+	if not demolish_mode:
+		_show_facility_tooltip(facility_id)
 
 
-func _on_facility_mouse_exited(_facility_id: String) -> void:
+func _on_facility_mouse_exited(facility_id: String) -> void:
 	"""Hide tooltip when mouse exits facility"""
+	# Remove highlight
+	if demolish_mode:
+		_unhighlight_facility(facility_id)
+
 	hovered_facility_id = ""
 	_hide_tooltip()
 
@@ -669,6 +780,97 @@ func _hide_tooltip() -> void:
 func _toggle_help_panel() -> void:
 	"""Toggle the help panel visibility"""
 	help_panel.visible = not help_panel.visible
+
+
+# ========================================
+# PRODUCTION PANEL
+# ========================================
+
+func _toggle_production_panel() -> void:
+	"""Toggle production statistics panel"""
+	production_panel.visible = not production_panel.visible
+
+	if production_panel.visible:
+		_update_production_panel()
+
+
+func _update_production_panel() -> void:
+	"""Update production panel with current facility stats"""
+	var facility_list = production_panel.get_node("MarginContainer/VBoxContainer/ScrollContainer/FacilityList")
+
+	# Clear existing items
+	for child in facility_list.get_children():
+		child.queue_free()
+
+	# Get all facilities
+	var facilities = WorldManager.get_all_facilities()
+
+	if facilities.is_empty():
+		var label = Label.new()
+		label.text = "No facilities placed yet"
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		facility_list.add_child(label)
+		return
+
+	# Add each facility as a list item
+	for facility in facilities:
+		var facility_def = DataManager.get_facility_data(facility.type)
+		var item = _create_production_item(facility, facility_def)
+		facility_list.add_child(item)
+
+
+func _create_production_item(facility: Dictionary, facility_def: Dictionary) -> PanelContainer:
+	"""Create a single production item display"""
+	var panel = PanelContainer.new()
+
+	var vbox = VBoxContainer.new()
+	panel.add_child(vbox)
+
+	# Facility name
+	var name_label = Label.new()
+	name_label.text = "%s (%s)" % [facility_def.get("name", facility.type), facility.id]
+	name_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(name_label)
+
+	# Production status
+	var status_label = Label.new()
+	var is_active = facility.get("production_active", false)
+	status_label.text = "Status: %s" % ("Active" if is_active else "Inactive")
+	status_label.add_theme_font_size_override("font_size", 12)
+	status_label.add_theme_color_override("font_color", Color.GREEN if is_active else Color.GRAY)
+	vbox.add_child(status_label)
+
+	# Inventory
+	var inventory = facility.get("inventory", {})
+	if not inventory.is_empty():
+		var inv_label = Label.new()
+		var inv_text = "Inventory: "
+		var items = []
+		for product in inventory:
+			items.append("%s: %d" % [product, inventory[product]])
+		inv_label.text = inv_text + ", ".join(items)
+		inv_label.add_theme_font_size_override("font_size", 11)
+		vbox.add_child(inv_label)
+
+	return panel
+
+
+# ========================================
+# MODE DISPLAY
+# ========================================
+
+func _update_mode_display(text: String, color: Color) -> void:
+	"""Show mode indicator panel"""
+	if mode_panel and mode_label:
+		mode_label.text = text
+		mode_label.add_theme_color_override("font_color", color)
+		mode_panel.visible = true
+
+
+func _hide_mode_display() -> void:
+	"""Hide mode indicator panel"""
+	if mode_panel:
+		mode_panel.visible = false
 
 
 # ========================================

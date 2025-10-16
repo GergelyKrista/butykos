@@ -12,16 +12,22 @@ signal back_button_pressed()
 signal machine_button_pressed(machine_id: String)
 signal connect_button_pressed()
 signal delete_connection_button_pressed()
+signal demolish_button_pressed()
 
 # ========================================
 # REFERENCES
 # ========================================
 
-@onready var back_button: Button = $BackButton
-@onready var connect_button: Button = $ConnectButton
-@onready var delete_connection_button: Button = $DeleteConnectionButton
-@onready var factory_label: Label = $FactoryLabel
-@onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
+@onready var back_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/BackButton
+@onready var connect_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/ConnectButton
+@onready var delete_connection_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/DeleteConnectionButton
+@onready var demolish_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/DemolishButton
+@onready var build_machines_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/BuildMachinesButton
+@onready var factory_label: Label = $HUD/FactoryLabel
+@onready var actions_view: VBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ActionsView
+@onready var machines_view: VBoxContainer = $BottomBar/MarginContainer/VBoxContainer/MachinesView
+@onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/MachinesView/ScrollContainer/HBoxContainer
+@onready var machine_menu_close_button: Button = $BottomBar/MarginContainer/VBoxContainer/MachinesView/HeaderHBox/CloseButton
 
 # ========================================
 # INITIALIZATION
@@ -40,10 +46,22 @@ func _ready() -> void:
 	if delete_connection_button:
 		delete_connection_button.pressed.connect(_on_delete_connection_button_clicked)
 
+	# Connect demolish button
+	if demolish_button:
+		demolish_button.pressed.connect(_on_demolish_button_clicked)
+
+	# Connect build machines button
+	if build_machines_button:
+		build_machines_button.pressed.connect(_on_build_machines_button_clicked)
+
+	# Connect machine menu close button
+	if machine_menu_close_button:
+		machine_menu_close_button.pressed.connect(_on_machine_menu_close_clicked)
+
 	# Update factory label
 	_update_factory_label()
 
-	# Create machine build menu
+	# Create machine build menu (but keep it hidden initially)
 	_create_machine_menu()
 
 
@@ -89,28 +107,63 @@ func _on_delete_connection_button_clicked() -> void:
 	delete_connection_button_pressed.emit()
 
 
+func _on_demolish_button_clicked() -> void:
+	"""Handle demolish button click"""
+	print("Demolish button clicked")
+	demolish_button_pressed.emit()
+
+
+func _on_build_machines_button_clicked() -> void:
+	"""Handle build machines button click"""
+	print("Build machines button clicked")
+	_show_machine_menu()
+
+
+func _on_machine_menu_close_clicked() -> void:
+	"""Handle machine menu close button click"""
+	_hide_machine_menu()
+
+
 # ========================================
 # MACHINE BUILD MENU
 # ========================================
 
+func _show_machine_menu() -> void:
+	"""Show the machine build menu (swap views)"""
+	if actions_view and machines_view:
+		actions_view.visible = false
+		machines_view.visible = true
+
+
+func _hide_machine_menu() -> void:
+	"""Hide the machine build menu (swap back to actions)"""
+	if actions_view and machines_view:
+		actions_view.visible = true
+		machines_view.visible = false
+
 func _create_machine_menu() -> void:
 	"""Create buttons for buildable machines"""
 	if not machine_menu:
+		print("ERROR: machine_menu is null!")
 		return
 
 	# Get facility type to filter machines
 	var facility_id = GameManager.active_factory_id
 	if facility_id.is_empty():
+		print("ERROR: No active factory ID")
 		return
 
 	var facility = WorldManager.get_facility(facility_id)
 	if facility.is_empty():
+		print("ERROR: Facility not found: %s" % facility_id)
 		return
 
 	var facility_type = facility.type
+	print("Creating machine menu for facility type: %s" % facility_type)
 
 	# Get machines available for this facility type
 	var machines = DataManager.get_machines_for_facility(facility_type)
+	print("Found %d machines for %s" % [machines.size(), facility_type])
 
 	# Group machines by category
 	var categories = {}

@@ -14,6 +14,8 @@ extends Node2D
 @onready var connections_renderer: Node2D = null  # Will be created dynamically
 @onready var camera = $Camera2D
 @onready var ui = $UI
+@onready var mode_panel = $UI/HUD/ModePanel
+@onready var mode_label = $UI/HUD/ModePanel/ModeLabel
 
 # ========================================
 # STATE
@@ -34,6 +36,9 @@ var connection_source_visual: Node2D = null
 
 # Connection deletion mode
 var connection_delete_mode: bool = false
+
+# Demolish mode
+var demolish_mode: bool = false
 
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
@@ -83,7 +88,9 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	# Update mouse position
 	if event is InputEventMouse:
-		var world_pos = camera.get_global_mouse_position()
+		# Convert viewport mouse position to world coordinates
+		var viewport_pos = get_viewport().get_mouse_position()
+		var world_pos = camera.get_canvas_transform().affine_inverse() * viewport_pos
 		mouse_grid_pos = FactoryManager.world_to_interior_grid(world_pos)
 
 	# DEBUG: Print machines (Press P)
@@ -123,7 +130,15 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_delete_connection_mode()
 
-	# Cancel placement/connection with Escape
+	# Demolish mode input
+	elif demolish_mode:
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+				_on_demolish_click()
+			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+				_cancel_demolish_mode()
+
+	# Cancel placement/connection/demolish with Escape
 	if event.is_action_pressed("ui_cancel"):
 		if placement_mode:
 			_cancel_placement()
@@ -131,6 +146,8 @@ func _input(event: InputEvent) -> void:
 			_cancel_connection_mode()
 		elif connection_delete_mode:
 			_cancel_delete_connection_mode()
+		elif demolish_mode:
+			_cancel_demolish_mode()
 
 
 func _process(_delta: float) -> void:
@@ -299,6 +316,7 @@ func start_connection_mode() -> void:
 		connection_source_visual.queue_free()
 		connection_source_visual = null
 
+	_update_mode_display("🔗 CONNECT MODE", Color(0.3, 0.8, 1.0))
 	print("Connection mode started - Click first machine (source)")
 
 
@@ -392,6 +410,7 @@ func _cancel_connection_mode() -> void:
 		connection_source_visual.queue_free()
 		connection_source_visual = null
 
+	_hide_mode_display()
 	print("Connection mode cancelled")
 
 
@@ -402,6 +421,7 @@ func _cancel_connection_mode() -> void:
 func start_delete_connection_mode() -> void:
 	"""Enter connection deletion mode - click machines to delete their connection"""
 	connection_delete_mode = true
+	_update_mode_display("✂️ DELETE CONNECTION", Color(1.0, 0.6, 0.2))
 	print("Delete connection mode started - Click first machine (source of connection)")
 
 
@@ -458,6 +478,7 @@ func _cancel_delete_connection_mode() -> void:
 		connection_source_visual.queue_free()
 		connection_source_visual = null
 
+	_hide_mode_display()
 	print("Delete connection mode cancelled")
 
 
@@ -559,17 +580,113 @@ func _on_machine_button_pressed(machine_id: String) -> void:
 	if placement_mode:
 		_cancel_placement()
 
+	# Cancel connection mode if active
+	if connection_mode:
+		_cancel_connection_mode()
+
+	# Cancel connection delete mode if active
+	if connection_delete_mode:
+		_cancel_delete_connection_mode()
+
+	# Cancel demolish mode if active
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_placement_mode(machine_id)
 
 
 func _on_connect_button_pressed() -> void:
 	"""Handle connect button press from UI"""
+	# Cancel other modes
+	if placement_mode:
+		_cancel_placement()
+	if connection_delete_mode:
+		_cancel_delete_connection_mode()
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_connection_mode()
 
 
 func _on_delete_connection_button_pressed() -> void:
 	"""Handle delete connection button press from UI"""
+	# Cancel other modes
+	if placement_mode:
+		_cancel_placement()
+	if connection_mode:
+		_cancel_connection_mode()
+	if demolish_mode:
+		_cancel_demolish_mode()
+
 	start_delete_connection_mode()
+
+
+func _on_demolish_button_pressed() -> void:
+	"""Handle demolish button press from UI"""
+	# Cancel other modes
+	if placement_mode:
+		_cancel_placement()
+	if connection_mode:
+		_cancel_connection_mode()
+	if connection_delete_mode:
+		_cancel_delete_connection_mode()
+
+	start_demolish_mode()
+
+
+# ========================================
+# DEMOLISH MODE
+# ========================================
+
+func start_demolish_mode() -> void:
+	"""Enter demolish mode - click machines to demolish them"""
+	demolish_mode = true
+	_update_mode_display("🔨 DEMOLISH MODE", Color(1.0, 0.3, 0.3))
+	print("Demolish mode started - Click any machine to demolish it")
+
+
+func _on_demolish_click() -> void:
+	"""Handle mouse click in demolish mode"""
+	# Get machine at clicked position
+	var clicked_machine = FactoryManager.get_machine_at_position(facility_id, mouse_grid_pos)
+
+	if clicked_machine.is_empty():
+		print("No machine at clicked position")
+		return
+
+	var machine_id = clicked_machine.get("id", "")
+	_demolish_machine(machine_id)
+
+
+func _demolish_machine(machine_id: String) -> void:
+	"""Demolish a machine and refund partial cost"""
+	var machine = FactoryManager.get_machine(facility_id, machine_id)
+	if machine.is_empty():
+		return
+
+	var machine_def = DataManager.get_machine_data(machine.type)
+	var refund = machine_def.get("cost", 0) / 2  # Refund 50% of cost
+
+	print("Demolishing machine: %s (refund: $%d)" % [machine_id, refund])
+
+	# Refund money
+	if refund > 0:
+		EconomyManager.add_money(refund)
+
+	# Remove machine visual
+	var machine_node = machines_container.get_node_or_null(machine_id)
+	if machine_node:
+		machine_node.queue_free()
+
+	# Remove machine from FactoryManager (this will also remove connections)
+	FactoryManager.remove_machine(facility_id, machine_id)
+
+
+func _cancel_demolish_mode() -> void:
+	"""Cancel demolish mode"""
+	demolish_mode = false
+	_hide_mode_display()
+	print("Demolish mode cancelled")
 
 
 # ========================================
@@ -641,6 +758,24 @@ func _create_arrow(position: Vector2, direction: Vector2) -> Polygon2D:
 	arrow.polygon = PackedVector2Array([tip, left, right])
 
 	return arrow
+
+
+# ========================================
+# MODE DISPLAY
+# ========================================
+
+func _update_mode_display(text: String, color: Color) -> void:
+	"""Show mode indicator panel"""
+	if mode_panel and mode_label:
+		mode_label.text = text
+		mode_label.add_theme_color_override("font_color", color)
+		mode_panel.visible = true
+
+
+func _hide_mode_display() -> void:
+	"""Hide mode indicator panel"""
+	if mode_panel:
+		mode_panel.visible = false
 
 
 # ========================================
