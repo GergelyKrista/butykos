@@ -786,24 +786,27 @@ func _is_mouse_over_ui() -> bool:
 	"""Check if mouse is over UI elements"""
 	var mouse_pos = get_viewport().get_mouse_position()
 
-	# Check if mouse is over machine menu (right panel)
-	var machine_menu = ui.get_node_or_null("MachineMenu")
-	if machine_menu and machine_menu.visible:
-		var menu_rect = Rect2(
-			machine_menu.global_position,
-			machine_menu.size
+	# Check if mouse is over bottom bar (navbar with machine buttons)
+	var bottom_bar = ui.get_node_or_null("BottomBar")
+	if bottom_bar:
+		var bottom_bar_rect = Rect2(
+			bottom_bar.global_position,
+			bottom_bar.size
 		)
-		if menu_rect.has_point(mouse_pos):
+		if bottom_bar_rect.has_point(mouse_pos):
 			return true
 
-	# Check if mouse is over top bar (back button, etc)
-	var top_bar = ui.get_node_or_null("TopBar")
-	if top_bar:
-		var top_bar_rect = Rect2(
-			top_bar.global_position,
-			top_bar.size
-		)
-		if top_bar_rect.has_point(mouse_pos):
-			return true
+	# Check if mouse is over HUD elements
+	var hud = ui.get_node_or_null("HUD")
+	if hud:
+		# Check all visible children of HUD
+		for child in hud.get_children():
+			if child.visible and child is Control:
+				var child_rect = Rect2(
+					child.global_position,
+					child.size
+				)
+				if child_rect.has_point(mouse_pos):
+					return true
 
 	return false
