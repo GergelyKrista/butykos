@@ -144,21 +144,26 @@ func _hide_machine_menu() -> void:
 func _create_machine_menu() -> void:
 	"""Create buttons for buildable machines"""
 	if not machine_menu:
+		print("ERROR: machine_menu is null!")
 		return
 
 	# Get facility type to filter machines
 	var facility_id = GameManager.active_factory_id
 	if facility_id.is_empty():
+		print("ERROR: No active factory ID")
 		return
 
 	var facility = WorldManager.get_facility(facility_id)
 	if facility.is_empty():
+		print("ERROR: Facility not found: %s" % facility_id)
 		return
 
 	var facility_type = facility.type
+	print("Creating machine menu for facility type: %s" % facility_type)
 
 	# Get machines available for this facility type
 	var machines = DataManager.get_machines_for_facility(facility_type)
+	print("Found %d machines for %s" % [machines.size(), facility_type])
 
 	# Group machines by category
 	var categories = {}
