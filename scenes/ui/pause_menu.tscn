@@ -48,13 +48,13 @@ layout_mode = 2
 custom_minimum_size = Vector2(300, 60)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "SAVE GAME (F5)"
+text = "SAVE GAME"
 
 [node name="LoadButton" type="Button" parent="Panel/CenterContainer/VBoxContainer"]
 custom_minimum_size = Vector2(300, 60)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "LOAD GAME (F9)"
+text = "LOAD GAME"
 
 [node name="ResumeButton" type="Button" parent="Panel/CenterContainer/VBoxContainer"]
 custom_minimum_size = Vector2(300, 60)

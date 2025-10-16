@@ -99,19 +99,6 @@ func _input(event: InputEvent) -> void:
 			return  # Prevent pause menu from opening
 		# If not in any mode, ESC will be handled by pause menu
 
-	# Quick save with F5
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F5:
-		_quick_save()
-
-	# Quick load with F9
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
-		_quick_load()
-
-	# Delete hovered facility with Delete key
-	if event is InputEventKey and event.pressed and event.keycode == KEY_DELETE:
-		if not hovered_facility_id.is_empty():
-			_delete_facility(hovered_facility_id)
-
 	# Toggle help panel with F1
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
 		_toggle_help_panel()
