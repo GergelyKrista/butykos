@@ -221,6 +221,8 @@ layout_mode = 2
 layout_mode = 2
 text = "F1 - Toggle this help panel
 ESC - Pause menu / Cancel mode
+F5 - Quick Save
+F9 - Quick Load
 
 SHIFT+Click - Enter factory interior
 Double-Click - Enter factory interior

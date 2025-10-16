@@ -175,6 +175,34 @@ func get_date_string() -> String:
 
 
 # ========================================
+# GAME INITIALIZATION
+# ========================================
+
+func reset_game() -> void:
+	"""Reset game to initial state for a new game"""
+	print("Resetting game to initial state...")
+
+	# Reset date
+	current_date = {
+		"year": 1850,
+		"month": 1,
+		"day": 1
+	}
+
+	# Reset state
+	current_state = GameState.WORLD_MAP
+	is_paused = false
+	active_factory_id = ""
+	game_speed = 1.0
+
+	# Reset economy
+	EconomyManager.reset_economy()
+
+	# Clear world state (will be done by individual managers)
+	EventBus.game_reset.emit()
+
+
+# ========================================
 # UTILITY
 # ========================================
 

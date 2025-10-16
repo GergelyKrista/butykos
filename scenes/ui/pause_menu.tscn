@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dpq4m7xqf9pe"]
+[gd_scene load_steps=3 format=3 uid="uid://dpq4m7xqf9pe"]
 
 [ext_resource type="Script" path="res://scenes/ui/pause_menu.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://djx4s1234abcd" path="res://scenes/ui/save_load_dialog.tscn" id="2"]
 
 [node name="PauseMenu" type="CanvasLayer"]
 process_mode = 3
@@ -67,3 +68,6 @@ custom_minimum_size = Vector2(300, 60)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "EXIT TO MENU"
+
+[node name="SaveLoadDialog" parent="." instance=ExtResource("2")]
+z_index = 10

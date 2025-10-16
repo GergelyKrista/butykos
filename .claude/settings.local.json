@@ -12,7 +12,8 @@
       "Bash(git pull:*)",
       "Bash(git branch:*)",
       "Bash(git stash:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Read(//c/Users/gerge/AppData/Roaming/Godot/app_userdata/Butykos/saves/**)"
     ],
     "deny": [],
     "ask": []
