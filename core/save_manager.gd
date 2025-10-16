@@ -261,11 +261,10 @@ func _gather_factory_data() -> Dictionary:
 				"inventory": machine.get("inventory", {})
 			}
 
-		# Save connections as array of [from_id, to_id] pairs
+		# Save connections (already in correct format - array of {from, to} dicts)
 		var connections_data = []
-		for from_id in interior.connections:
-			for to_id in interior.connections[from_id]:
-				connections_data.append({"from": from_id, "to": to_id})
+		for conn in interior.connections:
+			connections_data.append({"from": conn.from, "to": conn.to})
 
 		factories_data[facility_id] = {
 			"next_machine_id": interior.next_machine_id,
@@ -423,7 +422,7 @@ func _restore_factory_data(data: Dictionary) -> void:
 		var interior = {
 			"next_machine_id": interior_data.get("next_machine_id", 1),
 			"machines": {},
-			"connections": {}
+			"connections": []  # Array of connection objects, not dictionary
 		}
 
 		# Restore machines
@@ -439,15 +438,12 @@ func _restore_factory_data(data: Dictionary) -> void:
 				"inventory": mach_data.get("inventory", {})
 			}
 
-		# Restore connections
+		# Restore connections (array of {from, to} objects)
 		for conn in connections_data:
-			var from_id = conn.from
-			var to_id = conn.to
-
-			if not interior.connections.has(from_id):
-				interior.connections[from_id] = []
-
-			interior.connections[from_id].append(to_id)
+			interior.connections.append({
+				"from": conn.from,
+				"to": conn.to
+			})
 
 		FactoryManager.factory_interiors[facility_id] = interior
 		factory_count += 1
