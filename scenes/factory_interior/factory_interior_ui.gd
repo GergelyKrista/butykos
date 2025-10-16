@@ -22,8 +22,11 @@ signal demolish_button_pressed()
 @onready var connect_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/ConnectButton
 @onready var delete_connection_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/DeleteConnectionButton
 @onready var demolish_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/DemolishButton
+@onready var build_machines_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/BuildMachinesButton
 @onready var factory_label: Label = $HUD/FactoryLabel
-@onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
+@onready var machine_menu_panel: PanelContainer = $BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel
+@onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
+@onready var machine_menu_close_button: Button = $BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer/HeaderHBox/CloseButton
 
 # ========================================
 # INITIALIZATION
@@ -46,10 +49,18 @@ func _ready() -> void:
 	if demolish_button:
 		demolish_button.pressed.connect(_on_demolish_button_clicked)
 
+	# Connect build machines button
+	if build_machines_button:
+		build_machines_button.pressed.connect(_on_build_machines_button_clicked)
+
+	# Connect machine menu close button
+	if machine_menu_close_button:
+		machine_menu_close_button.pressed.connect(_on_machine_menu_close_clicked)
+
 	# Update factory label
 	_update_factory_label()
 
-	# Create machine build menu
+	# Create machine build menu (but keep it hidden initially)
 	_create_machine_menu()
 
 
@@ -101,9 +112,31 @@ func _on_demolish_button_clicked() -> void:
 	demolish_button_pressed.emit()
 
 
+func _on_build_machines_button_clicked() -> void:
+	"""Handle build machines button click"""
+	print("Build machines button clicked")
+	_show_machine_menu()
+
+
+func _on_machine_menu_close_clicked() -> void:
+	"""Handle machine menu close button click"""
+	_hide_machine_menu()
+
+
 # ========================================
 # MACHINE BUILD MENU
 # ========================================
+
+func _show_machine_menu() -> void:
+	"""Show the machine build menu panel"""
+	if machine_menu_panel:
+		machine_menu_panel.visible = true
+
+
+func _hide_machine_menu() -> void:
+	"""Hide the machine build menu panel"""
+	if machine_menu_panel:
+		machine_menu_panel.visible = false
 
 func _create_machine_menu() -> void:
 	"""Create buttons for buildable machines"""
