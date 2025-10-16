@@ -88,7 +88,9 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	# Update mouse position
 	if event is InputEventMouse:
-		var world_pos = camera.get_global_mouse_position()
+		# Convert viewport mouse position to world coordinates
+		var viewport_pos = get_viewport().get_mouse_position()
+		var world_pos = camera.get_canvas_transform().affine_inverse() * viewport_pos
 		mouse_grid_pos = FactoryManager.world_to_interior_grid(world_pos)
 
 	# DEBUG: Print machines (Press P)
