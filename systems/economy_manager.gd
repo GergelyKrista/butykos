@@ -87,6 +87,16 @@ func set_money(amount: int) -> void:
 	EventBus.money_changed.emit(money, delta)
 
 
+func reset_economy() -> void:
+	"""Reset economy to initial state"""
+	print("Resetting economy...")
+	money = STARTING_MONEY
+	total_earned = 0
+	total_spent = 0
+	transaction_history.clear()
+	EventBus.money_changed.emit(money, 0)
+
+
 # ========================================
 # FACILITY TRANSACTIONS
 # ========================================

@@ -149,6 +149,14 @@ func _input(event: InputEvent) -> void:
 		elif demolish_mode:
 			_cancel_demolish_mode()
 
+	# Quick save with F5
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F5:
+		_quick_save()
+
+	# Quick load with F9
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
+		_quick_load()
+
 
 func _process(_delta: float) -> void:
 	# Update placement preview position
@@ -810,3 +818,29 @@ func _is_mouse_over_ui() -> bool:
 					return true
 
 	return false
+
+
+# ========================================
+# SAVE/LOAD
+# ========================================
+
+func _quick_save() -> void:
+	"""Quick save to slot 'quicksave'"""
+	print("Quick saving...")
+	var success = SaveManager.save_game("quicksave")
+	if success:
+		print("✓ Game saved!")
+	else:
+		print("✗ Save failed")
+
+
+func _quick_load() -> void:
+	"""Quick load from slot 'quicksave'"""
+	print("Quick loading...")
+	var success = SaveManager.load_game("quicksave")
+	if success:
+		print("✓ Game loaded! Reloading scene...")
+		# Return to world map (load will restore factory state)
+		get_tree().change_scene_to_file("res://scenes/world_map/world_map.tscn")
+	else:
+		print("✗ Load failed")

@@ -129,6 +129,14 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
 		_toggle_help_panel()
 
+	# Quick save with F5
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F5:
+		_quick_save()
+
+	# Quick load with F9
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
+		_quick_load()
+
 
 func _process(_delta: float) -> void:
 	# Update placement preview position

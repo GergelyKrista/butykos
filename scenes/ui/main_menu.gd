@@ -11,6 +11,8 @@ extends Control
 @onready var settings_button = $CenterContainer/VBoxContainer/SettingsButton
 @onready var exit_button = $CenterContainer/VBoxContainer/ExitButton
 @onready var title_label = $CenterContainer/VBoxContainer/TitleLabel
+@onready var save_load_dialog = $SaveLoadDialog
+@onready var main_menu_container = $CenterContainer
 
 # ========================================
 # INITIALIZATION
@@ -24,6 +26,11 @@ func _ready() -> void:
 	load_button.pressed.connect(_on_load_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	exit_button.pressed.connect(_on_exit_pressed)
+
+	# Connect dialog signals
+	if save_load_dialog:
+		save_load_dialog.load_completed.connect(_on_load_completed)
+		save_load_dialog.dialog_closed.connect(_on_dialog_closed)
 
 	# Disable load button if no saves exist
 	_update_load_button()
@@ -43,24 +50,19 @@ func _on_start_pressed() -> void:
 	"""Start new game"""
 	print("Starting new game...")
 
-	# Reset game state
-	_reset_game_state()
+	# Reset game state using GameManager
+	GameManager.reset_game()
 
 	# Load world map scene
 	get_tree().change_scene_to_file("res://scenes/world_map/world_map.tscn")
 
 
 func _on_load_pressed() -> void:
-	"""Load game from quicksave slot"""
-	print("Loading game...")
-
-	var success = SaveManager.load_game("quicksave")
-	if success:
-		print("✓ Game loaded! Loading world map...")
-		# Load world map scene (it will visualize the loaded data)
-		get_tree().change_scene_to_file("res://scenes/world_map/world_map.tscn")
-	else:
-		print("✗ Failed to load game")
+	"""Open load game dialog"""
+	print("Opening load game dialog...")
+	if save_load_dialog:
+		main_menu_container.hide()  # Hide main menu while dialog is open
+		save_load_dialog.open_in_load_mode()
 
 
 func _on_settings_pressed() -> void:
@@ -76,31 +78,19 @@ func _on_exit_pressed() -> void:
 
 
 # ========================================
-# HELPER FUNCTIONS
+# DIALOG HANDLERS
 # ========================================
 
-func _reset_game_state() -> void:
-	"""Reset all game state for new game"""
-	print("Resetting game state...")
+func _on_load_completed(slot_name: String) -> void:
+	"""Handle load completion"""
+	print("Load completed: %s" % slot_name)
+	# Transition to world map (load already restored state)
+	get_tree().change_scene_to_file("res://scenes/world_map/world_map.tscn")
 
-	# Clear world
-	WorldManager.facilities.clear()
-	WorldManager._initialize_grid()
-	WorldManager._next_facility_id = 1
 
-	# Clear factories
-	FactoryManager.factory_interiors.clear()
+func _on_dialog_closed() -> void:
+	"""Handle dialog closed without action"""
+	print("Dialog closed")
+	main_menu_container.show()  # Show main menu again
 
-	# Clear logistics
-	LogisticsManager.routes.clear()
-	LogisticsManager.vehicles.clear()
-	LogisticsManager._next_route_id = 1
-	LogisticsManager._next_vehicle_id = 1
 
-	# Reset economy
-	EconomyManager.money = 5000
-
-	# Reset date
-	GameManager.current_date = {"year": 1850, "month": 1, "day": 1}
-
-	print("Game state reset complete")

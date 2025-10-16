@@ -11,6 +11,7 @@ extends CanvasLayer
 @onready var load_button = $Panel/CenterContainer/VBoxContainer/LoadButton
 @onready var resume_button = $Panel/CenterContainer/VBoxContainer/ResumeButton
 @onready var exit_button = $Panel/CenterContainer/VBoxContainer/ExitButton
+@onready var save_load_dialog = $SaveLoadDialog
 
 # ========================================
 # STATE
@@ -34,6 +35,12 @@ func _ready() -> void:
 	load_button.pressed.connect(_on_load_pressed)
 	resume_button.pressed.connect(_on_resume_pressed)
 	exit_button.pressed.connect(_on_exit_pressed)
+
+	# Connect dialog signals
+	if save_load_dialog:
+		save_load_dialog.save_completed.connect(_on_save_completed)
+		save_load_dialog.load_completed.connect(_on_load_completed)
+		save_load_dialog.dialog_closed.connect(_on_dialog_closed)
 
 
 func _input(event: InputEvent) -> void:
@@ -81,30 +88,19 @@ func unpause() -> void:
 # ========================================
 
 func _on_save_pressed() -> void:
-	"""Save game to quicksave slot"""
-	print("Saving game...")
-	var success = SaveManager.save_game("quicksave")
-	if success:
-		print("✓ Game saved!")
-	else:
-		print("✗ Save failed")
+	"""Open save dialog"""
+	print("Opening save dialog...")
+	if save_load_dialog:
+		panel.hide()  # Hide pause menu while dialog is open
+		save_load_dialog.open_in_save_mode()
 
 
 func _on_load_pressed() -> void:
-	"""Load game from quicksave slot"""
-	print("Loading game...")
-
-	# Unpause first
-	unpause()
-
-	var success = SaveManager.load_game("quicksave")
-	if success:
-		print("✓ Game loaded! Reloading scene...")
-		# Reload world map scene to visualize loaded data
-		get_tree().paused = false  # Make sure we're not paused
-		get_tree().reload_current_scene()
-	else:
-		print("✗ Load failed")
+	"""Open load dialog"""
+	print("Opening load dialog...")
+	if save_load_dialog:
+		panel.hide()  # Hide pause menu while dialog is open
+		save_load_dialog.open_in_load_mode()
 
 
 func _on_resume_pressed() -> void:
@@ -120,3 +116,28 @@ func _on_exit_pressed() -> void:
 	get_tree().paused = false
 	is_paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
+
+
+# ========================================
+# DIALOG HANDLERS
+# ========================================
+
+func _on_save_completed(slot_name: String) -> void:
+	"""Handle save completion"""
+	print("Save completed: %s" % slot_name)
+	panel.show()  # Show pause menu again
+
+
+func _on_load_completed(slot_name: String) -> void:
+	"""Handle load completion"""
+	print("Load completed: %s" % slot_name)
+	# Unpause and reload scene to show loaded data
+	get_tree().paused = false
+	is_paused = false
+	get_tree().reload_current_scene()
+
+
+func _on_dialog_closed() -> void:
+	"""Handle dialog closed without action"""
+	print("Dialog closed")
+	panel.show()  # Show pause menu again

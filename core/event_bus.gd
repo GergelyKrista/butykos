@@ -18,6 +18,9 @@ signal money_changed(new_amount: int, delta: int)
 ## Emitted when game date advances
 signal date_advanced(new_date: Dictionary)
 
+## Emitted when game is reset to initial state
+signal game_reset()
+
 # ========================================
 # FACILITY & WORLD SIGNALS
 # ========================================
