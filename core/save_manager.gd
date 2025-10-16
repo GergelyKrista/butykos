@@ -290,7 +290,9 @@ func _gather_logistics_data() -> Dictionary:
 			"source_id": route.source_id,
 			"destination_id": route.destination_id,
 			"product": route.product,
-			"active": route.active
+			"active": route.active,
+			"vehicle_id": route.get("vehicle_id", ""),
+			"created_date": route.get("created_date", GameManager.current_date)
 		}
 
 	# Save all vehicles
@@ -486,7 +488,8 @@ func _restore_logistics_data(data: Dictionary) -> void:
 			"destination_id": route_data.destination_id,
 			"product": route_data.product,
 			"active": route_data.get("active", true),
-			"created_date": GameManager.current_date
+			"vehicle_id": route_data.get("vehicle_id", ""),
+			"created_date": route_data.get("created_date", GameManager.current_date)
 		}
 
 	# Restore vehicles
