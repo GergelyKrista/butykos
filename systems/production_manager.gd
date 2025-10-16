@@ -16,6 +16,10 @@ var production_timers: Dictionary = {}
 # Dictionary of production outputs: { facility_id: {product_id: quantity} }
 var production_outputs: Dictionary = {}
 
+# Production statistics tracking
+# Dictionary of facility stats: { facility_id: { total_produced: {product: quantity}, total_consumed: {product: quantity}, total_revenue: int } }
+var facility_stats: Dictionary = {}
+
 # Machine production
 # Dictionary of machine production timers: { "facility_id:machine_id": time_remaining }
 var machine_timers: Dictionary = {}
@@ -146,10 +150,12 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 
 		# Consume inputs
 		_remove_from_inventory(facility_id, input_product, input_quantity)
+		_track_consumption(facility_id, input_product, input_quantity)
 		print("Consumed %d %s for production" % [input_quantity, input_product])
 
 	# Add output to inventory
 	_add_to_inventory(facility_id, output_product, output_quantity)
+	_track_production(facility_id, output_product, output_quantity)
 
 	# Reset timer
 	production_timers[facility_id] = cycle_time
@@ -594,6 +600,9 @@ func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
 				var price_per_unit = product_prices.get(product, default_sell_price)
 				var revenue = price_per_unit * transfer_amount
 
+				# Track revenue for this facility
+				_track_revenue(facility_id, revenue)
+
 				# Add money directly (no inventory needed)
 				EconomyManager.add_money(revenue, "Market Outlet: %s" % product)
 
@@ -685,6 +694,9 @@ func _sell_product(facility_id: String, product: String, quantity: int) -> void:
 	# Calculate revenue using product-specific pricing
 	var price_per_unit = product_prices.get(product, default_sell_price)
 	var revenue = price_per_unit * quantity
+
+	# Track revenue for this facility
+	_track_revenue(facility_id, revenue)
 
 	# Add money
 	EconomyManager.sell_product(product, quantity, price_per_unit)
@@ -794,6 +806,76 @@ func get_active_production_count() -> int:
 		if facility.get("production_active", false):
 			count += 1
 	return count
+
+
+func _track_production(facility_id: String, product: String, quantity: int) -> void:
+	"""Track production for a facility"""
+	if not facility_stats.has(facility_id):
+		facility_stats[facility_id] = {
+			"total_produced": {},
+			"total_consumed": {},
+			"total_revenue": 0
+		}
+
+	if not facility_stats[facility_id]["total_produced"].has(product):
+		facility_stats[facility_id]["total_produced"][product] = 0
+
+	facility_stats[facility_id]["total_produced"][product] += quantity
+
+
+func _track_consumption(facility_id: String, product: String, quantity: int) -> void:
+	"""Track consumption for a facility"""
+	if not facility_stats.has(facility_id):
+		facility_stats[facility_id] = {
+			"total_produced": {},
+			"total_consumed": {},
+			"total_revenue": 0
+		}
+
+	if not facility_stats[facility_id]["total_consumed"].has(product):
+		facility_stats[facility_id]["total_consumed"][product] = 0
+
+	facility_stats[facility_id]["total_consumed"][product] += quantity
+
+
+func _track_revenue(facility_id: String, revenue: int) -> void:
+	"""Track revenue for a facility"""
+	if not facility_stats.has(facility_id):
+		facility_stats[facility_id] = {
+			"total_produced": {},
+			"total_consumed": {},
+			"total_revenue": 0
+		}
+
+	facility_stats[facility_id]["total_revenue"] += revenue
+
+
+func get_facility_stats(facility_id: String) -> Dictionary:
+	"""Get production statistics for a facility"""
+	return facility_stats.get(facility_id, {
+		"total_produced": {},
+		"total_consumed": {},
+		"total_revenue": 0
+	})
+
+
+func get_production_rate(facility_id: String) -> String:
+	"""Get production rate for a facility (e.g., '8 malt/5s')"""
+	var facility = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return "N/A"
+
+	var facility_def = DataManager.get_facility_data(facility.type)
+	var production_data = facility_def.get("production", {})
+
+	var output = production_data.get("output", "")
+	var quantity = production_data.get("quantity", 0)
+	var cycle_time = production_data.get("cycle_time", 5.0)
+
+	if output.is_empty() or quantity == 0:
+		return "N/A"
+
+	return "%d %s/%.0fs" % [quantity, output, cycle_time]
 
 
 # ========================================

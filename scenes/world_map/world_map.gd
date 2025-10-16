@@ -832,6 +832,7 @@ func _create_production_item(facility: Dictionary, facility_def: Dictionary) -> 
 	var panel = PanelContainer.new()
 
 	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 3)
 	panel.add_child(vbox)
 
 	# Facility name
@@ -848,17 +849,70 @@ func _create_production_item(facility: Dictionary, facility_def: Dictionary) -> 
 	status_label.add_theme_color_override("font_color", Color.GREEN if is_active else Color.GRAY)
 	vbox.add_child(status_label)
 
-	# Inventory
+	# Production rate
+	var rate = ProductionManager.get_production_rate(facility.id)
+	if rate != "N/A":
+		var rate_label = Label.new()
+		rate_label.text = "Rate: %s" % rate
+		rate_label.add_theme_font_size_override("font_size", 11)
+		rate_label.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+		vbox.add_child(rate_label)
+
+	# Get production statistics
+	var stats = ProductionManager.get_facility_stats(facility.id)
+
+	# Input/Output summary
+	var production_data = facility_def.get("production", {})
+	var input_product = production_data.get("input", "")
+	var output_product = production_data.get("output", "")
+
+	if not input_product.is_empty():
+		var consumed = stats.get("total_consumed", {})
+		var consumed_amount = consumed.get(input_product, 0)
+		if consumed_amount > 0:
+			var input_label = Label.new()
+			input_label.text = "Input: %d %s consumed" % [consumed_amount, input_product]
+			input_label.add_theme_font_size_override("font_size", 11)
+			input_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.6))
+			vbox.add_child(input_label)
+
+	if not output_product.is_empty():
+		var produced = stats.get("total_produced", {})
+		var produced_amount = produced.get(output_product, 0)
+		if produced_amount > 0:
+			var output_label = Label.new()
+			output_label.text = "Output: %d %s produced" % [produced_amount, output_product]
+			output_label.add_theme_font_size_override("font_size", 11)
+			output_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
+			vbox.add_child(output_label)
+
+	# Revenue
+	var revenue = stats.get("total_revenue", 0)
+	if revenue > 0:
+		var revenue_label = Label.new()
+		revenue_label.text = "Revenue: $%d" % revenue
+		revenue_label.add_theme_font_size_override("font_size", 11)
+		revenue_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+		vbox.add_child(revenue_label)
+
+	# Current inventory
 	var inventory = facility.get("inventory", {})
 	if not inventory.is_empty():
-		var inv_label = Label.new()
-		var inv_text = "Inventory: "
-		var items = []
+		var separator = HSeparator.new()
+		vbox.add_child(separator)
+
+		var inv_title = Label.new()
+		inv_title.text = "Current Inventory:"
+		inv_title.add_theme_font_size_override("font_size", 10)
+		inv_title.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		vbox.add_child(inv_title)
+
 		for product in inventory:
-			items.append("%s: %d" % [product, inventory[product]])
-		inv_label.text = inv_text + ", ".join(items)
-		inv_label.add_theme_font_size_override("font_size", 11)
-		vbox.add_child(inv_label)
+			var amount = inventory[product]
+			var item_label = Label.new()
+			item_label.text = "  %s: %d" % [product, amount]
+			item_label.add_theme_font_size_override("font_size", 10)
+			vbox.add_child(item_label)
 
 	return panel
 
