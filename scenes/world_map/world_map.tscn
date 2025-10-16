@@ -147,6 +147,64 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
+[node name="HelpPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/HelpPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/HelpPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "KEYBOARD SHORTCUTS"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Shortcuts" type="Label" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "F1 - Toggle this help panel
+F5 - Quick save
+F9 - Quick load
+ESC - Pause menu / Cancel mode
+
+DELETE - Delete hovered facility
+SHIFT+Click - Enter factory interior
+Double-Click - Enter factory interior
+
+Right-Click - Cancel placement mode"
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CloseLabel" type="Label" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Press F1 or ESC to close"
+horizontal_alignment = 1
+
 [node name="PauseMenu" parent="." instance=ExtResource("7")]
 
 [connection signal="build_button_pressed" from="UI" to="." method="_on_build_button_pressed"]

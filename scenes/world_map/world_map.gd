@@ -14,6 +14,7 @@ extends Node2D
 @onready var camera = $Camera2D
 @onready var ui = $UI
 @onready var tooltip = $UI/HUD/Tooltip
+@onready var help_panel = $UI/HUD/HelpPanel
 
 # ========================================
 # STATE
@@ -108,6 +109,10 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_DELETE:
 		if not hovered_facility_id.is_empty():
 			_delete_facility(hovered_facility_id)
+
+	# Toggle help panel with F1
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
+		_toggle_help_panel()
 
 
 func _process(_delta: float) -> void:
@@ -636,6 +641,15 @@ func _show_facility_tooltip(facility_id: String) -> void:
 func _hide_tooltip() -> void:
 	"""Hide the tooltip"""
 	tooltip.visible = false
+
+
+# ========================================
+# HELP PANEL
+# ========================================
+
+func _toggle_help_panel() -> void:
+	"""Toggle the help panel visibility"""
+	help_panel.visible = not help_panel.visible
 
 
 # ========================================
