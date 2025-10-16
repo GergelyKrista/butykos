@@ -21,7 +21,7 @@
 	},
 	"grain_mill": {
 		"id": "grain_mill",
-		"name": "Grain Mill",
+		"name": "Malt House",
 		"description": "Processes barley into malt for brewing.",
 		"category": "processing",
 		"size": [2, 2],
@@ -40,7 +40,7 @@
 		},
 		"visual": {
 			"color": "#8b6f47",
-			"icon": "res://assets/sprites/grain_mill.png"
+			"icon": "res://assets/sprites/malt_house.png"
 		}
 	},
 	"brewery": {
