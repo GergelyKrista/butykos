@@ -18,15 +18,16 @@ signal demolish_button_pressed()
 # REFERENCES
 # ========================================
 
-@onready var back_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/BackButton
-@onready var connect_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/ConnectButton
-@onready var delete_connection_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/DeleteConnectionButton
-@onready var demolish_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/DemolishButton
-@onready var build_machines_button: Button = $BottomBar/MarginContainer/VBoxContainer/ButtonsContainer/BuildMachinesButton
+@onready var back_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/BackButton
+@onready var connect_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/ConnectButton
+@onready var delete_connection_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/DeleteConnectionButton
+@onready var demolish_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/DemolishButton
+@onready var build_machines_button: Button = $BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer/BuildMachinesButton
 @onready var factory_label: Label = $HUD/FactoryLabel
-@onready var machine_menu_panel: PanelContainer = $BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel
-@onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
-@onready var machine_menu_close_button: Button = $BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer/HeaderHBox/CloseButton
+@onready var actions_view: VBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ActionsView
+@onready var machines_view: VBoxContainer = $BottomBar/MarginContainer/VBoxContainer/MachinesView
+@onready var machine_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/MachinesView/ScrollContainer/HBoxContainer
+@onready var machine_menu_close_button: Button = $BottomBar/MarginContainer/VBoxContainer/MachinesView/HeaderHBox/CloseButton
 
 # ========================================
 # INITIALIZATION
@@ -128,15 +129,17 @@ func _on_machine_menu_close_clicked() -> void:
 # ========================================
 
 func _show_machine_menu() -> void:
-	"""Show the machine build menu panel"""
-	if machine_menu_panel:
-		machine_menu_panel.visible = true
+	"""Show the machine build menu (swap views)"""
+	if actions_view and machines_view:
+		actions_view.visible = false
+		machines_view.visible = true
 
 
 func _hide_machine_menu() -> void:
-	"""Hide the machine build menu panel"""
-	if machine_menu_panel:
-		machine_menu_panel.visible = false
+	"""Hide the machine build menu (swap back to actions)"""
+	if actions_view and machines_view:
+		actions_view.visible = true
+		machines_view.visible = false
 
 func _create_machine_menu() -> void:
 	"""Create buttons for buildable machines"""

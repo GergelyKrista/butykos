@@ -86,89 +86,84 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TitleLabel" type="Label" parent="UI/BottomBar/MarginContainer/VBoxContainer"]
+[node name="ActionsView" type="VBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "FACTORY ACTIONS & MACHINES"
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView"]
+layout_mode = 2
+text = "FACTORY ACTIONS"
 horizontal_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView"]
 layout_mode = 2
 
-[node name="ButtonsContainer" type="HBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer"]
+[node name="ButtonsContainer" type="HBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView"]
 layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="BackButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="BackButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(120, 60)
 text = "← Back"
 
-[node name="VSeparator1" type="VSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="VSeparator1" type="VSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer"]
 layout_mode = 2
 
-[node name="ConnectButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="ConnectButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(150, 60)
 text = "🔗 Connect"
 
-[node name="DeleteConnectionButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="DeleteConnectionButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(150, 60)
 text = "✂️ Delete Link"
 
-[node name="DemolishButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="DemolishButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(150, 60)
 text = "🔨 Demolish"
 
-[node name="VSeparator2" type="VSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="VSeparator2" type="VSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer"]
 layout_mode = 2
 
-[node name="BuildMachinesButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="BuildMachinesButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/ActionsView/ButtonsContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(150, 60)
 text = "🏗️ Build"
 
-[node name="MachineMenuPanel" type="PanelContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer"]
+[node name="MachinesView" type="VBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer"]
 visible = false
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="MarginContainer" type="MarginContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HeaderHBox" type="HBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer"]
+[node name="HeaderHBox" type="HBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachinesView"]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+[node name="Title" type="Label" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachinesView/HeaderHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 18
 text = "BUILD MACHINES"
+horizontal_alignment = 1
 
-[node name="CloseButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+[node name="CloseButton" type="Button" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachinesView/HeaderHBox"]
 layout_mode = 2
-text = "X"
+custom_minimum_size = Vector2(100, 50)
+text = "✖ Close"
 
-[node name="HSeparator" type="HSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachinesView"]
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachinesView"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachineMenuPanel/MarginContainer/VBoxContainer/ScrollContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/BottomBar/MarginContainer/VBoxContainer/MachinesView/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
