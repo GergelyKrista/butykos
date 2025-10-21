@@ -55,6 +55,190 @@ offset_bottom = 90.0
 theme_override_font_sizes/font_size = 18
 text = "Date: 1850-01-01"
 
+[node name="ProductionButton" type="Button" parent="UI/HUD"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 100.0
+offset_right = 200.0
+offset_bottom = 135.0
+text = "📊 Production Stats"
+
+[node name="ModePanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -180.0
+offset_top = 15.0
+offset_right = 180.0
+offset_bottom = 65.0
+grow_horizontal = 2
+
+[node name="ModeLabel" type="Label" parent="UI/HUD/ModePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 24
+text = "🔨 DEMOLISH MODE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Tooltip" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 0
+offset_left = 100.0
+offset_top = 100.0
+offset_right = 400.0
+offset_bottom = 250.0
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/Tooltip"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/Tooltip/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="FacilityName" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Facility Name"
+
+[node name="FacilityType" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Type: barley_field"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ProductionStatus" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Production: Active"
+
+[node name="InventoryLabel" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Inventory:"
+
+[node name="InventoryList" type="Label" parent="UI/HUD/Tooltip/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "  barley: 50
+  malt: 20"
+
+[node name="ProductionPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -300.0
+offset_right = -10.0
+offset_bottom = 300.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/ProductionPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/ProductionPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "PRODUCTION"
+
+[node name="CloseButton" type="Button" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "X"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FacilityList" type="VBoxContainer" parent="UI/HUD/ProductionPanel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="HelpPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/HelpPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/HelpPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "KEYBOARD SHORTCUTS"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Shortcuts" type="Label" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "F1 - Toggle this help panel
+ESC - Pause menu / Cancel mode
+F5 - Quick Save
+F9 - Quick Load
+
+SHIFT+Click - Enter factory interior
+Double-Click - Enter factory interior
+
+Right-Click - Cancel placement mode"
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CloseLabel" type="Label" parent="UI/HUD/HelpPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Press F1 or ESC to close"
+horizontal_alignment = 1
+
 [node name="BottomBar" type="Panel" parent="UI"]
 anchors_preset = 12
 anchor_top = 1.0
@@ -103,3 +287,4 @@ theme_override_constants/separation = 8
 
 [connection signal="build_button_pressed" from="UI" to="." method="_on_build_button_pressed"]
 [connection signal="create_route_button_pressed" from="UI" to="." method="_on_create_route_button_pressed"]
+[connection signal="demolish_button_pressed" from="UI" to="." method="_on_demolish_button_pressed"]

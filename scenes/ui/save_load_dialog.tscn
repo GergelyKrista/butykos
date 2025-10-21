@@ -1,0 +1,119 @@
+[gd_scene load_steps=2 format=3 uid="uid://djx4s1234abcd"]
+
+[ext_resource type="Script" path="res://scenes/ui/save_load_dialog.gd" id="1"]
+
+[node name="SaveLoadDialog" type="PanelContainer"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "Save / Load Game"
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
+text = "X"
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ModeTabContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="SaveModeButton" type="Button" parent="MarginContainer/VBoxContainer/ModeTabContainer"]
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+text = "SAVE GAME"
+
+[node name="LoadModeButton" type="Button" parent="MarginContainer/VBoxContainer/ModeTabContainer"]
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+text = "LOAD GAME"
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 350)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SaveSlotsList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="NoSavesLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+text = "No save files found"
+horizontal_alignment = 1
+
+[node name="SaveNamePanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SaveNamePanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/SaveNamePanel/HBoxContainer"]
+layout_mode = 2
+text = "Save Name:"
+
+[node name="SaveNameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/SaveNamePanel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Enter save name..."
+
+[node name="ButtonsHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="DeleteButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsHBox"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Delete"
+
+[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsHBox"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Save / Load"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HeaderHBox/CloseButton" to="." method="_on_close_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ModeTabContainer/SaveModeButton" to="." method="_on_save_mode_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ModeTabContainer/LoadModeButton" to="." method="_on_load_mode_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonsHBox/DeleteButton" to="." method="_on_delete_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ButtonsHBox/ActionButton" to="." method="_on_action_pressed"]

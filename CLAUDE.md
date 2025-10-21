@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Theme:** Build and manage an alcohol production empire (beer, spirits, wine)
 - **Dual-layer gameplay:** Strategic world map + Tactical factory interiors
 - **Engine:** Godot 4.2 with GDScript
-- **Status:** Phase 5 Complete - 7 facilities, 14 products, 4 production chains working
+- **Status:** Phase 7A Complete - Save/Load System fully functional
 
 ## Running the Project
 
@@ -47,7 +47,7 @@ core/
 ├── event_bus.gd         # Signal hub (40+ signals for decoupled communication)
 ├── game_manager.gd      # Game state, scene transitions, active_factory_id tracking
 ├── data_manager.gd      # JSON data loading (facilities, machines, products)
-└── save_manager.gd      # Save/load framework (⚠️ not fully implemented)
+└── save_manager.gd      # Save/load system with multiple slots, auto-save, hotkeys
 
 systems/
 ├── world_manager.gd     # 50×50 isometric grid, facility placement, coordinate conversion
@@ -268,16 +268,12 @@ var world_pos = cart_to_iso(center_grid_pos)
 5. **Factory interior broken:** Never apply isometric logic to factory scenes
 6. **Sprite not showing:** Check field name - facilities use `icon`, machines use `sprite`
 7. **Machine not producing:** Check if it has input materials in its own inventory (not facility inventory)
+8. **Machine placement incorrect:** Use `get_viewport().get_mouse_position()` + canvas transform inverse, not `camera.get_global_mouse_position()`
+9. **Mode conflicts:** Always cancel conflicting modes before starting new mode (placement, route, demolish, connect)
 
 ## Next Development Priorities
 
 Based on `DEVELOPMENT_STATUS.md`:
-
-**Phase 7A - Save/Load System (CRITICAL, 3-4 hours):**
-- Complete SaveManager implementation
-- JSON save file format
-- Autosave functionality
-- Required for all future testing
 
 **Phase 6A - Market System (HIGH PRIORITY, 2-3 hours):**
 - Dynamic pricing based on supply/demand
@@ -285,11 +281,10 @@ Based on `DEVELOPMENT_STATUS.md`:
 - Market trends and cycles
 - Contract system
 
-**Phase 7B - UI/UX Improvements (2-3 hours):**
-- Production statistics panel
-- Facility info tooltips
-- Route management UI
-- Resource flow visualization
+**Phase 7C - Remaining UI/UX (2-3 hours):**
+- Route management UI (pause, delete, stats)
+- Resource flow visualization (animated particles)
+- Mini-map for world view
 
 **Phase 8 - More Content (2-4 hours):**
 - More facility types (vineyard, hop farm, water source)
@@ -306,18 +301,40 @@ Based on `DEVELOPMENT_STATUS.md`:
 
 ### System Completion
 - Core Architecture: 100% ✅
-- World Map Layer: 98% ✅
-- Factory Interior: 95% ✅
+- World Map Layer: 100% ✅ (sprites, routes, vehicles, demolish, tooltips)
+- Factory Interior: 98% ✅ (connections, production, sprites, demolish)
 - Logistics: 95% ✅
 - Production: 95% ✅
 - Economy: 90% ✅
-- Save/Load: 10% ⚠️ (framework only)
+- UI/UX: 80% ✅ (stats panel, tooltips, mode indicators, demolish, save/load UI)
+- Save/Load: 100% ✅ (multiple slots, persistence, hotkeys)
 
 ### Known Limitations
-- No save/load functionality yet
-- Static pricing (no supply/demand)
-- No tutorial/onboarding
+- Static pricing (no supply/demand) - Phase 6A
+- No tutorial/onboarding - Phase 7D
 - No multi-input recipes (can add in Phase 5C)
+- Route management UI incomplete (pause, delete routes)
+- No mini-map for navigation
+
+### Recent Improvements (Phase 7A & 7B Complete)
+**Phase 7A - Save/Load System:**
+- Multiple named save slots with timestamps and game dates
+- Save/Load dialog with proper validation
+- Main menu and pause menu integration
+- Quick save (F5) and quick load (F9) hotkeys
+- Delete save functionality
+- Full game state persistence across restarts
+- Auto-save every 5 minutes
+
+**Phase 7B - UI/UX:**
+- Production statistics panel (toggleable, shows all facility status)
+- Facility tooltips with inventory on hover
+- Demolish mode for facilities and machines (50% refund)
+- Visual mode indicators (colored panels)
+- Mode conflict prevention system
+- Factory interior UI restructured (bottom navbar)
+- Machine build menu optimized layout
+- Fixed mouse coordinate conversion for machine placement
 
 ## Testing the Game
 
@@ -371,58 +388,19 @@ Documentation:
 - Smooth vehicle animation
 - No memory leaks detected
 - Not tested with 50+ facilities (optimization may be needed)
-- memory **Development Priorities Order**
-Current (Phases 1-5): World map, facilities, factory interiors, production chains
-Next priorities:
-1. Save/Load System (critical, 10% done)
-2. Logistics System (routes, vehicles, pathfinding)
-3. Market System (demand, pricing, sales)
-4. Proper Isometric Grid (replace 45° rotation)
-5. Economy Manager (currency, contracts, profitability)
-6. UI/UX (stats, tooltips, notifications)
-- memory **GitHub Branch Protection**
-- main: Fully protected, production-ready only
-- dev: Default branch, protected, requires PR approval
-- feature/*: Contributors work here
-- Workflow: feature → dev (PR+approval) → main (when stable)
-- Only project owner can merge to main
-- #memory **Design Documentation Created**
-We have three comprehensive design documents:
-1. Gameplay Flow Development Guide - minute-by-minute player experience, session loops, progression
-2. Game Design Document (GDD) - complete systems design, market simulation, economic model, 15-18 month roadmap
-3. System Architecture Design - technical implementation, singleton patterns, dual-layer scene management
 
-These docs define the FULL vision. Current implementation is Phase 1-5 of a larger plan.
+## Save System
 
-#memory **Proper Isometric Grid Specifications** 
-The 45° camera rotation is a temporary workaround. Proper isometric implementation uses:
-- 2:1 ratio tiles: 64×32 pixels for world map
-- cart_to_iso() and iso_to_cart() coordinate conversion
-- Z-index sorting: z_index = grid_y * 100 + grid_x
-- All facility sprites need isometric perspective art (top + front + side visible)
-- This is documented in "Isometric Grid System Requirements" addendum
-- Factory interiors will remain orthogonal (top-down) for simplicity
+**Quick Access:**
+- F5 - Quick save to "quicksave" slot
+- F9 - Quick load from "quicksave" slot
+- ESC → Save/Load Game - Access full save management
 
-#memory **Sprite Alignment Formula**
-For perfect grid alignment:
-1. Sprite pivot at bottom-center of diamond shape
-2. Position = cart_to_iso(grid_x, grid_y)
-3. No manual offsets needed
-If sprites misalign, fix the pivot point in sprite settings, not position code.
+**Features:**
+- Multiple named save slots
+- Auto-save every 5 minutes
+- Save versioning for compatibility
+- Full game state persistence (facilities, machines, routes, money, date)
+- Delete unwanted saves
 
-#memory **Full Game Scope (Early Access v1.0)**
-Current implementation is a subset. Full EA scope includes:
-- 1 region (currently building)
-- 6 products: Ale, Lager, Wheat Beer, Whiskey, Vodka, Premium Whiskey (some implemented)
-- 12 markets with dynamic pricing and AI competition (not yet implemented)
-- Logistics system with route visualization and vehicle simulation (not yet implemented)
-- Contract system for bonus revenue (not yet implemented)
-- Market Manager with supply/demand simulation (not yet implemented)
-- 25-35 hours total gameplay
-
-#memory **MCP Servers for Development**
-Two MCP servers configured:
-1. Godot MCP - For reading/writing .gd and .tscn files directly
-2. Aseprite MCP - For programmatically creating isometric sprite assets
-Both available at project setup for automated sprite generation once core systems work.
-- after each phase of development, ask me if I want to add any bugs to the md file
+**Save Location:** `user://saves/` directory (platform-specific user data folder)

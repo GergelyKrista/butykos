@@ -34,7 +34,7 @@ butykos/
 | Facility Type | File Name | Canvas Size | Grid Size | Description |
 |--------------|-----------|-------------|-----------|-------------|
 | Barley Field | `barley_field.png` | 128×64 | 2×2 | Golden wheat field with rows |
-| Grain Mill | `grain_mill.png` | 128×64 | 2×2 | Stone mill building with wheel |
+| Malt House | `malt_house.png` | 128×64 | 2×2 | Malt processing building |
 | Brewery | `brewery.png` | 192×96 | 3×3 | Large brick building with chimney |
 
 ### Future Facilities (Planned)
@@ -50,7 +50,6 @@ butykos/
 | Market Stall | `market_stall.png` | 64×32 | 1×1 | Small selling booth |
 | Distribution Center | `distribution_center.png` | 256×128 | 4×4 | Large logistics hub |
 | Cooperage | `cooperage.png` | 128×64 | 2×2 | Barrel-making workshop |
-| Malthouse | `malthouse.png` | 128×64 | 2×2 | Malt processing building |
 
 ---
 
@@ -363,5 +362,5 @@ If you need to add a new asset type not listed here:
 
 ---
 
-*Last Updated: 2025-10-15*
-*Game Version: Phase 4E (Logistics Visualization)*
+*Last Updated: 2025-10-16*
+*Game Version: Phase 7A (Save/Load System Complete)*

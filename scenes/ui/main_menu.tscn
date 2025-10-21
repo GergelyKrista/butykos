@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8vwhm7xqf8oe"]
+[gd_scene load_steps=3 format=3 uid="uid://c8vwhm7xqf8oe"]
 
 [ext_resource type="Script" path="res://scenes/ui/main_menu.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://djx4s1234abcd" path="res://scenes/ui/save_load_dialog.tscn" id="2"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -66,3 +67,6 @@ custom_minimum_size = Vector2(300, 60)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "EXIT"
+
+[node name="SaveLoadDialog" parent="." instance=ExtResource("2")]
+z_index = 10
