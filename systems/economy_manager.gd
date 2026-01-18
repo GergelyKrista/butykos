@@ -9,7 +9,7 @@ extends Node
 # CONSTANTS
 # ========================================
 
-const STARTING_MONEY = 5000
+const STARTING_MONEY = 100000
 
 # ========================================
 # STATE

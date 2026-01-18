@@ -13,7 +13,10 @@
       "Bash(git branch:*)",
       "Bash(git stash:*)",
       "Bash(git merge:*)",
-      "Read(//c/Users/gerge/AppData/Roaming/Godot/app_userdata/Butykos/saves/**)"
+      "Read(//c/Users/gerge/AppData/Roaming/Godot/app_userdata/Butykos/saves/**)",
+      "Bash(ls:*)",
+      "Bash(identify:*)",
+      "Bash(file:*)"
     ],
     "deny": [],
     "ask": []

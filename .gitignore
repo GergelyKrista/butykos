@@ -1,2 +1,5 @@
 # Godot 4+ specific ignores
 .godot/
+
+# Claude Code troubleshooting screenshots
+claudesnippets/

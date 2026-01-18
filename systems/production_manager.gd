@@ -878,6 +878,49 @@ func get_production_rate(facility_id: String) -> String:
 	return "%d %s/%.0fs" % [quantity, output, cycle_time]
 
 
+func get_production_progress(facility_id: String) -> float:
+	"""Get production progress for a facility (0.0 to 1.0)"""
+	if not production_timers.has(facility_id):
+		return 0.0
+
+	var facility = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return 0.0
+
+	var facility_def = DataManager.get_facility_data(facility.type)
+	var production_data = facility_def.get("production", {})
+	var cycle_time = production_data.get("cycle_time", 5.0)
+
+	var time_remaining = production_timers[facility_id]
+	var time_elapsed = cycle_time - time_remaining
+
+	# Calculate progress (0.0 = just started, 1.0 = complete)
+	var progress = time_elapsed / cycle_time
+	return clampf(progress, 0.0, 1.0)
+
+
+func synchronize_production_timers(facility_ids: Array[String]) -> void:
+	"""Synchronize production timers for multiple facilities (for batch placement)"""
+	if facility_ids.is_empty():
+		return
+
+	# Get the cycle time from the first facility (all should be same type)
+	var first_facility = WorldManager.get_facility(facility_ids[0])
+	if first_facility.is_empty():
+		return
+
+	var facility_def = DataManager.get_facility_data(first_facility.type)
+	var production_data = facility_def.get("production", {})
+	var cycle_time = production_data.get("cycle_time", 5.0)
+
+	# Set all facilities to the same timer value (start of cycle)
+	for facility_id in facility_ids:
+		if production_timers.has(facility_id):
+			production_timers[facility_id] = cycle_time
+
+	print("Synchronized %d production timers to %.1fs" % [facility_ids.size(), cycle_time])
+
+
 # ========================================
 # DEBUG
 # ========================================

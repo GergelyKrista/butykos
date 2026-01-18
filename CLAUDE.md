@@ -154,16 +154,23 @@ func iso_to_cart(iso_pos: Vector2) -> Vector2:
    facility.z_index = grid_pos.y * 100 + grid_pos.x
    ```
 
-3. **Sprite Rendering:** Facilities use Sprite2D with fallback to Polygon2D diamonds
+3. **Sprite Rendering:** Facilities use Sprite2D with bottom-center alignment, fallback to Polygon2D diamonds
    ```gdscript
    var sprite_path = facility_def.get("visual", {}).get("icon", "")
    if ResourceLoader.exists(sprite_path):
        var sprite = Sprite2D.new()
        sprite.texture = load(sprite_path)
-       sprite.centered = true
+       sprite.centered = false  # Manual positioning for proper isometric alignment
+
+       # Bottom-center alignment: sprite bottom sits at isometric footprint base
+       var footprint_height = (size.x + size.y) * TILE_HEIGHT / 2.0
+       sprite.position = Vector2(-sprite_width / 2.0, -sprite_height + footprint_height / 2.0)
    else:
        # Fallback to colored diamond polygon
    ```
+
+   **Critical:** Sprites must use bottom-center alignment for proper isometric grid placement.
+   Sprites can have extra vertical height for building detail - the engine handles positioning automatically.
 
 4. **Mouse Input:** Use `WorldManager.world_to_grid()` directly (handles isometric conversion)
 
@@ -222,9 +229,11 @@ Wheat Farm ($550) → Grain Mill ($800) → Distillery ($2000)
 
 ### World Map Facilities (Isometric)
 - Location: `assets/sprites/`
-- Naming: Match facility ID (e.g., `barley_field.png`)
+- Naming: Match facility ID (e.g., `sprite_facility_malt_house.png`)
 - Referenced in `facilities.json` as `visual.icon`
 - Automatic fallback to colored diamonds if sprite missing
+- **Positioning:** Bottom-center alignment (engine handles automatically)
+- **Extra Height:** Sprites can exceed strict isometric footprint for building height
 
 ### Factory Interior Machines (Top-Down)
 - Location: `assets/machines/`
@@ -232,13 +241,24 @@ Wheat Farm ($550) → Grain Mill ($800) → Distillery ($2000)
 - Referenced in `machines.json` as `visual.sprite` (note: different field name)
 - Automatic fallback to colored rectangles if sprite missing
 
-### Artist Workflow
-1. Drop PNG file in correct folder
-2. Match exact filename from JSON
-3. Launch game (F5)
-4. Sprite appears automatically
+### Sprite Positioning Details (World Map)
+**Critical for proper grid alignment:**
+- Sprites use `centered = false` with manual positioning
+- Bottom-center of sprite = base of isometric footprint
+- Engine calculates: `position = Vector2(-width/2, -height + footprint_height/2)`
+- Examples:
+  - Malt House (2×2): 128×80px sprite on 128×64px footprint
+  - Brewery (3×3): 192×112px sprite on 192×96px footprint
 
-See `assets/PLACE_SPRITES_HERE.md` for quick reference.
+### Artist Workflow
+1. Draw sprite with isometric perspective
+2. Ensure bottom edge = where building touches ground
+3. Add vertical height as needed for building detail
+4. Drop PNG file in correct folder (`assets/sprites/` or `assets/machines/`)
+5. Match exact filename from JSON
+6. Launch game (F5) - sprite appears automatically with correct alignment
+
+See `ASSET_NAMING_CONVENTION.md` for complete sprite specifications.
 
 ## Code Style Requirements
 
@@ -267,9 +287,10 @@ var world_pos = cart_to_iso(center_grid_pos)
 4. **Mouse picking fails:** Ensure using proper isometric conversion
 5. **Factory interior broken:** Never apply isometric logic to factory scenes
 6. **Sprite not showing:** Check field name - facilities use `icon`, machines use `sprite`
-7. **Machine not producing:** Check if it has input materials in its own inventory (not facility inventory)
-8. **Machine placement incorrect:** Use `get_viewport().get_mouse_position()` + canvas transform inverse, not `camera.get_global_mouse_position()`
-9. **Mode conflicts:** Always cancel conflicting modes before starting new mode (placement, route, demolish, connect)
+7. **Sprite misaligned with grid:** Ensure using `centered = false` with bottom-center positioning formula (see Sprite Asset System section)
+8. **Machine not producing:** Check if it has input materials in its own inventory (not facility inventory)
+9. **Machine placement incorrect:** Use `get_viewport().get_mouse_position()` + canvas transform inverse, not `camera.get_global_mouse_position()`
+10. **Mode conflicts:** Always cancel conflicting modes before starting new mode (placement, route, demolish, connect)
 
 ## Next Development Priorities
 

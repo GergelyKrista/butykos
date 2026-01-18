@@ -29,6 +29,12 @@ var placement_mode: bool = false
 var placement_facility_id: String = ""
 var placement_preview: Node2D = null
 
+# Drag-to-place mode (for fields)
+var drag_mode: bool = false
+var drag_start_grid_pos: Vector2i = Vector2i.ZERO
+var drag_previews: Array[Node2D] = []
+var is_field_type: bool = false  # Whether current placement is a field
+
 # Route creation mode
 var route_mode: bool = false
 var route_source_id: String = ""
@@ -85,10 +91,25 @@ func _input(event: InputEvent) -> void:
 	# Placement mode input
 	if placement_mode:
 		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-				# Don't place if clicking on UI
-				if not _is_mouse_over_ui():
-					_try_place_facility()
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				if event.pressed:
+					# Mouse button down
+					if not _is_mouse_over_ui():
+						if is_field_type:
+							# Start drag mode for fields
+							drag_mode = true
+							drag_start_grid_pos = mouse_grid_pos
+							_update_drag_previews()
+						else:
+							# Single placement for non-fields
+							_try_place_facility()
+				else:
+					# Mouse button released
+					if drag_mode:
+						# Complete drag placement
+						_complete_drag_placement()
+						drag_mode = false
+					# Note: Single placement happens on press, not release
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_placement()
 
@@ -139,8 +160,12 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
+	# Update drag previews if in drag mode
+	if drag_mode:
+		_update_drag_previews()
+
 	# Update placement preview position
-	if placement_mode and placement_preview:
+	if placement_mode and placement_preview and not drag_mode:
 		# Get facility size to properly center the preview
 		var facility_def = DataManager.get_facility_data(placement_facility_id)
 		var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
@@ -157,6 +182,9 @@ func _process(_delta: float) -> void:
 		# Update preview color based on validity
 		_update_placement_preview_validity()
 
+	# Update barley field animations based on production progress
+	_update_barley_field_animations()
+
 
 # ========================================
 # FACILITY PLACEMENT
@@ -172,10 +200,13 @@ func start_placement_mode(facility_id: String) -> void:
 	placement_mode = true
 	placement_facility_id = facility_id
 
+	# Check if this is a field type (agriculture category)
+	is_field_type = facility_def.get("category", "") == "agriculture"
+
 	# Create placement preview
 	_create_placement_preview(facility_def)
 
-	print("Placement mode started: %s" % facility_def.name)
+	print("Placement mode started: %s (field: %s)" % [facility_def.name, is_field_type])
 
 
 func _create_placement_preview(facility_def: Dictionary) -> void:
@@ -196,7 +227,16 @@ func _create_placement_preview(facility_def: Dictionary) -> void:
 	if texture:
 		var sprite = Sprite2D.new()
 		sprite.texture = texture
-		sprite.centered = true
+		sprite.centered = false  # Use manual positioning for proper isometric alignment
+
+		# Position sprite so its bottom-center aligns with the isometric footprint
+		var footprint_width = (size.x + size.y) * WorldManager.TILE_WIDTH / 2.0
+		var footprint_height = (size.x + size.y) * WorldManager.TILE_HEIGHT / 2.0
+
+		var sprite_width = texture.get_width()
+		var sprite_height = texture.get_height()
+		sprite.position = Vector2(-sprite_width / 2.0, -sprite_height + footprint_height / 2.0)
+
 		sprite.modulate = Color(1, 1, 1, 0.7)  # Semi-transparent for preview
 		placement_preview.add_child(sprite)
 	else:
@@ -285,12 +325,144 @@ func _cancel_placement() -> void:
 	"""Cancel placement mode"""
 	placement_mode = false
 	placement_facility_id = ""
+	is_field_type = false
 
 	if placement_preview:
 		placement_preview.queue_free()
 		placement_preview = null
 
+	# Clear drag state
+	_clear_drag_previews()
+	drag_mode = false
+
 	print("Placement mode cancelled")
+
+
+func _update_drag_previews() -> void:
+	"""Update drag placement previews for field facilities"""
+	if not drag_mode:
+		return
+
+	# Clear old previews
+	_clear_drag_previews()
+
+	# Calculate drag rectangle
+	var min_x = mini(drag_start_grid_pos.x, mouse_grid_pos.x)
+	var max_x = maxi(drag_start_grid_pos.x, mouse_grid_pos.x)
+	var min_y = mini(drag_start_grid_pos.y, mouse_grid_pos.y)
+	var max_y = maxi(drag_start_grid_pos.y, mouse_grid_pos.y)
+
+	var facility_def = DataManager.get_facility_data(placement_facility_id)
+	var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
+	var cost = facility_def.get("cost", 0)
+	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
+
+	# Create preview for each position in rectangle
+	for grid_x in range(min_x, max_x + 1):
+		for grid_y in range(min_y, max_y + 1):
+			var grid_pos = Vector2i(grid_x, grid_y)
+
+			# Check if can place
+			var can_place = WorldManager.can_place_facility(grid_pos, size)
+			var can_afford = EconomyManager.can_afford(cost)
+
+			# Create preview node
+			var preview = Node2D.new()
+			add_child(preview)
+
+			# Calculate world position
+			var center_grid_pos = Vector2(
+				grid_pos.x + size.x / 2.0,
+				grid_pos.y + size.y / 2.0
+			)
+			var world_pos = WorldManager.cart_to_iso(center_grid_pos)
+			preview.position = world_pos
+
+			# Create diamond polygons for preview
+			for x in range(size.x):
+				for y in range(size.y):
+					var polygon = Polygon2D.new()
+
+					var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
+					var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
+
+					var half_width = WorldManager.TILE_WIDTH / 2.0
+					var half_height = WorldManager.TILE_HEIGHT / 2.0
+					polygon.polygon = PackedVector2Array([
+						tile_center_iso + Vector2(0, -half_height),
+						tile_center_iso + Vector2(half_width, 0),
+						tile_center_iso + Vector2(0, half_height),
+						tile_center_iso + Vector2(-half_width, 0)
+					])
+
+					# Set color based on validity (green if valid, red if not)
+					if can_place and can_afford:
+						polygon.color = Color(0.5, 1.0, 0.5, 0.5)  # Semi-transparent green
+					else:
+						polygon.color = Color(1.0, 0.3, 0.3, 0.5)  # Semi-transparent red
+
+					preview.add_child(polygon)
+
+			drag_previews.append(preview)
+
+
+func _clear_drag_previews() -> void:
+	"""Clear all drag placement previews"""
+	for preview in drag_previews:
+		if is_instance_valid(preview):
+			preview.queue_free()
+	drag_previews.clear()
+
+
+func _complete_drag_placement() -> void:
+	"""Place all facilities in the drag area"""
+	if not drag_mode:
+		return
+
+	# Calculate drag rectangle
+	var min_x = mini(drag_start_grid_pos.x, mouse_grid_pos.x)
+	var max_x = maxi(drag_start_grid_pos.x, mouse_grid_pos.x)
+	var min_y = mini(drag_start_grid_pos.y, mouse_grid_pos.y)
+	var max_y = maxi(drag_start_grid_pos.y, mouse_grid_pos.y)
+
+	var facility_def = DataManager.get_facility_data(placement_facility_id)
+	var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
+	var cost = facility_def.get("cost", 0)
+
+	# Track placed facilities for timer synchronization
+	var placed_facilities: Array[String] = []
+
+	# Place all valid facilities
+	for grid_x in range(min_x, max_x + 1):
+		for grid_y in range(min_y, max_y + 1):
+			var grid_pos = Vector2i(grid_x, grid_y)
+
+			# Check if can place
+			if not WorldManager.can_place_facility(grid_pos, size):
+				continue
+
+			# Check if can afford
+			if not EconomyManager.can_afford(cost):
+				print("Not enough money to place all fields")
+				break
+
+			# Purchase and place
+			if EconomyManager.purchase_facility(placement_facility_id):
+				var facility_id = WorldManager.place_facility(placement_facility_id, grid_pos, {
+					"size": size
+				})
+
+				if facility_id:
+					WorldManager.complete_construction(facility_id)
+					placed_facilities.append(facility_id)
+
+	# Synchronize production timers for all placed fields
+	if placed_facilities.size() > 0:
+		ProductionManager.synchronize_production_timers(placed_facilities)
+		print("Placed %d fields with synchronized timers" % placed_facilities.size())
+
+	# Clear previews
+	_clear_drag_previews()
 
 
 # ========================================
@@ -324,40 +496,43 @@ func _create_facility_node(facility: Dictionary) -> Area2D:
 	var size = facility.size
 	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
 
-	# Try to load sprite texture
-	var sprite_path = facility_def.get("visual", {}).get("icon", "")
-	var texture = null
-	if not sprite_path.is_empty() and ResourceLoader.exists(sprite_path):
-		texture = load(sprite_path)
-
-	# If sprite exists, use it; otherwise fall back to colored diamonds
-	if texture:
-		var sprite = Sprite2D.new()
-		sprite.texture = texture
-		sprite.centered = true
-		area.add_child(sprite)
+	# Special handling for barley field with growth animation
+	if facility.type == "barley_field":
+		var animated_sprite = _create_barley_field_animation(size)
+		if animated_sprite:
+			area.add_child(animated_sprite)
+			# Store reference for updating animation based on production progress
+			area.set_meta("animated_sprite", animated_sprite)
+		else:
+			# Fallback to colored diamonds if animation creation fails
+			_create_facility_diamonds(area, size, color)
 	else:
-		# Fallback: Create isometric diamond for each tile
-		for x in range(size.x):
-			for y in range(size.y):
-				var polygon = Polygon2D.new()
+		# Try to load sprite texture for other facilities
+		var sprite_path = facility_def.get("visual", {}).get("icon", "")
+		var texture = null
+		if not sprite_path.is_empty() and ResourceLoader.exists(sprite_path):
+			texture = load(sprite_path)
 
-				# Calculate tile position in isometric space (center tiles at 0.5 offset for grid alignment)
-				var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
-				var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
+		# If sprite exists, use it; otherwise fall back to colored diamonds
+		if texture:
+			var sprite = Sprite2D.new()
+			sprite.texture = texture
+			sprite.centered = false  # Use manual positioning for proper isometric alignment
 
-				# Define diamond vertices (isometric tile shape)
-				var half_width = WorldManager.TILE_WIDTH / 2.0
-				var half_height = WorldManager.TILE_HEIGHT / 2.0
-				polygon.polygon = PackedVector2Array([
-					tile_center_iso + Vector2(0, -half_height),      # Top
-					tile_center_iso + Vector2(half_width, 0),        # Right
-					tile_center_iso + Vector2(0, half_height),       # Bottom
-					tile_center_iso + Vector2(-half_width, 0)        # Left
-				])
+			# Position sprite so its bottom-center aligns with the isometric footprint
+			# Isometric footprint width/height based on facility size
+			var footprint_width = (size.x + size.y) * WorldManager.TILE_WIDTH / 2.0
+			var footprint_height = (size.x + size.y) * WorldManager.TILE_HEIGHT / 2.0
 
-				polygon.color = color
-				area.add_child(polygon)
+			# Sprite offset: bottom-center of sprite should be at center of isometric footprint
+			var sprite_width = texture.get_width()
+			var sprite_height = texture.get_height()
+			sprite.position = Vector2(-sprite_width / 2.0, -sprite_height + footprint_height / 2.0)
+
+			area.add_child(sprite)
+		else:
+			# Fallback to colored diamonds
+			_create_facility_diamonds(area, size, color)
 
 	# Add collision shape covering entire facility (approximate with rectangle for now)
 	var collision = CollisionShape2D.new()
@@ -387,6 +562,121 @@ func _create_facility_node(facility: Dictionary) -> Area2D:
 	area.mouse_exited.connect(_on_facility_mouse_exited.bind(facility.id))
 
 	return area
+
+
+func _create_barley_field_animation(size: Vector2i) -> AnimatedSprite2D:
+	"""Create animated sprite for barley field with growth stages"""
+	# Animation frame paths
+	var animation_base_path = "res://assets/sprites/animations/animation_barley_field/"
+	var frame_paths = [
+		animation_base_path + "sprite_animation_barley_field_stage0.png",
+		animation_base_path + "sprite_animation_barley_field_stage1.png",
+		animation_base_path + "sprite_animation_barley_field_stage2.png",
+		animation_base_path + "sprite_animation_barley_field_stage3.png",
+		animation_base_path + "sprite_animation_barley_field_stage4.png",
+		animation_base_path + "sprite_animation_barley_field_stage5.png"
+	]
+
+	# Check if first frame exists
+	if not ResourceLoader.exists(frame_paths[0]):
+		print("Barley field animation frames not found")
+		return null
+
+	# Create SpriteFrames resource
+	var sprite_frames = SpriteFrames.new()
+	sprite_frames.add_animation("grow")
+
+	# Load all frames
+	for i in range(frame_paths.size()):
+		if ResourceLoader.exists(frame_paths[i]):
+			var texture = load(frame_paths[i])
+			sprite_frames.add_frame("grow", texture, i)
+		else:
+			print("Warning: Missing barley animation frame: %s" % frame_paths[i])
+			return null
+
+	# Create AnimatedSprite2D
+	var animated_sprite = AnimatedSprite2D.new()
+	animated_sprite.sprite_frames = sprite_frames
+	animated_sprite.animation = "grow"
+	animated_sprite.frame = 0  # Start at stage 0
+	animated_sprite.centered = false  # Use manual positioning like static sprites
+
+	# Position sprite using same bottom-center alignment as static sprites
+	var footprint_width = (size.x + size.y) * WorldManager.TILE_WIDTH / 2.0
+	var footprint_height = (size.x + size.y) * WorldManager.TILE_HEIGHT / 2.0
+
+	# Get first frame to determine sprite dimensions
+	var first_texture = sprite_frames.get_frame_texture("grow", 0)
+	var sprite_width = first_texture.get_width()
+	var sprite_height = first_texture.get_height()
+	animated_sprite.position = Vector2(-sprite_width / 2.0, -sprite_height + footprint_height / 2.0)
+
+	print("Barley field animation created with %d frames" % sprite_frames.get_frame_count("grow"))
+	return animated_sprite
+
+
+func _create_facility_diamonds(area: Area2D, size: Vector2i, color: Color) -> void:
+	"""Create colored diamond polygons for facility (fallback when no sprite)"""
+	for x in range(size.x):
+		for y in range(size.y):
+			var polygon = Polygon2D.new()
+
+			# Calculate tile position in isometric space (center tiles at 0.5 offset for grid alignment)
+			var tile_offset_cart = Vector2(x - size.x / 2.0 + 0.5, y - size.y / 2.0 + 0.5)
+			var tile_center_iso = WorldManager.cart_to_iso(tile_offset_cart)
+
+			# Define diamond vertices (isometric tile shape)
+			var half_width = WorldManager.TILE_WIDTH / 2.0
+			var half_height = WorldManager.TILE_HEIGHT / 2.0
+			polygon.polygon = PackedVector2Array([
+				tile_center_iso + Vector2(0, -half_height),      # Top
+				tile_center_iso + Vector2(half_width, 0),        # Right
+				tile_center_iso + Vector2(0, half_height),       # Bottom
+				tile_center_iso + Vector2(-half_width, 0)        # Left
+			])
+
+			polygon.color = color
+			area.add_child(polygon)
+
+
+func _update_barley_field_animations() -> void:
+	"""Update barley field animation frames based on production progress"""
+	if not facilities_container:
+		return
+
+	for facility_node in facilities_container.get_children():
+		# Check if this facility has an animated sprite (stored as metadata)
+		if facility_node.has_meta("animated_sprite"):
+			var animated_sprite = facility_node.get_meta("animated_sprite") as AnimatedSprite2D
+			if not animated_sprite:
+				continue
+
+			# Get facility data from WorldManager
+			var facility_id = facility_node.name
+			var facilities = WorldManager.get_all_facilities()
+			var facility_data = null
+			for fac in facilities:
+				if fac.id == facility_id:
+					facility_data = fac
+					break
+
+			if not facility_data:
+				continue
+
+			# Get production progress from ProductionManager
+			var progress = ProductionManager.get_production_progress(facility_id)
+
+			# Map progress (0.0-1.0) to animation frames (0-5)
+			# 6 frames total distributed evenly:
+			# Frame 0: 0-16%, Frame 1: 16-33%, Frame 2: 33-50%
+			# Frame 3: 50-66%, Frame 4: 66-83%, Frame 5: 83-100%
+			var frame_index = int(progress * 6.0)
+			frame_index = clampi(frame_index, 0, 5)  # Ensure valid range (max frame is 5)
+
+			# Update animation frame
+			if animated_sprite.frame != frame_index:
+				animated_sprite.frame = frame_index
 
 
 func _create_placeholder_texture(tile_size: int, color: Color) -> ImageTexture:

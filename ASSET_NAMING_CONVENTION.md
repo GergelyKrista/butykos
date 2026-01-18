@@ -247,6 +247,45 @@ barley_field_01.png       ✗ No version numbers in filename
 | 3×3 | 192 | 96 | Medium building |
 | 4×4 | 256 | 128 | Large building |
 
+**NOTE:** Isometric facility sprites can have extra vertical height beyond the strict footprint to accommodate building height. The engine will automatically position them correctly.
+
+### Sprite Positioning & Alignment (CRITICAL FOR ARTISTS)
+
+**World Map Isometric Sprites:**
+- Sprites are positioned with **bottom-center alignment**
+- The bottom-center of your sprite should be the base of the building's isometric footprint
+- Extra vertical height (for building height) is automatically handled by the engine
+- **No need to manually calculate offsets** - just ensure the bottom of your sprite aligns with where the building touches the ground
+
+**Example Positioning:**
+```
+Malt House (2×2 facility):
+- Sprite size: 128×80 pixels
+- Footprint: 128×64 pixels (strict isometric)
+- Extra height: 16 pixels above footprint (for building height)
+- Bottom-center of sprite = where building meets ground
+
+Brewery (3×3 facility):
+- Sprite size: 192×112 pixels
+- Footprint: 192×96 pixels (strict isometric)
+- Extra height: 16 pixels above footprint (for building height)
+- Bottom-center of sprite = where building meets ground
+```
+
+**Engine Positioning Formula:**
+The engine uses `centered = false` and calculates:
+```gdscript
+# Bottom-center alignment for proper isometric grid placement
+sprite.position = Vector2(-sprite_width / 2.0, -sprite_height + footprint_height / 2.0)
+```
+
+**Artist Guidelines:**
+1. ✅ Draw your building with proper isometric perspective
+2. ✅ Ensure the bottom edge of the sprite is where the building touches the ground
+3. ✅ Add vertical height as needed for tall buildings
+4. ✅ Keep the sprite centered horizontally
+5. ✅ The engine handles all positioning automatically
+
 ---
 
 ## 🎨 Color Palette Reference

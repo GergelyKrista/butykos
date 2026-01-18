@@ -16,7 +16,7 @@
 		},
 		"visual": {
 			"color": "#7cba3f",
-			"icon": "res://assets/sprites/barley_field.png"
+			"icon": ""
 		}
 	},
 	"grain_mill": {
@@ -40,7 +40,7 @@
 		},
 		"visual": {
 			"color": "#8b6f47",
-			"icon": "res://assets/sprites/malt_house.png"
+			"icon": "res://assets/sprites/sprite_facility_malt_house.png"
 		}
 	},
 	"brewery": {
@@ -68,7 +68,7 @@
 		},
 		"visual": {
 			"color": "#c97a3f",
-			"icon": "res://assets/sprites/brewery.png"
+			"icon": "res://assets/sprites/sprite_facility_brewery.png"
 		},
 		"has_interior": true
 	},
@@ -91,7 +91,7 @@
 		},
 		"visual": {
 			"color": "#daa520",
-			"icon": "res://assets/sprites/wheat_farm.png"
+			"icon": ""
 		}
 	},
 	"distillery": {
