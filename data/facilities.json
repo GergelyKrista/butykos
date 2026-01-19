@@ -118,7 +118,7 @@
 		},
 		"visual": {
 			"color": "#b8860b",
-			"icon": "res://assets/sprites/distillery.png"
+			"icon": "res://assets/sprites/sprite_facility_distillery.png"
 		},
 		"has_interior": true
 	},
@@ -146,7 +146,7 @@
 		},
 		"visual": {
 			"color": "#4682b4",
-			"icon": "res://assets/sprites/packaging_plant.png"
+			"icon": ""
 		}
 	},
 	"storage_warehouse": {
@@ -165,7 +165,7 @@
 		"storage_capacity": 500,
 		"visual": {
 			"color": "#696969",
-			"icon": "res://assets/sprites/storage_warehouse.png"
+			"icon": ""
 		}
 	}
 }
