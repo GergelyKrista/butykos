@@ -63,6 +63,14 @@ offset_right = 200.0
 offset_bottom = 135.0
 text = "📊 Production Stats"
 
+[node name="MarketButton" type="Button" parent="UI/HUD"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 145.0
+offset_right = 200.0
+offset_bottom = 180.0
+text = "📈 Market Prices"
+
 [node name="ModePanel" type="PanelContainer" parent="UI/HUD"]
 visible = false
 layout_mode = 1
@@ -181,6 +189,54 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="MarketPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 10.0
+offset_top = -200.0
+offset_right = 350.0
+offset_bottom = 200.0
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/MarketPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/MarketPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UI/HUD/MarketPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/HUD/MarketPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "MARKET PRICES"
+
+[node name="CloseButton" type="Button" parent="UI/HUD/MarketPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "X"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/MarketPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/HUD/MarketPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PriceList" type="VBoxContainer" parent="UI/HUD/MarketPanel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
 
 [node name="HelpPanel" type="PanelContainer" parent="UI/HUD"]
 visible = false

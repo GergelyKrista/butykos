@@ -40,30 +40,21 @@ var io_node_transfer_amount: int = 10  # How much to transfer per cycle
 var io_node_timer: float = 0.0  # Timer for periodic IO node operations
 const IO_NODE_CYCLE_TIME: float = 2.0  # How often IO nodes transfer (seconds)
 
-# Product pricing for market outlets (bootstrap income)
-var product_prices: Dictionary = {
-	# Raw materials (lowest value)
-	"barley": 5,
-	"wheat": 5,
-	"corn": 5,
-	"water": 1,
-
-	# Processed materials (medium value)
-	"malt": 15,
-	"mash": 20,
-	"fermented_wash": 40,
-	"raw_spirit": 50,
-
-	# Finished products (full value)
-	"ale": 100,
-	"packaged_ale": 150,  # Premium packaged version
-	"lager": 120,
-	"wheat_beer": 110,
-	"whiskey": 200,
-	"vodka": 180,
-	"premium_whiskey": 300,
-	"aged_spirit": 250
+# Product pricing - now uses MarketManager for dynamic prices
+# Fallback prices only used if MarketManager not available
+var _fallback_prices: Dictionary = {
+	"barley": 5, "wheat": 5, "corn": 5, "water": 1,
+	"malt": 15, "mash": 20, "fermented_wash": 40, "raw_spirit": 50,
+	"ale": 100, "packaged_ale": 150, "lager": 120, "wheat_beer": 110,
+	"whiskey": 200, "vodka": 180, "premium_whiskey": 300, "aged_spirit": 250
 }
+
+
+func _get_product_price(product: String) -> int:
+	"""Get current market price for a product (uses MarketManager if available)"""
+	if MarketManager:
+		return MarketManager.get_price(product)
+	return _fallback_prices.get(product, default_sell_price)
 
 # ========================================
 # INITIALIZATION
@@ -596,15 +587,16 @@ func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
 			# Transfer up to io_node_transfer_amount
 			var transfer_amount = min(io_node_transfer_amount, quantity)
 			if _remove_from_machine_inventory(facility_id, source_machine_id, product, transfer_amount):
-				# Get price for this product (use default if not in pricing table)
-				var price_per_unit = product_prices.get(product, default_sell_price)
+				# Get dynamic market price for this product
+				var price_per_unit = _get_product_price(product)
 				var revenue = price_per_unit * transfer_amount
 
 				# Track revenue for this facility
 				_track_revenue(facility_id, revenue)
 
-				# Add money directly (no inventory needed)
+				# Add money and emit product_sold signal for market tracking
 				EconomyManager.add_money(revenue, "Market Outlet: %s" % product)
+				EventBus.product_sold.emit(product, transfer_amount, revenue)
 
 				print("Market Outlet: Sold %d %s for $%d ($%d/unit)" % [
 					transfer_amount,
@@ -691,14 +683,14 @@ func _sell_product(facility_id: String, product: String, quantity: int) -> void:
 	if not _remove_from_inventory(facility_id, product, quantity):
 		return
 
-	# Calculate revenue using product-specific pricing
-	var price_per_unit = product_prices.get(product, default_sell_price)
+	# Calculate revenue using dynamic market pricing
+	var price_per_unit = _get_product_price(product)
 	var revenue = price_per_unit * quantity
 
 	# Track revenue for this facility
 	_track_revenue(facility_id, revenue)
 
-	# Add money
+	# Add money (EconomyManager.sell_product emits product_sold signal)
 	EconomyManager.sell_product(product, quantity, price_per_unit)
 
 	print("Sold %d %s for $%d ($%d/unit)" % [quantity, product, revenue, price_per_unit])

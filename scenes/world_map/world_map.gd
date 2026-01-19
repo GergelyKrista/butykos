@@ -17,6 +17,8 @@ extends Node2D
 @onready var help_panel = $UI/HUD/HelpPanel
 @onready var production_panel = $UI/HUD/ProductionPanel
 @onready var production_button = $UI/HUD/ProductionButton
+@onready var market_panel = $UI/HUD/MarketPanel
+@onready var market_button = $UI/HUD/MarketButton
 @onready var mode_panel = $UI/HUD/ModePanel
 @onready var mode_label = $UI/HUD/ModePanel/ModeLabel
 
@@ -68,6 +70,11 @@ func _ready() -> void:
 	EventBus.money_changed.connect(_on_money_changed)
 	production_button.pressed.connect(_toggle_production_panel)
 	production_panel.get_node("MarginContainer/VBoxContainer/HeaderHBox/CloseButton").pressed.connect(_toggle_production_panel)
+	market_button.pressed.connect(_toggle_market_panel)
+	market_panel.get_node("MarginContainer/VBoxContainer/HeaderHBox/CloseButton").pressed.connect(_toggle_market_panel)
+
+	# Connect to market price updates
+	MarketManager.prices_updated.connect(_on_prices_updated)
 
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
@@ -1205,6 +1212,181 @@ func _create_production_item(facility: Dictionary, facility_def: Dictionary) -> 
 			vbox.add_child(item_label)
 
 	return panel
+
+
+# ========================================
+# MARKET PANEL
+# ========================================
+
+func _toggle_market_panel() -> void:
+	"""Toggle market prices panel"""
+	market_panel.visible = not market_panel.visible
+
+	if market_panel.visible:
+		_update_market_panel()
+
+
+func _on_prices_updated() -> void:
+	"""Handle market price updates"""
+	if market_panel.visible:
+		_update_market_panel()
+
+
+func _update_market_panel() -> void:
+	"""Update market panel with current prices and contracts"""
+	var price_list = market_panel.get_node("MarginContainer/VBoxContainer/ScrollContainer/PriceList")
+
+	# Clear existing items
+	for child in price_list.get_children():
+		child.queue_free()
+
+	# Add active contracts section first
+	var contracts = MarketManager.get_active_contracts()
+	if contracts.size() > 0:
+		var contracts_header = Label.new()
+		contracts_header.text = "ACTIVE CONTRACTS"
+		contracts_header.add_theme_font_size_override("font_size", 14)
+		contracts_header.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+		price_list.add_child(contracts_header)
+
+		for contract in contracts:
+			var contract_item = _create_contract_item(contract)
+			price_list.add_child(contract_item)
+
+		var contract_sep = HSeparator.new()
+		price_list.add_child(contract_sep)
+		var spacer = Control.new()
+		spacer.custom_minimum_size.y = 10
+		price_list.add_child(spacer)
+
+	# Group products by category
+	var categories = {
+		"Raw Materials": ["barley", "wheat", "corn", "water"],
+		"Processed Materials": ["malt", "mash", "fermented_wash", "raw_spirit"],
+		"Finished Products": ["ale", "packaged_ale", "lager", "wheat_beer", "whiskey", "vodka", "premium_whiskey", "aged_spirit"]
+	}
+
+	for category_name in categories:
+		# Category header
+		var header = Label.new()
+		header.text = category_name
+		header.add_theme_font_size_override("font_size", 14)
+		header.add_theme_color_override("font_color", Color(0.8, 0.8, 1.0))
+		price_list.add_child(header)
+
+		# Products in category
+		for product in categories[category_name]:
+			var item = _create_price_item(product)
+			price_list.add_child(item)
+
+		# Separator between categories
+		var sep = HSeparator.new()
+		price_list.add_child(sep)
+
+
+func _create_price_item(product: String) -> HBoxContainer:
+	"""Create a single price item display"""
+	var hbox = HBoxContainer.new()
+
+	# Product name
+	var name_label = Label.new()
+	name_label.text = product.capitalize().replace("_", " ")
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.add_theme_font_size_override("font_size", 12)
+	hbox.add_child(name_label)
+
+	# Current price
+	var current_price = MarketManager.get_price(product)
+	var base_price = MarketManager.get_base_price(product)
+	var price_label = Label.new()
+	price_label.text = "$%d" % current_price
+	price_label.add_theme_font_size_override("font_size", 12)
+	price_label.custom_minimum_size.x = 50
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hbox.add_child(price_label)
+
+	# Price change indicator
+	var change_percent = MarketManager.get_price_change_percent(product)
+	var trend = MarketManager.get_price_trend(product)
+
+	var trend_label = Label.new()
+	if change_percent > 0:
+		trend_label.text = "+%.0f%%" % change_percent
+		trend_label.add_theme_color_override("font_color", Color.GREEN)
+	elif change_percent < 0:
+		trend_label.text = "%.0f%%" % change_percent
+		trend_label.add_theme_color_override("font_color", Color.RED)
+	else:
+		trend_label.text = "0%"
+		trend_label.add_theme_color_override("font_color", Color.GRAY)
+
+	trend_label.add_theme_font_size_override("font_size", 11)
+	trend_label.custom_minimum_size.x = 45
+	trend_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hbox.add_child(trend_label)
+
+	# Trend arrow
+	var arrow_label = Label.new()
+	if trend > 0:
+		arrow_label.text = "↑"
+		arrow_label.add_theme_color_override("font_color", Color.GREEN)
+	elif trend < 0:
+		arrow_label.text = "↓"
+		arrow_label.add_theme_color_override("font_color", Color.RED)
+	else:
+		arrow_label.text = "→"
+		arrow_label.add_theme_color_override("font_color", Color.GRAY)
+
+	arrow_label.add_theme_font_size_override("font_size", 14)
+	arrow_label.custom_minimum_size.x = 20
+	hbox.add_child(arrow_label)
+
+	return hbox
+
+
+func _create_contract_item(contract: Dictionary) -> VBoxContainer:
+	"""Create a contract display item"""
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+
+	# Contract info line
+	var info_hbox = HBoxContainer.new()
+
+	var product_name = contract.product.capitalize().replace("_", " ")
+	var info_label = Label.new()
+	info_label.text = "Deliver %d %s" % [contract.quantity, product_name]
+	info_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_label.add_theme_font_size_override("font_size", 12)
+	info_hbox.add_child(info_label)
+
+	var reward_label = Label.new()
+	reward_label.text = "$%d" % contract.reward
+	reward_label.add_theme_font_size_override("font_size", 12)
+	reward_label.add_theme_color_override("font_color", Color.GOLD)
+	info_hbox.add_child(reward_label)
+
+	vbox.add_child(info_hbox)
+
+	# Progress line
+	var progress_hbox = HBoxContainer.new()
+
+	var progress_label = Label.new()
+	var progress_percent = float(contract.quantity_delivered) / contract.quantity * 100
+	progress_label.text = "Progress: %d/%d (%.0f%%)" % [contract.quantity_delivered, contract.quantity, progress_percent]
+	progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	progress_label.add_theme_font_size_override("font_size", 10)
+	progress_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	progress_hbox.add_child(progress_label)
+
+	var deadline_label = Label.new()
+	deadline_label.text = "%d days" % contract.deadline_days
+	deadline_label.add_theme_font_size_override("font_size", 10)
+	deadline_label.add_theme_color_override("font_color", Color(0.8, 0.6, 0.6))
+	progress_hbox.add_child(deadline_label)
+
+	vbox.add_child(progress_hbox)
+
+	return vbox
 
 
 # ========================================

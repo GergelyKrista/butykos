@@ -30,12 +30,14 @@ var camera_position_at_pan_start: Vector2 = Vector2.ZERO
 # ========================================
 
 func _input(event: InputEvent) -> void:
-	# Mouse wheel zoom
+	# Mouse wheel zoom (skip if mouse is over UI)
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			zoom_in()
+			if not _is_mouse_over_ui():
+				zoom_in()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			zoom_out()
+			if not _is_mouse_over_ui():
+				zoom_out()
 
 		# Middle mouse button panning
 		elif event.button_index == MOUSE_BUTTON_MIDDLE:
@@ -173,3 +175,58 @@ func focus_on_grid_position(grid_pos: Vector2i, zoom_level: float = 1.0) -> void
 	"""Move camera to focus on a specific grid position"""
 	var world_pos = WorldManager.grid_to_world(grid_pos)
 	focus_on_position(world_pos, zoom_level)
+
+
+# ========================================
+# UI DETECTION
+# ========================================
+
+func _is_mouse_over_ui() -> bool:
+	"""Check if mouse is over any UI panel that should block camera zoom"""
+	var mouse_pos = get_viewport().get_mouse_position()
+
+	# Get UI node from parent (WorldMap)
+	var world_map = get_parent()
+	if not world_map:
+		return false
+
+	var ui = world_map.get_node_or_null("UI")
+	if not ui:
+		return false
+
+	var hud = ui.get_node_or_null("HUD")
+	if not hud:
+		return false
+
+	# Check bottom bar
+	var bottom_bar = ui.get_node_or_null("BottomBar")
+	if bottom_bar and _is_point_in_control(mouse_pos, bottom_bar):
+		return true
+
+	# Check market panel (if visible)
+	var market_panel = hud.get_node_or_null("MarketPanel")
+	if market_panel and market_panel.visible and _is_point_in_control(mouse_pos, market_panel):
+		return true
+
+	# Check production panel (if visible)
+	var production_panel = hud.get_node_or_null("ProductionPanel")
+	if production_panel and production_panel.visible and _is_point_in_control(mouse_pos, production_panel):
+		return true
+
+	# Check help panel (if visible)
+	var help_panel = hud.get_node_or_null("HelpPanel")
+	if help_panel and help_panel.visible and _is_point_in_control(mouse_pos, help_panel):
+		return true
+
+	# Check tooltip (if visible)
+	var tooltip = hud.get_node_or_null("Tooltip")
+	if tooltip and tooltip.visible and _is_point_in_control(mouse_pos, tooltip):
+		return true
+
+	return false
+
+
+func _is_point_in_control(point: Vector2, control: Control) -> bool:
+	"""Check if a point is within a control's bounds"""
+	var rect = Rect2(control.global_position, control.size)
+	return rect.has_point(point)

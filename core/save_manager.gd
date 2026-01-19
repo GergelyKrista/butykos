@@ -213,6 +213,7 @@ func _gather_save_data() -> Dictionary:
 		"logistics": _gather_logistics_data(),
 		"economy": _gather_economy_data(),
 		"production": _gather_production_data(),
+		"market": _gather_market_data(),
 	}
 
 
@@ -336,6 +337,11 @@ func _gather_production_data() -> Dictionary:
 	}
 
 
+func _gather_market_data() -> Dictionary:
+	"""Gather market data from MarketManager"""
+	return MarketManager.get_save_data()
+
+
 func _apply_save_data(data: Dictionary) -> bool:
 	"""Apply loaded save data to game state"""
 
@@ -368,6 +374,9 @@ func _apply_save_data(data: Dictionary) -> bool:
 	if data.has("production"):
 		_restore_production_data(data.production)
 
+	if data.has("market"):
+		_restore_market_data(data.market)
+
 	print("Save data applied successfully")
 	return true
 
@@ -393,6 +402,10 @@ func _clear_game_state() -> void:
 	ProductionManager.machine_timers.clear()
 	ProductionManager.machine_inventories.clear()
 	ProductionManager.facility_stats.clear()
+
+	# Clear market - reinitialize to base values
+	MarketManager._initialize_market()
+	MarketManager.active_contracts.clear()
 
 
 func _restore_economy_data(data: Dictionary) -> void:
@@ -571,6 +584,12 @@ func _restore_production_data(data: Dictionary) -> void:
 		ProductionManager.facility_stats[facility_id] = stats[facility_id].duplicate(true)
 
 	print("Production restored: %d facilities, %d machines" % [timers.size(), machine_timers.size()])
+
+
+func _restore_market_data(data: Dictionary) -> void:
+	"""Restore market state"""
+	MarketManager.load_save_data(data)
+	print("Market restored: %d active contracts" % MarketManager.active_contracts.size())
 
 
 func _write_save_file(slot_name: String, data: Dictionary) -> bool:
