@@ -4,6 +4,43 @@ extends Node
 ##
 ## Manages transportation of goods between facilities via routes and vehicles.
 ## Handles pickup, delivery, and vehicle movement.
+## Integrates with ResearchManager for speed and capacity bonuses.
+
+# ========================================
+# RESEARCH BONUS HELPERS
+# ========================================
+
+func _get_vehicle_speed_multiplier() -> float:
+	"""Get combined vehicle speed multiplier from research"""
+	var multiplier = 1.0
+	multiplier *= ResearchManager.get_bonus_multiplier("speed_multiplier", "vehicles")
+	multiplier *= ResearchManager.get_bonus_multiplier("speed_multiplier", "all")
+	return multiplier
+
+
+func _get_vehicle_capacity_multiplier() -> float:
+	"""Get combined vehicle capacity multiplier from research"""
+	var multiplier = 1.0
+	multiplier *= ResearchManager.get_bonus_multiplier("capacity_multiplier", "vehicles")
+	multiplier *= ResearchManager.get_bonus_multiplier("capacity_multiplier", "all")
+	return multiplier
+
+
+func _has_instant_delivery_bonus() -> bool:
+	"""Check if research grants instant delivery"""
+	# instant_delivery bonus returns true if unlocked
+	var value = ResearchManager.get_bonus_multiplier("instant_delivery", "vehicles")
+	# If any bonus is active, the multiplier would be different from 1.0
+	# But instant_delivery uses true/false, so we check differently
+	for tech_id in ResearchManager.unlocked_techs:
+		var tech = ResearchManager.research_tree.get(tech_id, {})
+		var unlocks = tech.get("unlocks", {})
+		var bonuses = unlocks.get("bonuses", [])
+		for bonus in bonuses:
+			if bonus.get("type") == "instant_delivery":
+				return bonus.get("value", false)
+	return false
+
 
 # ========================================
 # STATE
@@ -194,33 +231,44 @@ func _handle_pickup(vehicle: Dictionary, route: Dictionary) -> void:
 	var source_id = route.source_id
 	var product = route.product
 
+	# Apply capacity bonus from research
+	var capacity_mult = _get_vehicle_capacity_multiplier()
+	var actual_pickup = int(pickup_amount * capacity_mult)
+
 	# Check if source has product available
 	var available = ProductionManager.get_inventory_item(source_id, product)
 
-	if available >= pickup_amount:
-		# Pickup cargo
-		if ProductionManager.remove_item_from_facility(source_id, product, pickup_amount):
-			vehicle.cargo[product] = pickup_amount
+	if available >= actual_pickup:
+		# Pickup cargo (with research-boosted capacity)
+		if ProductionManager.remove_item_from_facility(source_id, product, actual_pickup):
+			vehicle.cargo[product] = actual_pickup
 			vehicle.state = "traveling"
 			vehicle.travel_progress = 0.0
-			print("Vehicle %s picked up %d %s from %s" % [
-				vehicle.id, pickup_amount, product, source_id
+
+			var bonus_info = ""
+			if capacity_mult != 1.0:
+				bonus_info = " [+%.0f%% capacity]" % ((capacity_mult - 1.0) * 100)
+			print("Vehicle %s picked up %d %s from %s%s" % [
+				vehicle.id, actual_pickup, product, source_id, bonus_info
 			])
 
 
 func _handle_travel(vehicle: Dictionary, route: Dictionary, delta: float) -> void:
 	"""Handle vehicle traveling between facilities"""
 
-	if instant_delivery:
-		# Skip travel animation for testing
+	# Check for instant delivery (testing or from research)
+	if instant_delivery or _has_instant_delivery_bonus():
+		# Skip travel animation
 		vehicle.travel_progress = 1.0
 
 	var source = WorldManager.get_facility(route.source_id)
 	var destination = WorldManager.get_facility(route.destination_id)
 
-	# Calculate distance
+	# Calculate distance with research-boosted speed
 	var distance = source.world_pos.distance_to(destination.world_pos)
-	var travel_time = distance / vehicle_speed
+	var speed_mult = _get_vehicle_speed_multiplier()
+	var actual_speed = vehicle_speed * speed_mult
+	var travel_time = distance / actual_speed
 
 	# Update progress
 	vehicle.travel_progress += delta / max(travel_time, 0.1)

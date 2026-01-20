@@ -4,6 +4,23 @@ extends Node
 ##
 ## Handles production cycles for facilities. Each facility produces
 ## resources at regular intervals based on its definition.
+## Now integrates with ResearchManager for production bonuses.
+
+# ========================================
+# TARGET MAPPINGS FOR RESEARCH BONUSES
+# ========================================
+
+# Map facility types to bonus targets
+const FACILITY_TARGET_MAP: Dictionary = {
+	"barley_field": ["fields", "agriculture"],
+	"wheat_farm": ["fields", "agriculture"],
+	"corn_field": ["fields", "agriculture"],
+	"grain_mill": ["processing", "grain_mill"],
+	"brewery": ["production", "brewery", "beers"],
+	"distillery": ["production", "distillery", "spirits"],
+	"packaging_plant": ["processing", "packaging", "packaged"],
+	"storage_warehouse": ["storage"]
+}
 
 # ========================================
 # STATE
@@ -43,7 +60,7 @@ const IO_NODE_CYCLE_TIME: float = 2.0  # How often IO nodes transfer (seconds)
 # Product pricing - now uses MarketManager for dynamic prices
 # Fallback prices only used if MarketManager not available
 var _fallback_prices: Dictionary = {
-	"barley": 5, "wheat": 5, "corn": 5, "water": 1,
+	"barley": 5, "wheat": 5, "corn": 6, "water": 1, "hops": 12, "grapes": 10,
 	"malt": 15, "mash": 20, "fermented_wash": 40, "raw_spirit": 50,
 	"ale": 100, "packaged_ale": 150, "lager": 120, "wheat_beer": 110,
 	"whiskey": 200, "vodka": 180, "premium_whiskey": 300, "aged_spirit": 250
@@ -55,6 +72,69 @@ func _get_product_price(product: String) -> int:
 	if MarketManager:
 		return MarketManager.get_price(product)
 	return _fallback_prices.get(product, default_sell_price)
+
+
+# ========================================
+# RESEARCH BONUS HELPERS
+# ========================================
+
+func _get_facility_targets(facility_type: String) -> Array:
+	"""Get all bonus targets that apply to a facility type"""
+	var targets = FACILITY_TARGET_MAP.get(facility_type, [])
+	# Always include the facility type itself and "all"
+	var all_targets = [facility_type, "all"]
+	all_targets.append_array(targets)
+	return all_targets
+
+
+func _get_cycle_time_multiplier(facility_type: String) -> float:
+	"""Get combined cycle time multiplier from research for a facility"""
+	var multiplier = 1.0
+	var targets = _get_facility_targets(facility_type)
+
+	for target in targets:
+		# Check cycle_time_multiplier (lower is faster)
+		multiplier *= ResearchManager.get_bonus_multiplier("cycle_time_multiplier", target)
+		# speed_multiplier also affects cycle time (higher speed = lower cycle time)
+		var speed_mult = ResearchManager.get_bonus_multiplier("speed_multiplier", target)
+		if speed_mult > 1.0:
+			multiplier /= speed_mult  # Higher speed means shorter cycle
+
+	return multiplier
+
+
+func _get_yield_multiplier(facility_type: String) -> float:
+	"""Get combined yield multiplier from research for a facility"""
+	var multiplier = 1.0
+	var targets = _get_facility_targets(facility_type)
+
+	for target in targets:
+		multiplier *= ResearchManager.get_bonus_multiplier("yield_multiplier", target)
+		# Efficiency also affects yield
+		multiplier *= ResearchManager.get_bonus_multiplier("efficiency_multiplier", target)
+
+	return multiplier
+
+
+func _get_price_multiplier(product: String) -> float:
+	"""Get price multiplier from research for a product"""
+	var multiplier = 1.0
+
+	# Check product-specific multipliers
+	multiplier *= ResearchManager.get_bonus_multiplier("price_multiplier", product)
+	multiplier *= ResearchManager.get_bonus_multiplier("price_multiplier", "all")
+
+	# Check category-based multipliers
+	if product in ["ale", "lager", "wheat_beer", "stout", "porter"]:
+		multiplier *= ResearchManager.get_bonus_multiplier("price_multiplier", "beers")
+	elif product in ["whiskey", "vodka", "raw_spirit", "premium_whiskey"]:
+		multiplier *= ResearchManager.get_bonus_multiplier("price_multiplier", "spirits")
+	elif product in ["packaged_ale"]:
+		multiplier *= ResearchManager.get_bonus_multiplier("price_multiplier", "packaged")
+		multiplier *= ResearchManager.get_bonus_multiplier("value_multiplier", "packaged")
+
+	return multiplier
+
 
 # ========================================
 # INITIALIZATION
@@ -114,11 +194,18 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 		return
 
 	var output_product = production_data.get("output", "")
-	var output_quantity = production_data.get("quantity", 0)
-	var cycle_time = production_data.get("cycle_time", 5.0)
+	var base_output_quantity = production_data.get("quantity", 0)
+	var base_cycle_time = production_data.get("cycle_time", 5.0)
 
-	if output_product.is_empty() or output_quantity == 0:
+	if output_product.is_empty() or base_output_quantity == 0:
 		return
+
+	# Apply research bonuses
+	var yield_mult = _get_yield_multiplier(facility.type)
+	var cycle_mult = _get_cycle_time_multiplier(facility.type)
+
+	var output_quantity = int(base_output_quantity * yield_mult)
+	var cycle_time = base_cycle_time * cycle_mult
 
 	# Check if facility requires inputs
 	var input_product = production_data.get("input", "")
@@ -135,7 +222,7 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 				input_product,
 				current_input
 			])
-			# Reset timer to try again
+			# Reset timer to try again (with research bonus)
 			production_timers[facility_id] = cycle_time
 			return
 
@@ -144,17 +231,23 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 		_track_consumption(facility_id, input_product, input_quantity)
 		print("Consumed %d %s for production" % [input_quantity, input_product])
 
-	# Add output to inventory
+	# Add output to inventory (with yield bonus)
 	_add_to_inventory(facility_id, output_product, output_quantity)
 	_track_production(facility_id, output_product, output_quantity)
 
-	# Reset timer
+	# Reset timer (with cycle time bonus)
 	production_timers[facility_id] = cycle_time
 
-	print("Production complete: %s produced %d %s" % [
+	# Show bonus info if any bonuses are active
+	var bonus_info = ""
+	if yield_mult != 1.0 or cycle_mult != 1.0:
+		bonus_info = " [Research: %.0f%% yield, %.0f%% speed]" % [(yield_mult - 1.0) * 100, (1.0 - cycle_mult) * 100]
+
+	print("Production complete: %s produced %d %s%s" % [
 		facility_def.get("name", facility.type),
 		output_quantity,
-		output_product
+		output_product,
+		bonus_info
 	])
 
 	# Auto-sell if enabled (only if this is a final product with no downstream use)
@@ -587,8 +680,10 @@ func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
 			# Transfer up to io_node_transfer_amount
 			var transfer_amount = min(io_node_transfer_amount, quantity)
 			if _remove_from_machine_inventory(facility_id, source_machine_id, product, transfer_amount):
-				# Get dynamic market price for this product
-				var price_per_unit = _get_product_price(product)
+				# Get dynamic market price + research bonus
+				var base_price = _get_product_price(product)
+				var price_mult = _get_price_multiplier(product)
+				var price_per_unit = int(base_price * price_mult)
 				var revenue = price_per_unit * transfer_amount
 
 				# Track revenue for this facility
@@ -683,8 +778,10 @@ func _sell_product(facility_id: String, product: String, quantity: int) -> void:
 	if not _remove_from_inventory(facility_id, product, quantity):
 		return
 
-	# Calculate revenue using dynamic market pricing
-	var price_per_unit = _get_product_price(product)
+	# Calculate revenue using dynamic market pricing + research bonus
+	var base_price = _get_product_price(product)
+	var price_mult = _get_price_multiplier(product)
+	var price_per_unit = int(base_price * price_mult)
 	var revenue = price_per_unit * quantity
 
 	# Track revenue for this facility
@@ -693,7 +790,10 @@ func _sell_product(facility_id: String, product: String, quantity: int) -> void:
 	# Add money (EconomyManager.sell_product emits product_sold signal)
 	EconomyManager.sell_product(product, quantity, price_per_unit)
 
-	print("Sold %d %s for $%d ($%d/unit)" % [quantity, product, revenue, price_per_unit])
+	var bonus_info = ""
+	if price_mult != 1.0:
+		bonus_info = " [+%.0f%% research bonus]" % ((price_mult - 1.0) * 100)
+	print("Sold %d %s for $%d ($%d/unit)%s" % [quantity, product, revenue, price_per_unit, bonus_info])
 
 
 # ========================================
@@ -704,10 +804,14 @@ func _on_facility_placed(facility: Dictionary) -> void:
 	"""Handle facility placement"""
 	var facility_id = facility.id
 
-	# Initialize production timer
+	# Initialize production timer with research bonus
 	var facility_def = DataManager.get_facility_data(facility.type)
 	var production_data = facility_def.get("production", {})
-	var cycle_time = production_data.get("cycle_time", 5.0)
+	var base_cycle_time = production_data.get("cycle_time", 5.0)
+
+	# Apply cycle time multiplier from research
+	var cycle_mult = _get_cycle_time_multiplier(facility.type)
+	var cycle_time = base_cycle_time * cycle_mult
 
 	production_timers[facility_id] = cycle_time
 	production_outputs[facility_id] = {}
@@ -852,7 +956,7 @@ func get_facility_stats(facility_id: String) -> Dictionary:
 
 
 func get_production_rate(facility_id: String) -> String:
-	"""Get production rate for a facility (e.g., '8 malt/5s')"""
+	"""Get production rate for a facility (e.g., '8 malt/5s') with research bonuses"""
 	var facility = WorldManager.get_facility(facility_id)
 	if facility.is_empty():
 		return "N/A"
@@ -861,13 +965,20 @@ func get_production_rate(facility_id: String) -> String:
 	var production_data = facility_def.get("production", {})
 
 	var output = production_data.get("output", "")
-	var quantity = production_data.get("quantity", 0)
-	var cycle_time = production_data.get("cycle_time", 5.0)
+	var base_quantity = production_data.get("quantity", 0)
+	var base_cycle_time = production_data.get("cycle_time", 5.0)
 
-	if output.is_empty() or quantity == 0:
+	if output.is_empty() or base_quantity == 0:
 		return "N/A"
 
-	return "%d %s/%.0fs" % [quantity, output, cycle_time]
+	# Apply research bonuses
+	var yield_mult = _get_yield_multiplier(facility.type)
+	var cycle_mult = _get_cycle_time_multiplier(facility.type)
+
+	var quantity = int(base_quantity * yield_mult)
+	var cycle_time = base_cycle_time * cycle_mult
+
+	return "%d %s/%.1fs" % [quantity, output, cycle_time]
 
 
 func get_production_progress(facility_id: String) -> float:

@@ -34,8 +34,10 @@ var base_prices: Dictionary = {
 	# Raw materials (lowest value)
 	"barley": 5,
 	"wheat": 5,
-	"corn": 5,
+	"corn": 6,
 	"water": 1,
+	"hops": 12,
+	"grapes": 10,
 
 	# Processed materials (medium value)
 	"malt": 15,

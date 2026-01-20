@@ -1,7 +1,7 @@
 # Development Status - Alcohol Empire Tycoon
 
 **Last Updated:** 2026-01-20
-**Current Phase:** Phase 6B Complete - Research Tree System ✅
+**Current Phase:** Phase 6C Complete - Research Bonuses Applied ✅
 **Target:** 15-18 months to Early Access
 
 ## 🎯 Project Vision
@@ -24,14 +24,24 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 - [x] Save/load integration for market state
 
 ### Phase 6B: Research Tree System ✅ COMPLETE
-- [x] Civilization-style tech tree (8 branches × 5 eras = 40 techs)
-- [x] Cross-branch prerequisites for advanced techs
-- [x] Money-based research purchase (no turns/points)
-- [x] Research panel UI with branch progress
-- [x] Building upgrade unlocks tied to research
-- [x] Production bonuses from researched techs
+- [x] Civilization-style tech tree (8 branches × 5 tiers = 40 techs)
+- [x] Satisfactory-style tier unlocks (sell products to unlock tiers)
+- [x] Money-based research purchase
+- [x] Visual research tree with Civ6-style connecting lines
+- [x] Tier progress display with sprite placeholders
+- [x] ESC key properly closes panels before opening pause menu
 - [x] Save/load integration for research state
 - [x] RESEARCH_TREE.md documentation
+
+### Phase 6C: Research Bonuses Applied ✅ COMPLETE
+- [x] Production bonuses (cycle_time_multiplier, yield_multiplier, efficiency_multiplier)
+- [x] Price bonuses (price_multiplier, value_multiplier) applied to sales
+- [x] Logistics bonuses (speed_multiplier, capacity_multiplier, instant_delivery)
+- [x] New facilities unlocked by research (corn_field, hop_farm, vineyard)
+- [x] Build menu reorganized by categories (Tools, Agriculture, Processing, Production, Storage)
+- [x] Locked facilities shown with research requirements
+- [x] Build menu auto-refreshes when research completed
+- [x] New products added (corn, hops, grapes)
 
 ---
 

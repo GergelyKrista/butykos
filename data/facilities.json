@@ -167,5 +167,71 @@
 			"color": "#696969",
 			"icon": ""
 		}
+	},
+	"corn_field": {
+		"id": "corn_field",
+		"name": "Corn Field",
+		"description": "Grows corn for whiskey production. Unlocked via Crop Genetics research.",
+		"category": "agriculture",
+		"size": [2, 2],
+		"cost": 600,
+		"construction_time": 3.0,
+		"maintenance_cost": 12,
+		"unlock_requirements": {
+			"research": ["crop_genetics"]
+		},
+		"production": {
+			"output": "corn",
+			"quantity": 12,
+			"cycle_time": 5.0
+		},
+		"visual": {
+			"color": "#f4a460",
+			"icon": ""
+		}
+	},
+	"hop_farm": {
+		"id": "hop_farm",
+		"name": "Hop Farm",
+		"description": "Grows hops for premium beers. Unlocked via Agricultural Science research.",
+		"category": "agriculture",
+		"size": [2, 2],
+		"cost": 700,
+		"construction_time": 4.0,
+		"maintenance_cost": 15,
+		"unlock_requirements": {
+			"research": ["agricultural_science"]
+		},
+		"production": {
+			"output": "hops",
+			"quantity": 8,
+			"cycle_time": 6.0
+		},
+		"visual": {
+			"color": "#228b22",
+			"icon": ""
+		}
+	},
+	"vineyard": {
+		"id": "vineyard",
+		"name": "Vineyard",
+		"description": "Grows grapes for wine production. Unlocked via Agricultural Science research.",
+		"category": "agriculture",
+		"size": [3, 3],
+		"cost": 1000,
+		"construction_time": 5.0,
+		"maintenance_cost": 20,
+		"unlock_requirements": {
+			"research": ["agricultural_science"]
+		},
+		"production": {
+			"output": "grapes",
+			"quantity": 10,
+			"cycle_time": 8.0
+		},
+		"visual": {
+			"color": "#722f37",
+			"icon": ""
+		}
 	}
 }

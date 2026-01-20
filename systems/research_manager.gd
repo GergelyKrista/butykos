@@ -333,6 +333,45 @@ func is_building_upgrade_unlocked(upgrade_id: String) -> bool:
 			return true
 	return false
 
+
+## Check if a facility is unlocked (based on research requirements in facilities.json)
+func is_facility_unlocked(facility_id: String) -> bool:
+	var facility_def = DataManager.get_facility_data(facility_id)
+	if facility_def.is_empty():
+		return false
+
+	var unlock_reqs = facility_def.get("unlock_requirements", {})
+	var required_research = unlock_reqs.get("research", [])
+
+	# No research requirement = always unlocked
+	if required_research.is_empty():
+		return true
+
+	# Check if all required research is unlocked
+	for tech_id in required_research:
+		if not is_unlocked(tech_id):
+			return false
+
+	return true
+
+
+## Get missing research requirements for a facility
+func get_facility_missing_research(facility_id: String) -> Array:
+	var missing: Array = []
+	var facility_def = DataManager.get_facility_data(facility_id)
+	if facility_def.is_empty():
+		return missing
+
+	var unlock_reqs = facility_def.get("unlock_requirements", {})
+	var required_research = unlock_reqs.get("research", [])
+
+	for tech_id in required_research:
+		if not is_unlocked(tech_id):
+			missing.append(tech_id)
+
+	return missing
+
+
 ## Get all active bonuses from unlocked research
 func get_active_bonuses() -> Array:
 	var bonuses: Array = []

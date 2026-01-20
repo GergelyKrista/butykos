@@ -35,8 +35,16 @@ func _ready() -> void:
 	EventBus.money_changed.connect(_on_money_changed)
 	EventBus.date_advanced.connect(_on_date_advanced)
 
+	# Refresh build menu when research unlocks new facilities
+	EventBus.research_completed.connect(_on_research_completed)
+
 	# Create build menu buttons
 	_create_build_menu()
+
+
+func _on_research_completed(_tech_id: String) -> void:
+	"""Handle research completion - refresh build menu"""
+	refresh_build_menu()
 
 
 func _input(event: InputEvent) -> void:
@@ -107,49 +115,125 @@ func _on_date_advanced(_new_date: Dictionary) -> void:
 # BUILD MENU
 # ========================================
 
+# Category display order and names
+const CATEGORY_ORDER: Array[String] = ["tools", "agriculture", "processing", "production", "storage"]
+const CATEGORY_NAMES: Dictionary = {
+	"tools": "Tools",
+	"agriculture": "Agriculture",
+	"processing": "Processing",
+	"production": "Production",
+	"storage": "Storage"
+}
+
 func _create_build_menu() -> void:
-	"""Create buttons for buildable facilities"""
+	"""Create categorized build menu with research-based unlock filtering"""
 	if not build_menu:
 		return
 
-	# Add "Create Route" button first
-	var route_button = Button.new()
-	route_button.text = "📦 Create Route"
-	route_button.custom_minimum_size = Vector2(150, 60)
-	route_button.pressed.connect(_on_create_route_button_clicked)
-	build_menu.add_child(route_button)
+	# Clear existing buttons
+	for child in build_menu.get_children():
+		child.queue_free()
 
-	# Add "Demolish" button
-	var demolish_button = Button.new()
-	demolish_button.text = "🔨 Demolish"
-	demolish_button.custom_minimum_size = Vector2(150, 60)
-	demolish_button.pressed.connect(_on_demolish_button_clicked)
-	build_menu.add_child(demolish_button)
-
-	# Add separator
-	var separator = VSeparator.new()
-	build_menu.add_child(separator)
+	# Tools category (Create Route, Demolish)
+	_add_category_label("Tools")
+	_add_tool_buttons()
 
 	# Get all facility definitions
 	var facilities = DataManager.get_all_facilities()
 
+	# Group facilities by category
+	var categorized: Dictionary = {}
 	for facility_id in facilities:
 		var facility_def = facilities[facility_id]
-		_create_build_button(facility_id, facility_def)
+		var category = facility_def.get("category", "other")
+		if not categorized.has(category):
+			categorized[category] = []
+		categorized[category].append({"id": facility_id, "def": facility_def})
+
+	# Add facilities by category
+	for category in CATEGORY_ORDER:
+		if category == "tools":
+			continue  # Already handled
+
+		if not categorized.has(category):
+			continue
+
+		_add_category_separator()
+		_add_category_label(CATEGORY_NAMES.get(category, category.capitalize()))
+
+		for facility_data in categorized[category]:
+			_create_build_button(facility_data.id, facility_data.def)
+
+
+func _add_category_label(category_name: String) -> void:
+	"""Add a category label to the build menu"""
+	var label = Label.new()
+	label.text = category_name
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.custom_minimum_size = Vector2(80, 60)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	build_menu.add_child(label)
+
+
+func _add_category_separator() -> void:
+	"""Add a visual separator between categories"""
+	var separator = VSeparator.new()
+	separator.custom_minimum_size = Vector2(2, 50)
+	build_menu.add_child(separator)
+
+
+func _add_tool_buttons() -> void:
+	"""Add tool buttons (Create Route, Demolish)"""
+	var route_button = Button.new()
+	route_button.text = "Create\nRoute"
+	route_button.custom_minimum_size = Vector2(100, 60)
+	route_button.pressed.connect(_on_create_route_button_clicked)
+	build_menu.add_child(route_button)
+
+	var demolish_button = Button.new()
+	demolish_button.text = "Demolish"
+	demolish_button.custom_minimum_size = Vector2(100, 60)
+	demolish_button.pressed.connect(_on_demolish_button_clicked)
+	build_menu.add_child(demolish_button)
 
 
 func _create_build_button(facility_id: String, facility_def: Dictionary) -> void:
-	"""Create a build button for a facility"""
+	"""Create a build button for a facility (with research lock check)"""
 	var button = Button.new()
 	var name = facility_def.get("name", facility_id)
 	var cost = facility_def.get("cost", 0)
 
-	# Multi-line button text
-	button.text = "%s\n$%d" % [name, cost]
-	button.custom_minimum_size = Vector2(120, 60)
-	button.pressed.connect(_on_build_button_clicked.bind(facility_id))
+	# Check if facility is unlocked via research
+	var is_unlocked = ResearchManager.is_facility_unlocked(facility_id)
+	var missing_research = ResearchManager.get_facility_missing_research(facility_id)
+
+	if is_unlocked:
+		# Normal unlocked button
+		button.text = "%s\n$%d" % [name, cost]
+		button.custom_minimum_size = Vector2(100, 60)
+		button.pressed.connect(_on_build_button_clicked.bind(facility_id))
+	else:
+		# Locked button - show research requirement
+		var research_names: Array[String] = []
+		for tech_id in missing_research:
+			research_names.append(ResearchManager.get_tech_name(tech_id))
+
+		button.text = "%s\n[Locked]" % name
+		button.custom_minimum_size = Vector2(100, 60)
+		button.disabled = true
+		button.tooltip_text = "Requires research:\n" + "\n".join(research_names)
+
+		# Dim the locked button
+		button.modulate = Color(0.6, 0.6, 0.6)
 
 	build_menu.add_child(button)
+
+
+func refresh_build_menu() -> void:
+	"""Refresh build menu (call after research completion)"""
+	_create_build_menu()
 
 
 func _on_build_button_clicked(facility_id: String) -> void:
