@@ -58,6 +58,16 @@ offset_bottom = 90.0
 theme_override_font_sizes/font_size = 18
 text = "Date: 1850-01-01"
 
+[node name="MaintenanceLabel" type="Label" parent="UI/HUD"]
+layout_mode = 0
+offset_left = 220.0
+offset_top = 20.0
+offset_right = 450.0
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.8, 0.6, 0.4, 1)
+text = "Maintenance: $0/cycle"
+
 [node name="ProductionButton" type="Button" parent="UI/HUD"]
 layout_mode = 0
 offset_left = 20.0
@@ -81,6 +91,14 @@ offset_top = 190.0
 offset_right = 200.0
 offset_bottom = 225.0
 text = "🔬 Research Tree"
+
+[node name="RoutesButton" type="Button" parent="UI/HUD"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 235.0
+offset_right = 200.0
+offset_bottom = 270.0
+text = "🚚 Manage Routes"
 
 [node name="ModePanel" type="PanelContainer" parent="UI/HUD"]
 visible = false
@@ -301,6 +319,54 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="BranchList" type="VBoxContainer" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="RoutesPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 10.0
+offset_top = -200.0
+offset_right = 400.0
+offset_bottom = 200.0
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/RoutesPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/RoutesPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UI/HUD/RoutesPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/HUD/RoutesPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "ROUTES"
+
+[node name="CloseButton" type="Button" parent="UI/HUD/RoutesPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "X"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/RoutesPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/HUD/RoutesPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RouteList" type="VBoxContainer" parent="UI/HUD/RoutesPanel/MarginContainer/VBoxContainer/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8

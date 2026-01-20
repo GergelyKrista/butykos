@@ -10,9 +10,16 @@ extends CanvasLayer
 
 @onready var money_label: Label = $HUD/MoneyLabel
 @onready var date_label: Label = $HUD/DateLabel
+@onready var maintenance_label: Label = $HUD/MaintenanceLabel
 @onready var build_menu: HBoxContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer
 @onready var build_scroll_container: ScrollContainer = $BottomBar/MarginContainer/VBoxContainer/ScrollContainer
 @onready var bottom_bar: Panel = $BottomBar
+
+# Routes panel references
+@onready var routes_button: Button = $HUD/RoutesButton
+@onready var routes_panel: PanelContainer = $HUD/RoutesPanel
+@onready var routes_close_button: Button = $HUD/RoutesPanel/MarginContainer/VBoxContainer/HeaderHBox/CloseButton
+@onready var route_list: VBoxContainer = $HUD/RoutesPanel/MarginContainer/VBoxContainer/ScrollContainer/RouteList
 
 # ========================================
 # SIGNALS
@@ -30,16 +37,37 @@ func _ready() -> void:
 	# Update displays
 	_update_money_display()
 	_update_date_display()
+	_update_maintenance_display()
 
 	# Connect signals
 	EventBus.money_changed.connect(_on_money_changed)
 	EventBus.date_advanced.connect(_on_date_advanced)
+
+	# Connect maintenance signals
+	EconomyManager.maintenance_paid.connect(_on_maintenance_paid)
+	EconomyManager.facility_disabled.connect(_on_facility_disabled)
 
 	# Refresh build menu when research unlocks new facilities
 	EventBus.research_completed.connect(_on_research_completed)
 
 	# Create build menu buttons
 	_create_build_menu()
+
+	# Connect routes panel
+	if routes_button:
+		routes_button.pressed.connect(_on_routes_button_pressed)
+	if routes_close_button:
+		routes_close_button.pressed.connect(_on_routes_close_pressed)
+
+	# Connect route events
+	EventBus.route_created.connect(_on_route_changed)
+	EventBus.route_removed.connect(_on_route_removed)
+	EventBus.route_updated.connect(_on_route_changed)
+
+
+func _process(_delta: float) -> void:
+	# Update maintenance display periodically
+	_update_maintenance_display()
 
 
 func _on_research_completed(_tech_id: String) -> void:
@@ -101,6 +129,27 @@ func _update_date_display() -> void:
 		date_label.text = "Date: %s" % GameManager.get_date_string()
 
 
+func _update_maintenance_display() -> void:
+	"""Update maintenance cost display"""
+	if not maintenance_label:
+		return
+
+	var summary = EconomyManager.get_maintenance_summary()
+	var total = summary.total_cost
+	var disabled = summary.disabled_count
+
+	var text = "Maintenance: $%d/cycle" % total
+
+	# Show warning if facilities are disabled
+	if disabled > 0:
+		text += "\n[!] %d disabled" % disabled
+		maintenance_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1))
+	else:
+		maintenance_label.add_theme_color_override("font_color", Color(0.8, 0.6, 0.4, 1))
+
+	maintenance_label.text = text
+
+
 func _on_money_changed(_new_amount: int, _delta: int) -> void:
 	"""Handle money changed event"""
 	_update_money_display()
@@ -109,6 +158,16 @@ func _on_money_changed(_new_amount: int, _delta: int) -> void:
 func _on_date_advanced(_new_date: Dictionary) -> void:
 	"""Handle date advanced event"""
 	_update_date_display()
+
+
+func _on_maintenance_paid(_total_cost: int, _details: Array) -> void:
+	"""Handle maintenance paid event"""
+	_update_maintenance_display()
+
+
+func _on_facility_disabled(_facility_id: String, _reason: String) -> void:
+	"""Handle facility disabled event"""
+	_update_maintenance_display()
 
 
 # ========================================
@@ -333,3 +392,129 @@ func _on_demolish_button_clicked() -> void:
 	"""Handle demolish button click"""
 	print("Demolish button clicked")
 	demolish_button_pressed.emit()
+
+
+# ========================================
+# ROUTES PANEL
+# ========================================
+
+func _on_routes_button_pressed() -> void:
+	"""Toggle routes panel visibility"""
+	if routes_panel:
+		routes_panel.visible = not routes_panel.visible
+		if routes_panel.visible:
+			_update_routes_panel()
+
+
+func _on_routes_close_pressed() -> void:
+	"""Close routes panel"""
+	if routes_panel:
+		routes_panel.visible = false
+
+
+func _on_route_changed(_route_data: Dictionary) -> void:
+	"""Update routes panel when routes change"""
+	if routes_panel and routes_panel.visible:
+		_update_routes_panel()
+
+
+func _on_route_removed(_route_id: String) -> void:
+	"""Update routes panel when a route is removed"""
+	if routes_panel and routes_panel.visible:
+		_update_routes_panel()
+
+
+func _update_routes_panel() -> void:
+	"""Update the routes panel with current routes"""
+	if not route_list:
+		return
+
+	# Clear existing entries
+	for child in route_list.get_children():
+		child.queue_free()
+
+	# Get all routes
+	var routes = LogisticsManager.get_all_routes()
+
+	if routes.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No routes created yet.\nUse 'Create Route' in the Tools menu."
+		empty_label.add_theme_font_size_override("font_size", 12)
+		empty_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		route_list.add_child(empty_label)
+		return
+
+	# Create entry for each route
+	for route in routes:
+		_create_route_entry(route)
+
+
+func _create_route_entry(route: Dictionary) -> void:
+	"""Create a UI entry for a route"""
+	var entry = HBoxContainer.new()
+	entry.custom_minimum_size = Vector2(0, 40)
+
+	# Route info label
+	var info_label = Label.new()
+	var source = WorldManager.get_facility(route.source_id)
+	var dest = WorldManager.get_facility(route.destination_id)
+
+	var source_name = "Unknown"
+	var dest_name = "Unknown"
+	if not source.is_empty():
+		var source_def = DataManager.get_facility_data(source.type)
+		source_name = source_def.get("name", source.type)
+	if not dest.is_empty():
+		var dest_def = DataManager.get_facility_data(dest.type)
+		dest_name = dest_def.get("name", dest.type)
+
+	var product_name = route.product.capitalize().replace("_", " ")
+	var status = "Active" if route.active else "Paused"
+	var status_color = Color(0.5, 1.0, 0.5) if route.active else Color(1.0, 0.5, 0.5)
+
+	info_label.text = "%s → %s\n%s" % [source_name, dest_name, product_name]
+	info_label.add_theme_font_size_override("font_size", 12)
+	info_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	entry.add_child(info_label)
+
+	# Status label
+	var status_label = Label.new()
+	status_label.text = status
+	status_label.add_theme_font_size_override("font_size", 11)
+	status_label.add_theme_color_override("font_color", status_color)
+	status_label.custom_minimum_size = Vector2(50, 0)
+	entry.add_child(status_label)
+
+	# Pause/Resume button
+	var pause_button = Button.new()
+	pause_button.text = "▶" if not route.active else "⏸"
+	pause_button.tooltip_text = "Resume" if not route.active else "Pause"
+	pause_button.custom_minimum_size = Vector2(35, 30)
+	pause_button.pressed.connect(_on_route_pause_pressed.bind(route.id))
+	entry.add_child(pause_button)
+
+	# Delete button
+	var delete_button = Button.new()
+	delete_button.text = "🗑"
+	delete_button.tooltip_text = "Delete Route"
+	delete_button.custom_minimum_size = Vector2(35, 30)
+	delete_button.pressed.connect(_on_route_delete_pressed.bind(route.id))
+	entry.add_child(delete_button)
+
+	route_list.add_child(entry)
+
+	# Add separator
+	var separator = HSeparator.new()
+	route_list.add_child(separator)
+
+
+func _on_route_pause_pressed(route_id: String) -> void:
+	"""Toggle route pause state"""
+	LogisticsManager.toggle_route_active(route_id)
+	_update_routes_panel()
+
+
+func _on_route_delete_pressed(route_id: String) -> void:
+	"""Delete a route"""
+	LogisticsManager.remove_route(route_id)
+	_update_routes_panel()

@@ -233,6 +233,12 @@ func get_all_machines(facility_id: String) -> Array[Dictionary]:
 	return result
 
 
+func get_machines_in_facility(facility_id: String) -> Dictionary:
+	"""Get all machines in a factory as Dictionary keyed by machine_id"""
+	var interior = get_factory_interior(facility_id)
+	return interior.machines.duplicate()
+
+
 # ========================================
 # MACHINE CONNECTIONS
 # ========================================

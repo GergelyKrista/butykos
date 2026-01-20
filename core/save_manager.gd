@@ -323,7 +323,12 @@ func _gather_logistics_data() -> Dictionary:
 func _gather_economy_data() -> Dictionary:
 	"""Gather economy data from EconomyManager"""
 	return {
-		"money": EconomyManager.money
+		"money": EconomyManager.money,
+		"total_earned": EconomyManager.total_earned,
+		"total_spent": EconomyManager.total_spent,
+		"disabled_facilities": EconomyManager.disabled_facilities.keys(),
+		"total_maintenance_paid": EconomyManager.total_maintenance_paid,
+		"last_maintenance_cost": EconomyManager.last_maintenance_cost
 	}
 
 
@@ -412,6 +417,9 @@ func _clear_game_state() -> void:
 	ProductionManager.machine_inventories.clear()
 	ProductionManager.facility_stats.clear()
 
+	# Clear economy/maintenance
+	EconomyManager.reset_economy()
+
 	# Clear market - reinitialize to base values
 	MarketManager._initialize_market()
 	MarketManager.active_contracts.clear()
@@ -423,6 +431,17 @@ func _clear_game_state() -> void:
 func _restore_economy_data(data: Dictionary) -> void:
 	"""Restore economy state"""
 	EconomyManager.money = data.get("money", 5000)
+	EconomyManager.total_earned = data.get("total_earned", 0)
+	EconomyManager.total_spent = data.get("total_spent", 0)
+	EconomyManager.total_maintenance_paid = data.get("total_maintenance_paid", 0)
+	EconomyManager.last_maintenance_cost = data.get("last_maintenance_cost", 0)
+
+	# Restore disabled facilities
+	EconomyManager.disabled_facilities.clear()
+	var disabled_list = data.get("disabled_facilities", [])
+	for facility_id in disabled_list:
+		EconomyManager.disabled_facilities[facility_id] = true
+
 	print("Economy restored: $%d" % EconomyManager.money)
 
 

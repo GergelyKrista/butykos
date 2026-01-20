@@ -146,6 +146,30 @@ func get_route(route_id: String) -> Dictionary:
 	return routes.get(route_id, {})
 
 
+func set_route_active(route_id: String, active: bool) -> bool:
+	"""Pause or unpause a route"""
+	if not routes.has(route_id):
+		return false
+
+	var route = routes[route_id]
+	route.active = active
+	print("Route %s %s" % [route_id, "resumed" if active else "paused"])
+	EventBus.route_updated.emit(route)
+	return true
+
+
+func toggle_route_active(route_id: String) -> bool:
+	"""Toggle route active state"""
+	if not routes.has(route_id):
+		return false
+
+	var route = routes[route_id]
+	route.active = not route.active
+	print("Route %s %s" % [route_id, "resumed" if route.active else "paused"])
+	EventBus.route_updated.emit(route)
+	return true
+
+
 func get_routes_from_facility(facility_id: String) -> Array[Dictionary]:
 	"""Get all routes originating from a facility"""
 	var result: Array[Dictionary] = []

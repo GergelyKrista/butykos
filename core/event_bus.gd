@@ -66,6 +66,9 @@ signal route_created(route_data: Dictionary)
 ## Emitted when a route is removed
 signal route_removed(route_id: String)
 
+## Emitted when a route is updated (paused/unpaused)
+signal route_updated(route_data: Dictionary)
+
 ## Emitted when a vehicle is created
 signal vehicle_created(vehicle_data: Dictionary)
 
