@@ -182,10 +182,14 @@ func _hide_machine_menu() -> void:
 		machines_view.visible = false
 
 func _create_machine_menu() -> void:
-	"""Create buttons for buildable machines"""
+	"""Create buttons for buildable machines (filtered by research)"""
 	if not machine_menu:
 		print("ERROR: machine_menu is null!")
 		return
+
+	# Clear existing buttons
+	for child in machine_menu.get_children():
+		child.queue_free()
 
 	# Get facility type to filter machines
 	var facility_id = GameManager.active_factory_id
@@ -205,14 +209,22 @@ func _create_machine_menu() -> void:
 	var machines = DataManager.get_machines_for_facility(facility_type)
 	print("Found %d machines for %s" % [machines.size(), facility_type])
 
-	# Group machines by category
+	# Group machines by category (only unlocked ones)
 	var categories = {}
+	var unlocked_count = 0
 	for machine_id in machines:
+		# Filter by research unlock
+		if not ResearchManager.is_machine_unlocked(machine_id):
+			continue
+
+		unlocked_count += 1
 		var machine_def = machines[machine_id]
 		var category = machine_def.get("category", "other")
 		if not categories.has(category):
 			categories[category] = []
 		categories[category].append({"id": machine_id, "def": machine_def})
+
+	print("Unlocked %d machines for %s" % [unlocked_count, facility_type])
 
 	# Create buttons organized by category
 	for category in categories:
@@ -221,6 +233,8 @@ func _create_machine_menu() -> void:
 			var label = Label.new()
 			label.text = category.capitalize()
 			label.add_theme_font_size_override("font_size", 14)
+			label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			machine_menu.add_child(label)
 
 		# Add machines in this category

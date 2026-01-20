@@ -390,6 +390,44 @@ func get_facility_missing_research(facility_id: String) -> Array:
 	return missing
 
 
+## Check if a machine is unlocked (based on research requirements in machines.json)
+func is_machine_unlocked(machine_id: String) -> bool:
+	var machine_def = DataManager.get_machine_data(machine_id)
+	if machine_def.is_empty():
+		return false
+
+	var unlock_reqs = machine_def.get("unlock_requirements", {})
+	var required_research = unlock_reqs.get("research", [])
+
+	# No research requirement = always unlocked
+	if required_research.is_empty():
+		return true
+
+	# Check if all required research is unlocked
+	for tech_id in required_research:
+		if not is_unlocked(tech_id):
+			return false
+
+	return true
+
+
+## Get missing research requirements for a machine
+func get_machine_missing_research(machine_id: String) -> Array:
+	var missing: Array = []
+	var machine_def = DataManager.get_machine_data(machine_id)
+	if machine_def.is_empty():
+		return missing
+
+	var unlock_reqs = machine_def.get("unlock_requirements", {})
+	var required_research = unlock_reqs.get("research", [])
+
+	for tech_id in required_research:
+		if not is_unlocked(tech_id):
+			missing.append(tech_id)
+
+	return missing
+
+
 ## Get all active bonuses from unlocked research
 func get_active_bonuses() -> Array:
 	var bonuses: Array = []

@@ -63,7 +63,8 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [],
-      "new_facilities": ["hop_farm", "vineyard", "winery"]
+      "new_facilities": ["hop_farm", "vineyard", "winery"],
+      "new_machines": ["wine_press", "wine_fermentation_vat"]
     },
     "description": "Scientific farming methods unlock specialized crops for premium products."
   },
@@ -103,7 +104,8 @@
     "prerequisites": ["water_mills"],
     "unlocks": {
       "building_upgrades": ["grain_mill_3"],
-      "bonuses": []
+      "bonuses": [],
+      "new_machines": ["steam_powered_boiler", "large_storage_tank"]
     },
     "description": "Revolutionary steam engines power industrial-scale operations."
   },
@@ -130,7 +132,8 @@
     "prerequisites": ["roller_mills", "rail_transport"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "auto_request", "target": "grain_mill", "value": true}]
+      "bonuses": [{"type": "auto_request", "target": "grain_mill", "value": true}],
+      "new_machines": ["automated_conveyor"]
     },
     "description": "Fully automated mills that auto-request inputs from connected facilities."
   },
@@ -157,7 +160,8 @@
     "prerequisites": ["basic_fermentation"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "quality_multiplier", "target": "brewery", "value": 1.15}]
+      "bonuses": [{"type": "quality_multiplier", "target": "brewery", "value": 1.15}],
+      "new_machines": ["advanced_mash_tun"]
     },
     "description": "Cultivate and maintain pure yeast strains for 15% better ale quality."
   },
@@ -171,7 +175,8 @@
     "unlocks": {
       "building_upgrades": ["brewery_3"],
       "bonuses": [],
-      "new_products": ["wheat_beer"]
+      "new_products": ["wheat_beer"],
+      "new_machines": ["temperature_controlled_vat"]
     },
     "description": "Precise temperature control enables new beer styles like wheat beer."
   },
@@ -186,7 +191,8 @@
       "building_upgrades": [],
       "bonuses": [],
       "new_products": ["lager"],
-      "new_facilities": ["lager_brewery"]
+      "new_facilities": ["lager_brewery"],
+      "new_machines": ["lager_fermentation_tank"]
     },
     "description": "Cold fermentation and lagering techniques for crisp, clean lagers ($140/unit)."
   },
@@ -200,7 +206,8 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [{"type": "price_multiplier", "target": "beers", "value": 1.5}],
-      "new_products": ["stout", "porter"]
+      "new_products": ["stout", "porter"],
+      "new_machines": ["master_brewer_station"]
     },
     "description": "Mastery of brewing arts unlocks premium styles and 50% higher beer prices."
   },
@@ -214,7 +221,8 @@
     "prerequisites": ["basic_fermentation"],
     "unlocks": {
       "building_upgrades": ["distillery_2"],
-      "bonuses": []
+      "bonuses": [],
+      "new_machines": ["copper_pot_still"]
     },
     "description": "Traditional copper pot stills for small-batch spirit production."
   },
@@ -227,7 +235,8 @@
     "prerequisites": ["pot_stills"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "purity_multiplier", "target": "distillery", "value": 1.2}]
+      "bonuses": [{"type": "purity_multiplier", "target": "distillery", "value": 1.2}],
+      "new_machines": ["copper_condenser_unit"]
     },
     "description": "Improved copper condensers increase spirit purity by 20%."
   },
@@ -242,7 +251,8 @@
       "building_upgrades": ["distillery_3"],
       "bonuses": [],
       "new_products": ["whiskey"],
-      "new_facilities": ["whiskey_distillery"]
+      "new_facilities": ["whiskey_distillery"],
+      "new_machines": ["double_distillation_still"]
     },
     "description": "Double distillation process for smoother, premium whiskey production."
   },
@@ -257,7 +267,8 @@
       "building_upgrades": [],
       "bonuses": [{"type": "speed_multiplier", "target": "distillery", "value": 1.3}],
       "new_products": ["vodka"],
-      "new_facilities": ["vodka_distillery"]
+      "new_facilities": ["vodka_distillery"],
+      "new_machines": ["column_still"]
     },
     "description": "Continuous column stills for high-volume production and neutral spirits."
   },
@@ -270,7 +281,8 @@
     "prerequisites": ["column_stills", "automated_milling"],
     "unlocks": {
       "building_upgrades": ["distillery_4"],
-      "bonuses": [{"type": "cycle_time_multiplier", "target": "distillery", "value": 0.4}]
+      "bonuses": [{"type": "cycle_time_multiplier", "target": "distillery", "value": 0.4}],
+      "new_machines": ["continuous_still"]
     },
     "description": "Industrial continuous distillation with 60% faster cycle times."
   },
@@ -284,7 +296,8 @@
     "prerequisites": [],
     "unlocks": {
       "building_upgrades": ["storage_warehouse_2"],
-      "bonuses": []
+      "bonuses": [],
+      "new_machines": ["oak_aging_barrel"]
     },
     "description": "Quality oak barrels for proper spirit and wine aging."
   },
@@ -298,7 +311,8 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [{"type": "value_multiplier", "target": "aged_spirits", "value": 1.25}],
-      "new_facilities": ["aging_cellar"]
+      "new_facilities": ["aging_cellar"],
+      "new_machines": ["charred_oak_barrel"]
     },
     "description": "Charred barrel interiors add rich flavor and 25% more value to aged spirits."
   },
@@ -311,7 +325,8 @@
     "prerequisites": ["charred_barrels"],
     "unlocks": {
       "building_upgrades": ["storage_warehouse_3"],
-      "bonuses": []
+      "bonuses": [],
+      "new_machines": ["climate_controlled_rack"]
     },
     "description": "Temperature-controlled cellars for optimal aging conditions."
   },
@@ -326,7 +341,8 @@
       "building_upgrades": [],
       "bonuses": [],
       "new_products": ["premium_whiskey"],
-      "new_facilities": ["barrel_house"]
+      "new_facilities": ["barrel_house"],
+      "new_machines": ["solera_barrel_system"]
     },
     "description": "Fractional blending system for exceptionally complex premium whiskey ($350/unit)."
   },
@@ -368,7 +384,8 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [{"type": "value_multiplier", "target": "packaged", "value": 1.2}],
-      "new_facilities": ["bottling_facility"]
+      "new_facilities": ["bottling_facility"],
+      "new_machines": ["glass_bottling_line"]
     },
     "description": "Glass bottle packaging increases product value by 20%."
   },
@@ -381,7 +398,8 @@
     "prerequisites": ["glass_bottles"],
     "unlocks": {
       "building_upgrades": ["packaging_plant_3"],
-      "bonuses": [{"type": "reject_low_quality", "target": "packaging_plant", "value": true}]
+      "bonuses": [{"type": "reject_low_quality", "target": "packaging_plant", "value": true}],
+      "new_machines": ["quality_inspection_station"]
     },
     "description": "Quality inspection ensures only premium products reach market."
   },
@@ -394,7 +412,8 @@
     "prerequisites": ["quality_control", "trade_agreements"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "price_multiplier", "target": "all", "value": 1.35}]
+      "bonuses": [{"type": "price_multiplier", "target": "all", "value": 1.35}],
+      "new_machines": ["premium_labeling_machine"]
     },
     "description": "Premium brand recognition increases all product prices by 35%."
   },

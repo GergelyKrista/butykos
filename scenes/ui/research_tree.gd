@@ -403,6 +403,11 @@ func _get_unlock_summary(tech: Dictionary) -> String:
 	if facilities.size() > 0:
 		parts.append("+%d Building%s" % [facilities.size(), "s" if facilities.size() > 1 else ""])
 
+	# New machines
+	var machines = unlocks.get("new_machines", [])
+	if machines.size() > 0:
+		parts.append("+%d Machine%s" % [machines.size(), "s" if machines.size() > 1 else ""])
+
 	# New products
 	var products = unlocks.get("new_products", [])
 	if products.size() > 0:
