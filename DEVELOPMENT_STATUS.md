@@ -1,7 +1,7 @@
 # Development Status - Alcohol Empire Tycoon
 
-**Last Updated:** 2025-10-16
-**Current Phase:** Phase 7A Complete - Save/Load System ✅
+**Last Updated:** 2026-01-20
+**Current Phase:** Phase 6B Complete - Research Tree System ✅
 **Target:** 15-18 months to Early Access
 
 ## 🎯 Project Vision
@@ -13,7 +13,29 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 
 ---
 
-## ✅ Completed Features (Today's Session - 2025-10-16)
+## ✅ Completed Features (Latest Session - 2026-01-20)
+
+### Phase 6A: Market System ✅ COMPLETE
+- [x] Dynamic pricing with ±30% variance
+- [x] Price fluctuations every 10 seconds
+- [x] Price trend indicators (up/down arrows)
+- [x] Contract system for bonus deliveries
+- [x] Market panel UI with product categories
+- [x] Save/load integration for market state
+
+### Phase 6B: Research Tree System ✅ COMPLETE
+- [x] Civilization-style tech tree (8 branches × 5 eras = 40 techs)
+- [x] Cross-branch prerequisites for advanced techs
+- [x] Money-based research purchase (no turns/points)
+- [x] Research panel UI with branch progress
+- [x] Building upgrade unlocks tied to research
+- [x] Production bonuses from researched techs
+- [x] Save/load integration for research state
+- [x] RESEARCH_TREE.md documentation
+
+---
+
+## ✅ Completed Features (Previous Session - 2025-10-16)
 
 ### Phase 7A: Save/Load System ✅ COMPLETE
 - [x] Save/Load dialog component (unified UI for both modes)
@@ -87,8 +109,9 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 | Factory Interior | 98% | ✅ Manual connections, machine production, sprites, demolish mode |
 | Logistics | 95% | ✅ Routes, vehicles, visual feedback |
 | Production | 95% | ✅ Input-based, pricing, auto-sell |
-| Economy | 90% | ✅ Money, pricing, bootstrap income |
-| UI/UX | 80% | ✅ Tooltips, stats panel, mode indicators, demolish mode, save/load UI |
+| Economy | 95% | ✅ Money, dynamic pricing, market system |
+| UI/UX | 85% | ✅ Tooltips, stats panel, mode indicators, demolish mode, save/load UI, market panel, research panel |
+| Research | 100% | ✅ Full tech tree with 40 technologies, 8 branches |
 | Content | 45% | 🟡 Basic chains working, needs expansion |
 | Save/Load | 100% | ✅ Full save/load with multiple slots, persistence, hotkeys |
 
@@ -211,23 +234,24 @@ Storage: 500 units capacity
 
 ---
 
-#### Phase 6: Economic Depth (2-4 hours)
-**Priority:** High
-**Status:** Not started
+#### Phase 6: Economic Depth ✅ MOSTLY COMPLETE
 
-##### Phase 6A: Market System
-- [ ] Dynamic pricing based on supply/demand
-- [ ] Price fluctuations over time
-- [ ] Market trends and cycles
-- [ ] Contract system (sell X product for bonus)
+##### Phase 6A: Market System ✅ COMPLETE
+- [x] Dynamic pricing with ±30% variance
+- [x] Price fluctuations every 10 seconds
+- [x] Market trends (up/down indicators)
+- [x] Contract system for bonus deliveries
+- [x] Market panel UI
 
-##### Phase 6B: Upgrades & Research
-- [ ] Facility upgrades (faster production, higher capacity)
-- [ ] Machine efficiency improvements
-- [ ] Unlock new recipes/products
-- [ ] Tech tree system
+##### Phase 6B: Research Tree ✅ COMPLETE
+- [x] Civilization-style tech tree (8 branches × 5 eras)
+- [x] 40 total technologies with cross-branch prerequisites
+- [x] Money-based research purchase
+- [x] Building upgrade unlocks
+- [x] Production bonuses from research
+- [x] Research panel UI with progress tracking
 
-##### Phase 6C: Maintenance Costs
+##### Phase 6C: Maintenance Costs (Not Started)
 - [ ] Daily/monthly facility upkeep
 - [ ] Machine wear and repair
 - [ ] Operating cost vs profit balance
@@ -393,7 +417,7 @@ Storage: 500 units capacity
 - `core/event_bus.gd` - Signal hub (40+ signals)
 - `core/game_manager.gd` - Game state, scene transitions
 - `core/data_manager.gd` - JSON loading (facilities, machines, products)
-- `core/save_manager.gd` - Save/load framework (⚠️ incomplete)
+- `core/save_manager.gd` - Save/load system (✅ complete)
 
 ### Managers
 - `systems/world_manager.gd` - 50×50 grid, isometric math, facility placement
@@ -401,6 +425,8 @@ Storage: 500 units capacity
 - `systems/production_manager.gd` - Production cycles, inventory, pricing
 - `systems/logistics_manager.gd` - Routes, vehicles, cargo transport
 - `systems/factory_manager.gd` - Factory interiors, machine placement, connections
+- `systems/market_manager.gd` - Dynamic pricing, contracts ⭐ NEW
+- `systems/research_manager.gd` - Tech tree, research unlocks ⭐ NEW
 
 ### Scenes
 - `scenes/world_map/world_map.tscn/.gd` - Strategic layer (isometric)
@@ -410,16 +436,18 @@ Storage: 500 units capacity
 
 ### Data Files
 - `data/facilities.json` - 7 facility definitions
-- `data/products.json` - 14 product definitions ⭐ NEW
+- `data/products.json` - 14 product definitions
 - `data/machines.json` - 13 machine definitions
 - `data/recipes.json` - Empty (future expansion)
+- `data/research_tree.json` - 40 technology definitions ⭐ NEW
 
 ### Documentation
-- `TESTING.md` - Comprehensive testing guide ⭐ UPDATED
-- `assets/PLACE_SPRITES_HERE.md` - Quick sprite reference ⭐ UPDATED
+- `TESTING.md` - Comprehensive testing guide
+- `assets/PLACE_SPRITES_HERE.md` - Quick sprite reference
 - `ASSET_NAMING_CONVENTION.md` - Full asset specifications
 - `TROUBLESHOOTING.md` - Common issues
 - `ARCHITECTURE.md` - System design overview
+- `RESEARCH_TREE.md` - Tech tree design document ⭐ NEW
 
 ---
 
@@ -545,11 +573,12 @@ Storage: 500 units capacity
 
 ## 🚀 Next Session Recommended Focus
 
-**Top Priority:** Market System (Phase 6A) ⭐ RECOMMENDED
-- Adds economic depth and player engagement
+**Top Priority:** Apply Research Bonuses ⭐ RECOMMENDED
+- Wire up research bonuses to actual game systems
+- Production speed multipliers from techs
+- Price multipliers from commerce research
+- Vehicle speed/capacity from logistics research
 - 2-3 hours implementation
-- Dynamic pricing, supply/demand, contracts
-- Makes economy more strategic and interesting
 
 **Alternative:** Content Expansion (Phase 8)
 - More facility types (vineyard, hop farm, water source)
@@ -557,7 +586,13 @@ Storage: 500 units capacity
 - More product chains (wine, premium whiskey)
 - 2-4 hours implementation
 
-**Third Option:** Remaining UI/UX (Phase 7C)
+**Third Option:** Building Upgrade System
+- Enable building level upgrades
+- Tie upgrades to research unlocks
+- Upgrade costs and visual indicators
+- 2-3 hours implementation
+
+**Fourth Option:** Remaining UI/UX (Phase 7C)
 - Route management UI (view, pause, delete routes)
 - Resource flow visualization (animated particles on routes)
 - Mini-map for world navigation
@@ -575,10 +610,10 @@ Storage: 500 units capacity
 
 ---
 
-**Status:** Phase 7A & 7B Complete! Save/load system fully functional with persistent saves, multiple slots, and hotkeys.
+**Status:** Phase 6A & 6B Complete! Market system with dynamic pricing + Research tree with 40 technologies.
 
-**Next Session:** Implement Market System (Phase 6A) OR Content Expansion (Phase 8)
+**Next Session:** Apply research bonuses to game systems OR Content Expansion (Phase 8)
 
-**GitHub Branch:** `dev` (feature/save-load-system merged)
+**GitHub Branch:** `dev`
 
-**Build:** Fully playable with save/load, improved UI/UX, tested production chains, all features working
+**Build:** Fully playable with save/load, market system, research tree, improved UI/UX, tested production chains

@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://b5bwe87xqf6oe"]
+[gd_scene load_steps=9 format=3 uid="uid://b5bwe87xqf6oe"]
 
 [ext_resource type="Script" path="res://scenes/world_map/world_map.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/world_map/grid_renderer.gd" id="2"]
@@ -7,6 +7,9 @@
 [ext_resource type="Script" path="res://scenes/world_map/route_renderer.gd" id="5"]
 [ext_resource type="Script" path="res://scenes/world_map/vehicle_renderer.gd" id="6"]
 [ext_resource type="PackedScene" uid="uid://dpq4m7xqgape" path="res://scenes/ui/pause_menu.tscn" id="7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_research_bg"]
+bg_color = Color(0.15, 0.15, 0.18, 1)
 
 [node name="WorldMap" type="Node2D"]
 script = ExtResource("1")
@@ -70,6 +73,14 @@ offset_top = 145.0
 offset_right = 200.0
 offset_bottom = 180.0
 text = "📈 Market Prices"
+
+[node name="ResearchButton" type="Button" parent="UI/HUD"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 190.0
+offset_right = 200.0
+offset_bottom = 225.0
+text = "🔬 Research Tree"
 
 [node name="ModePanel" type="PanelContainer" parent="UI/HUD"]
 visible = false
@@ -237,6 +248,62 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
+
+[node name="ResearchPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_research_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD/ResearchPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/ResearchPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "RESEARCH TREE"
+
+[node name="ProgressLabel" type="Label" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "0/40"
+
+[node name="CloseButton" type="Button" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "X"
+
+[node name="HSeparator" type="HSeparator" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BranchList" type="VBoxContainer" parent="UI/HUD/ResearchPanel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="HelpPanel" type="PanelContainer" parent="UI/HUD"]
 visible = false

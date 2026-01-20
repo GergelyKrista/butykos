@@ -218,6 +218,11 @@ func _is_mouse_over_ui() -> bool:
 	if help_panel and help_panel.visible and _is_point_in_control(mouse_pos, help_panel):
 		return true
 
+	# Check research panel (if visible)
+	var research_panel = hud.get_node_or_null("ResearchPanel")
+	if research_panel and research_panel.visible and _is_point_in_control(mouse_pos, research_panel):
+		return true
+
 	# Check tooltip (if visible)
 	var tooltip = hud.get_node_or_null("Tooltip")
 	if tooltip and tooltip.visible and _is_point_in_control(mouse_pos, tooltip):

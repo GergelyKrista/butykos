@@ -19,6 +19,8 @@ extends Node2D
 @onready var production_button = $UI/HUD/ProductionButton
 @onready var market_panel = $UI/HUD/MarketPanel
 @onready var market_button = $UI/HUD/MarketButton
+@onready var research_panel = $UI/HUD/ResearchPanel
+@onready var research_button = $UI/HUD/ResearchButton
 @onready var mode_panel = $UI/HUD/ModePanel
 @onready var mode_label = $UI/HUD/ModePanel/ModeLabel
 
@@ -75,6 +77,13 @@ func _ready() -> void:
 
 	# Connect to market price updates
 	MarketManager.prices_updated.connect(_on_prices_updated)
+
+	# Research panel
+	research_button.pressed.connect(_toggle_research_panel)
+	research_panel.get_node("MarginContainer/VBoxContainer/HeaderHBox/CloseButton").pressed.connect(_toggle_research_panel)
+	ResearchManager.research_completed.connect(_on_research_completed)
+	ResearchManager.tier_unlocked.connect(_on_tier_unlocked)
+	ResearchManager.tier_progress_updated.connect(_on_tier_progress_updated)
 
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
@@ -140,9 +149,23 @@ func _input(event: InputEvent) -> void:
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_demolish_mode()
 
-	# Cancel placement/route/demolish mode with Escape
+	# Cancel panels/modes with Escape - only open pause menu if nothing was active
 	if event.is_action_pressed("ui_cancel"):
-		if placement_mode:
+		# Close any open panels first
+		if research_panel.visible:
+			research_panel.visible = false
+			return  # Prevent pause menu from opening
+		elif production_panel.visible:
+			production_panel.visible = false
+			return
+		elif market_panel.visible:
+			market_panel.visible = false
+			return
+		elif help_panel.visible:
+			help_panel.visible = false
+			return
+		# Then cancel any active modes
+		elif placement_mode:
 			_cancel_placement()
 			return  # Prevent pause menu from opening
 		elif route_mode:
@@ -151,7 +174,7 @@ func _input(event: InputEvent) -> void:
 		elif demolish_mode:
 			_cancel_demolish_mode()
 			return  # Prevent pause menu from opening
-		# If not in any mode, ESC will be handled by pause menu
+		# If no panels or modes active, ESC will be handled by pause menu
 
 	# Toggle help panel with F1
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
@@ -786,6 +809,10 @@ func _on_money_changed(_new_amount: int, _delta: int) -> void:
 
 func _on_build_button_pressed(facility_id: String) -> void:
 	"""Handle build button press from UI"""
+	# Close research panel if open
+	if research_panel.visible:
+		research_panel.visible = false
+
 	# Cancel current placement mode if already in one
 	if placement_mode:
 		_cancel_placement()
@@ -868,6 +895,10 @@ func _unhighlight_facility(facility_id: String) -> void:
 
 func _on_create_route_button_pressed() -> void:
 	"""Handle create route button press from UI"""
+	# Close research panel if open
+	if research_panel.visible:
+		research_panel.visible = false
+
 	# Cancel placement mode if active
 	if placement_mode:
 		_cancel_placement()
@@ -919,6 +950,10 @@ func _cancel_demolish_mode() -> void:
 
 func _on_demolish_button_pressed() -> void:
 	"""Handle demolish button press from UI"""
+	# Close research panel if open
+	if research_panel.visible:
+		research_panel.visible = false
+
 	# Cancel placement mode if active
 	if placement_mode:
 		_cancel_placement()
@@ -972,8 +1007,14 @@ func _quick_load() -> void:
 
 
 func _is_in_mode() -> bool:
-	"""Check if we're in placement or route mode (for pause menu)"""
-	return placement_mode or route_mode
+	"""Check if we're in any mode or have panels open (for pause menu)"""
+	# Check active modes
+	if placement_mode or route_mode or demolish_mode:
+		return true
+	# Check open panels
+	if research_panel.visible or production_panel.visible or market_panel.visible or help_panel.visible:
+		return true
+	return false
 
 
 func _is_mouse_over_ui() -> bool:
@@ -1426,3 +1467,348 @@ func _delete_facility(facility_id: String) -> void:
 	if hovered_facility_id == facility_id:
 		hovered_facility_id = ""
 		_hide_tooltip()
+
+
+# ========================================
+# RESEARCH PANEL
+# ========================================
+
+var visual_research_tree: Control = null
+const ResearchTreeScene = preload("res://scenes/ui/research_tree.tscn")
+
+func _toggle_research_panel() -> void:
+	"""Toggle research tree panel"""
+	research_panel.visible = not research_panel.visible
+
+	if research_panel.visible:
+		_setup_visual_research_tree()
+
+
+func _setup_visual_research_tree() -> void:
+	"""Setup the visual research tree in the panel"""
+	var branch_list = research_panel.get_node("MarginContainer/VBoxContainer/ScrollContainer/BranchList")
+
+	# Clear old content
+	for child in branch_list.get_children():
+		child.queue_free()
+
+	# Add tier progress header
+	var tier_section = _create_tier_progress_section()
+	branch_list.add_child(tier_section)
+
+	# Create visual tree if not exists
+	if visual_research_tree != null:
+		visual_research_tree.queue_free()
+
+	visual_research_tree = ResearchTreeScene.instantiate()
+	visual_research_tree.research_requested.connect(_on_visual_research_requested)
+
+	# Add to container - fills available space
+	var tree_holder = Control.new()
+	tree_holder.custom_minimum_size = Vector2(1400, 800)
+	tree_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tree_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tree_holder.add_child(visual_research_tree)
+	branch_list.add_child(tree_holder)
+
+
+func _on_visual_research_requested(tech_id: String) -> void:
+	"""Handle click on visual tree node"""
+	var success = ResearchManager.research(tech_id)
+	if success:
+		_setup_visual_research_tree()
+		_update_money_display()
+
+
+func _on_research_completed(_tech_id: String) -> void:
+	"""Handle research completion"""
+	if research_panel.visible:
+		_setup_visual_research_tree()
+	_update_money_display()
+
+
+func _on_tier_unlocked(tier: int) -> void:
+	"""Handle tier unlock"""
+	print("Tier %d unlocked!" % tier)
+	if research_panel.visible:
+		_setup_visual_research_tree()
+
+
+func _on_tier_progress_updated(_tier: int, _product: String, _delivered: int, _required: int) -> void:
+	"""Handle tier progress update"""
+	if research_panel.visible:
+		_setup_visual_research_tree()
+
+
+func _update_research_panel() -> void:
+	"""Update research panel with current tech tree state"""
+	var branch_list = research_panel.get_node("MarginContainer/VBoxContainer/ScrollContainer/BranchList")
+	var progress_label = research_panel.get_node("MarginContainer/VBoxContainer/HeaderHBox/ProgressLabel")
+
+	# Update progress counter with tier info
+	var unlocked = ResearchManager.get_unlocked_count()
+	var total = ResearchManager.get_total_count()
+	var current_tier = ResearchManager.get_current_tier()
+	progress_label.text = "Tier %d | %d/%d" % [current_tier, unlocked, total]
+
+	# Clear existing items
+	for child in branch_list.get_children():
+		child.queue_free()
+
+	# Add tier progress section at top
+	var tier_section = _create_tier_progress_section()
+	branch_list.add_child(tier_section)
+
+	# Add each branch
+	for branch in ResearchManager.BRANCHES:
+		var branch_container = _create_branch_section(branch)
+		branch_list.add_child(branch_container)
+
+
+func _create_tier_progress_section() -> VBoxContainer:
+	"""Create the tier progress section showing requirements for next tier"""
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+
+	var current_tier = ResearchManager.get_current_tier()
+
+	# Header
+	var header = Label.new()
+	if current_tier >= 5:
+		header.text = "MAX TIER REACHED"
+		header.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+	else:
+		header.text = "TIER %d REQUIREMENTS" % (current_tier + 1)
+		header.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))
+	header.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(header)
+
+	# Show requirements for next tier as sprite placeholders side by side
+	if current_tier < 5:
+		var items_hbox = HBoxContainer.new()
+		items_hbox.add_theme_constant_override("separation", 20)
+
+		var progress = ResearchManager.get_tier_progress()
+		for product in progress:
+			var info = progress[product]
+			var delivered = info["delivered"]
+			var required = info["required"]
+			var is_complete = delivered >= required
+
+			# Container for each requirement item
+			var item_container = Control.new()
+			item_container.custom_minimum_size = Vector2(80, 100)
+
+			# Product name label on top
+			var name_label = Label.new()
+			name_label.text = product.capitalize().replace("_", " ")
+			name_label.add_theme_font_size_override("font_size", 11)
+			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			name_label.position = Vector2(0, 0)
+			name_label.size = Vector2(80, 20)
+			if is_complete:
+				name_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+			else:
+				name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+			item_container.add_child(name_label)
+
+			# Sprite placeholder panel (center)
+			var sprite_panel = Panel.new()
+			sprite_panel.position = Vector2(8, 22)
+			sprite_panel.size = Vector2(64, 64)
+
+			var sprite_style = StyleBoxFlat.new()
+			sprite_style.bg_color = Color(0.2, 0.2, 0.25, 1.0)
+			sprite_style.border_width_left = 2
+			sprite_style.border_width_right = 2
+			sprite_style.border_width_top = 2
+			sprite_style.border_width_bottom = 2
+			sprite_style.corner_radius_top_left = 4
+			sprite_style.corner_radius_top_right = 4
+			sprite_style.corner_radius_bottom_left = 4
+			sprite_style.corner_radius_bottom_right = 4
+
+			if is_complete:
+				sprite_style.border_color = Color(0.3, 0.8, 0.3)
+			else:
+				sprite_style.border_color = Color(0.4, 0.4, 0.5)
+
+			sprite_panel.add_theme_stylebox_override("panel", sprite_style)
+
+			# Placeholder text inside sprite panel
+			var placeholder_label = Label.new()
+			placeholder_label.text = "?"
+			placeholder_label.add_theme_font_size_override("font_size", 28)
+			placeholder_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.5))
+			placeholder_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			placeholder_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			placeholder_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			sprite_panel.add_child(placeholder_label)
+
+			item_container.add_child(sprite_panel)
+
+			# Amount label in bottom right corner of sprite
+			var amount_label = Label.new()
+			amount_label.text = "%d/%d" % [delivered, required]
+			amount_label.add_theme_font_size_override("font_size", 10)
+			amount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			amount_label.position = Vector2(8, 70)
+			amount_label.size = Vector2(64, 16)
+
+			if is_complete:
+				amount_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+			else:
+				amount_label.add_theme_color_override("font_color", Color(0.8, 0.7, 0.5))
+
+			item_container.add_child(amount_label)
+
+			items_hbox.add_child(item_container)
+
+		vbox.add_child(items_hbox)
+
+		# Hint text
+		var hint = Label.new()
+		hint.text = "Sell these products to unlock Tier %d" % (current_tier + 1)
+		hint.add_theme_font_size_override("font_size", 11)
+		hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		vbox.add_child(hint)
+
+	# Separator
+	var sep = HSeparator.new()
+	vbox.add_child(sep)
+	var spacer = Control.new()
+	spacer.custom_minimum_size.y = 8
+	vbox.add_child(spacer)
+
+	return vbox
+
+
+func _create_branch_section(branch: String) -> VBoxContainer:
+	"""Create a section for one research branch"""
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+
+	# Branch header with progress
+	var header_hbox = HBoxContainer.new()
+
+	var branch_name = ResearchManager.BRANCH_NAMES.get(branch, branch.capitalize())
+	var header = Label.new()
+	header.text = branch_name
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_hbox.add_child(header)
+
+	# Branch progress
+	var branch_unlocked = ResearchManager.get_branch_unlocked_count(branch)
+	var branch_total = ResearchManager.get_branch_total_count(branch)
+	var progress = Label.new()
+	progress.text = "[%d/%d]" % [branch_unlocked, branch_total]
+	progress.add_theme_font_size_override("font_size", 12)
+	progress.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	header_hbox.add_child(progress)
+
+	vbox.add_child(header_hbox)
+
+	# Get techs in this branch (sorted by era)
+	var techs = ResearchManager.get_branch_techs(branch)
+
+	# Create tech items
+	for tech in techs:
+		var tech_item = _create_tech_item(tech)
+		vbox.add_child(tech_item)
+
+	# Separator after branch
+	var sep = HSeparator.new()
+	sep.add_theme_constant_override("separation", 8)
+	vbox.add_child(sep)
+
+	return vbox
+
+
+func _create_tech_item(tech: Dictionary) -> HBoxContainer:
+	"""Create a single tech item with research button"""
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 8)
+
+	var tech_id = tech.get("id", "")
+	var is_unlocked = ResearchManager.is_unlocked(tech_id)
+	var can_research = ResearchManager.can_research(tech_id)
+	var is_tier_locked = ResearchManager.is_tier_locked(tech_id)
+
+	# Tier indicator
+	var tier_label = Label.new()
+	tier_label.text = "T%d" % tech.get("tier", 1)
+	tier_label.add_theme_font_size_override("font_size", 10)
+	tier_label.custom_minimum_size.x = 25
+	if is_unlocked:
+		tier_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
+	elif is_tier_locked:
+		tier_label.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))  # Red for tier-locked
+	else:
+		tier_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	hbox.add_child(tier_label)
+
+	# Tech name
+	var name_label = Label.new()
+	name_label.text = tech.get("name", tech_id)
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	if is_unlocked:
+		name_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+	elif can_research:
+		name_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+	elif is_tier_locked:
+		name_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))  # Darker for tier-locked
+	else:
+		name_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+
+	hbox.add_child(name_label)
+
+	# Cost / Status
+	var cost = tech.get("cost", 0)
+	if is_unlocked:
+		var status_label = Label.new()
+		status_label.text = "DONE"
+		status_label.add_theme_font_size_override("font_size", 11)
+		status_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
+		status_label.custom_minimum_size.x = 70
+		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		hbox.add_child(status_label)
+	elif can_research:
+		# Research button
+		var research_btn = Button.new()
+		research_btn.text = "$%d" % cost
+		research_btn.custom_minimum_size.x = 70
+		research_btn.pressed.connect(_on_research_button_pressed.bind(tech_id))
+		hbox.add_child(research_btn)
+	else:
+		# Show cost grayed out with appropriate lock icon
+		var cost_label = Label.new()
+		if is_tier_locked:
+			# Tier locked - show tier requirement
+			cost_label.text = "T%d" % tech.get("tier", 1)
+			cost_label.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))
+		else:
+			# Prerequisite locked
+			var missing = ResearchManager.get_missing_prerequisites(tech_id)
+			if missing.size() > 0:
+				cost_label.text = "🔒 $%d" % cost
+			else:
+				cost_label.text = "$%d" % cost
+			cost_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		cost_label.add_theme_font_size_override("font_size", 11)
+		cost_label.custom_minimum_size.x = 70
+		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		hbox.add_child(cost_label)
+
+	return hbox
+
+
+func _on_research_button_pressed(tech_id: String) -> void:
+	"""Handle research button press"""
+	var success = ResearchManager.research(tech_id)
+	if success:
+		_update_research_panel()
+		_update_money_display()

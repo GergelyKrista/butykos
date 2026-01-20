@@ -1,0 +1,552 @@
+{
+  "crop_rotation": {
+    "id": "crop_rotation",
+    "name": "Crop Rotation",
+    "branch": "agriculture",
+    "tier": 1,
+    "cost": 5000,
+    "prerequisites": [],
+    "unlocks": {
+      "building_upgrades": ["barley_field_2", "wheat_farm_2"],
+      "bonuses": []
+    },
+    "description": "Alternate crops yearly to maintain soil fertility and increase yields."
+  },
+  "fertilizers": {
+    "id": "fertilizers",
+    "name": "Fertilizers",
+    "branch": "agriculture",
+    "tier": 2,
+    "cost": 15000,
+    "prerequisites": ["crop_rotation"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "yield_multiplier", "target": "fields", "value": 1.25}]
+    },
+    "description": "Apply natural fertilizers to boost all crop yields by 25%."
+  },
+  "crop_genetics": {
+    "id": "crop_genetics",
+    "name": "Crop Genetics",
+    "branch": "agriculture",
+    "tier": 3,
+    "cost": 35000,
+    "prerequisites": ["fertilizers"],
+    "unlocks": {
+      "building_upgrades": ["barley_field_3", "wheat_farm_3"],
+      "bonuses": [],
+      "new_facilities": ["corn_field"]
+    },
+    "description": "Selective breeding for hardier, more productive grain varieties."
+  },
+  "mechanized_harvesting": {
+    "id": "mechanized_harvesting",
+    "name": "Mechanized Harvesting",
+    "branch": "agriculture",
+    "tier": 4,
+    "cost": 70000,
+    "prerequisites": ["crop_genetics", "steam_power"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "cycle_time_multiplier", "target": "fields", "value": 0.6}]
+    },
+    "description": "Steam-powered harvesters reduce field cycle time by 40%."
+  },
+  "agricultural_science": {
+    "id": "agricultural_science",
+    "name": "Agricultural Science",
+    "branch": "agriculture",
+    "tier": 5,
+    "cost": 130000,
+    "prerequisites": ["mechanized_harvesting"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [],
+      "new_facilities": ["hop_farm", "vineyard"]
+    },
+    "description": "Scientific farming methods unlock specialized crops for premium products."
+  },
+
+  "millstone_grinding": {
+    "id": "millstone_grinding",
+    "name": "Millstone Grinding",
+    "branch": "grain_processing",
+    "tier": 1,
+    "cost": 6000,
+    "prerequisites": [],
+    "unlocks": {
+      "building_upgrades": ["grain_mill_2"],
+      "bonuses": []
+    },
+    "description": "Improved millstones for finer, more consistent grain milling."
+  },
+  "water_mills": {
+    "id": "water_mills",
+    "name": "Water Mills",
+    "branch": "grain_processing",
+    "tier": 2,
+    "cost": 14000,
+    "prerequisites": ["millstone_grinding"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "speed_multiplier", "target": "grain_mill", "value": 1.2}]
+    },
+    "description": "Harness water power to increase mill processing speed by 20%."
+  },
+  "steam_power": {
+    "id": "steam_power",
+    "name": "Steam Power",
+    "branch": "grain_processing",
+    "tier": 3,
+    "cost": 32000,
+    "prerequisites": ["water_mills"],
+    "unlocks": {
+      "building_upgrades": ["grain_mill_3"],
+      "bonuses": []
+    },
+    "description": "Revolutionary steam engines power industrial-scale operations."
+  },
+  "roller_mills": {
+    "id": "roller_mills",
+    "name": "Roller Mills",
+    "branch": "grain_processing",
+    "tier": 4,
+    "cost": 65000,
+    "prerequisites": ["steam_power"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "efficiency_multiplier", "target": "grain_mill", "value": 1.4}]
+    },
+    "description": "Steel roller mills produce higher quality malt with 40% better efficiency."
+  },
+  "automated_milling": {
+    "id": "automated_milling",
+    "name": "Automated Milling",
+    "branch": "grain_processing",
+    "tier": 5,
+    "cost": 125000,
+    "prerequisites": ["roller_mills", "rail_transport"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "auto_request", "target": "grain_mill", "value": true}]
+    },
+    "description": "Fully automated mills that auto-request inputs from connected facilities."
+  },
+
+  "basic_fermentation": {
+    "id": "basic_fermentation",
+    "name": "Basic Fermentation",
+    "branch": "brewing",
+    "tier": 1,
+    "cost": 8000,
+    "prerequisites": ["millstone_grinding"],
+    "unlocks": {
+      "building_upgrades": ["brewery_2"],
+      "bonuses": []
+    },
+    "description": "Understanding fermentation science for consistent beer production."
+  },
+  "yeast_cultivation": {
+    "id": "yeast_cultivation",
+    "name": "Yeast Cultivation",
+    "branch": "brewing",
+    "tier": 2,
+    "cost": 18000,
+    "prerequisites": ["basic_fermentation"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "quality_multiplier", "target": "brewery", "value": 1.15}]
+    },
+    "description": "Cultivate and maintain pure yeast strains for 15% better ale quality."
+  },
+  "temperature_control": {
+    "id": "temperature_control",
+    "name": "Temperature Control",
+    "branch": "brewing",
+    "tier": 3,
+    "cost": 38000,
+    "prerequisites": ["yeast_cultivation", "steam_power"],
+    "unlocks": {
+      "building_upgrades": ["brewery_3"],
+      "bonuses": [],
+      "new_products": ["wheat_beer"]
+    },
+    "description": "Precise temperature control enables new beer styles like wheat beer."
+  },
+  "lager_brewing": {
+    "id": "lager_brewing",
+    "name": "Lager Brewing",
+    "branch": "brewing",
+    "tier": 4,
+    "cost": 75000,
+    "prerequisites": ["temperature_control", "climate_cellars"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [],
+      "new_products": ["lager"]
+    },
+    "description": "Cold fermentation and lagering techniques for crisp, clean lagers ($140/unit)."
+  },
+  "master_brewer": {
+    "id": "master_brewer",
+    "name": "Master Brewer",
+    "branch": "brewing",
+    "tier": 5,
+    "cost": 140000,
+    "prerequisites": ["lager_brewing", "premium_branding"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "price_multiplier", "target": "beers", "value": 1.5}],
+      "new_products": ["stout", "porter"]
+    },
+    "description": "Mastery of brewing arts unlocks premium styles and 50% higher beer prices."
+  },
+
+  "pot_stills": {
+    "id": "pot_stills",
+    "name": "Pot Stills",
+    "branch": "distillation",
+    "tier": 1,
+    "cost": 10000,
+    "prerequisites": ["basic_fermentation"],
+    "unlocks": {
+      "building_upgrades": ["distillery_2"],
+      "bonuses": []
+    },
+    "description": "Traditional copper pot stills for small-batch spirit production."
+  },
+  "copper_condensers": {
+    "id": "copper_condensers",
+    "name": "Copper Condensers",
+    "branch": "distillation",
+    "tier": 2,
+    "cost": 20000,
+    "prerequisites": ["pot_stills"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "purity_multiplier", "target": "distillery", "value": 1.2}]
+    },
+    "description": "Improved copper condensers increase spirit purity by 20%."
+  },
+  "double_distillation": {
+    "id": "double_distillation",
+    "name": "Double Distillation",
+    "branch": "distillation",
+    "tier": 3,
+    "cost": 42000,
+    "prerequisites": ["copper_condensers", "charred_barrels"],
+    "unlocks": {
+      "building_upgrades": ["distillery_3"],
+      "bonuses": [],
+      "new_products": ["whiskey"]
+    },
+    "description": "Double distillation process for smoother, premium whiskey production."
+  },
+  "column_stills": {
+    "id": "column_stills",
+    "name": "Column Stills",
+    "branch": "distillation",
+    "tier": 4,
+    "cost": 80000,
+    "prerequisites": ["double_distillation"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "speed_multiplier", "target": "distillery", "value": 1.3}],
+      "new_products": ["vodka"]
+    },
+    "description": "Continuous column stills for high-volume production and neutral spirits."
+  },
+  "continuous_distillation": {
+    "id": "continuous_distillation",
+    "name": "Continuous Distillation",
+    "branch": "distillation",
+    "tier": 5,
+    "cost": 150000,
+    "prerequisites": ["column_stills", "automated_milling"],
+    "unlocks": {
+      "building_upgrades": ["distillery_4"],
+      "bonuses": [{"type": "cycle_time_multiplier", "target": "distillery", "value": 0.4}]
+    },
+    "description": "Industrial continuous distillation with 60% faster cycle times."
+  },
+
+  "oak_barrels": {
+    "id": "oak_barrels",
+    "name": "Oak Barrels",
+    "branch": "aging",
+    "tier": 1,
+    "cost": 7000,
+    "prerequisites": [],
+    "unlocks": {
+      "building_upgrades": ["storage_warehouse_2"],
+      "bonuses": []
+    },
+    "description": "Quality oak barrels for proper spirit and wine aging."
+  },
+  "charred_barrels": {
+    "id": "charred_barrels",
+    "name": "Charred Barrels",
+    "branch": "aging",
+    "tier": 2,
+    "cost": 16000,
+    "prerequisites": ["oak_barrels"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "value_multiplier", "target": "aged_spirits", "value": 1.25}]
+    },
+    "description": "Charred barrel interiors add rich flavor and 25% more value to aged spirits."
+  },
+  "climate_cellars": {
+    "id": "climate_cellars",
+    "name": "Climate Cellars",
+    "branch": "aging",
+    "tier": 3,
+    "cost": 36000,
+    "prerequisites": ["charred_barrels"],
+    "unlocks": {
+      "building_upgrades": ["storage_warehouse_3"],
+      "bonuses": []
+    },
+    "description": "Temperature-controlled cellars for optimal aging conditions."
+  },
+  "solera_system": {
+    "id": "solera_system",
+    "name": "Solera System",
+    "branch": "aging",
+    "tier": 4,
+    "cost": 72000,
+    "prerequisites": ["climate_cellars", "quality_control"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [],
+      "new_products": ["premium_whiskey"]
+    },
+    "description": "Fractional blending system for exceptionally complex premium whiskey ($350/unit)."
+  },
+  "angels_share": {
+    "id": "angels_share",
+    "name": "Angel's Share",
+    "branch": "aging",
+    "tier": 5,
+    "cost": 135000,
+    "prerequisites": ["solera_system"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [],
+      "new_products": ["reserve_25_year"]
+    },
+    "description": "Mastery of long-term aging produces 25-Year Reserve spirits ($500/unit)."
+  },
+
+  "wooden_casks": {
+    "id": "wooden_casks",
+    "name": "Wooden Casks",
+    "branch": "packaging",
+    "tier": 1,
+    "cost": 5000,
+    "prerequisites": [],
+    "unlocks": {
+      "building_upgrades": ["packaging_plant_2"],
+      "bonuses": []
+    },
+    "description": "Proper cask construction for safe product storage and transport."
+  },
+  "glass_bottles": {
+    "id": "glass_bottles",
+    "name": "Glass Bottles",
+    "branch": "packaging",
+    "tier": 2,
+    "cost": 15000,
+    "prerequisites": ["wooden_casks"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "value_multiplier", "target": "packaged", "value": 1.2}]
+    },
+    "description": "Glass bottle packaging increases product value by 20%."
+  },
+  "quality_control": {
+    "id": "quality_control",
+    "name": "Quality Control",
+    "branch": "packaging",
+    "tier": 3,
+    "cost": 34000,
+    "prerequisites": ["glass_bottles"],
+    "unlocks": {
+      "building_upgrades": ["packaging_plant_3"],
+      "bonuses": [{"type": "reject_low_quality", "target": "packaging_plant", "value": true}]
+    },
+    "description": "Quality inspection ensures only premium products reach market."
+  },
+  "premium_branding": {
+    "id": "premium_branding",
+    "name": "Premium Branding",
+    "branch": "packaging",
+    "tier": 4,
+    "cost": 68000,
+    "prerequisites": ["quality_control", "trade_agreements"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "price_multiplier", "target": "all", "value": 1.35}]
+    },
+    "description": "Premium brand recognition increases all product prices by 35%."
+  },
+  "luxury_editions": {
+    "id": "luxury_editions",
+    "name": "Luxury Editions",
+    "branch": "packaging",
+    "tier": 5,
+    "cost": 128000,
+    "prerequisites": ["premium_branding", "solera_system"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [],
+      "new_products": ["limited_edition"]
+    },
+    "description": "Limited edition luxury packaging doubles product value."
+  },
+
+  "horse_carts": {
+    "id": "horse_carts",
+    "name": "Horse Carts",
+    "branch": "logistics",
+    "tier": 1,
+    "cost": 6000,
+    "prerequisites": [],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "speed_multiplier", "target": "vehicles", "value": 1.25}]
+    },
+    "description": "Reliable horse-drawn carts increase vehicle speed by 25%."
+  },
+  "improved_roads": {
+    "id": "improved_roads",
+    "name": "Improved Roads",
+    "branch": "logistics",
+    "tier": 2,
+    "cost": 14000,
+    "prerequisites": ["horse_carts"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [
+        {"type": "speed_multiplier", "target": "vehicles", "value": 1.25},
+        {"type": "capacity_multiplier", "target": "vehicles", "value": 1.5}
+      ]
+    },
+    "description": "Paved roads further increase speed by 25% and capacity by 50%."
+  },
+  "steam_wagons": {
+    "id": "steam_wagons",
+    "name": "Steam Wagons",
+    "branch": "logistics",
+    "tier": 3,
+    "cost": 30000,
+    "prerequisites": ["improved_roads", "steam_power"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [
+        {"type": "speed_multiplier", "target": "vehicles", "value": 1.5},
+        {"type": "capacity_multiplier", "target": "vehicles", "value": 2.0}
+      ]
+    },
+    "description": "Steam-powered wagons: 50% faster, double capacity."
+  },
+  "rail_transport": {
+    "id": "rail_transport",
+    "name": "Rail Transport",
+    "branch": "logistics",
+    "tier": 4,
+    "cost": 62000,
+    "prerequisites": ["steam_wagons"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [
+        {"type": "speed_multiplier", "target": "vehicles", "value": 2.0},
+        {"type": "capacity_multiplier", "target": "vehicles", "value": 10.0}
+      ]
+    },
+    "description": "Rail networks enable fast, high-capacity goods transport."
+  },
+  "national_distribution": {
+    "id": "national_distribution",
+    "name": "National Distribution",
+    "branch": "logistics",
+    "tier": 5,
+    "cost": 120000,
+    "prerequisites": ["rail_transport", "export_license"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "instant_delivery", "target": "vehicles", "value": true}]
+    },
+    "description": "Nationwide distribution network enables instant delivery anywhere."
+  },
+
+  "local_markets": {
+    "id": "local_markets",
+    "name": "Local Markets",
+    "branch": "commerce",
+    "tier": 1,
+    "cost": 5000,
+    "prerequisites": [],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "price_multiplier", "target": "all", "value": 1.1}]
+    },
+    "description": "Establish local market presence for 10% better sell prices."
+  },
+  "regional_trade": {
+    "id": "regional_trade",
+    "name": "Regional Trade",
+    "branch": "commerce",
+    "tier": 2,
+    "cost": 12000,
+    "prerequisites": ["local_markets"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [
+        {"type": "price_multiplier", "target": "all", "value": 1.15},
+        {"type": "market_visibility", "target": "demand", "value": true}
+      ]
+    },
+    "description": "Regional trade networks: 15% better prices and visible market demand."
+  },
+  "trade_agreements": {
+    "id": "trade_agreements",
+    "name": "Trade Agreements",
+    "branch": "commerce",
+    "tier": 3,
+    "cost": 28000,
+    "prerequisites": ["regional_trade"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "contract_bonus", "target": "contracts", "value": 1.25}]
+    },
+    "description": "Trade agreements increase contract bonuses by 25%."
+  },
+  "export_license": {
+    "id": "export_license",
+    "name": "Export License",
+    "branch": "commerce",
+    "tier": 4,
+    "cost": 58000,
+    "prerequisites": ["trade_agreements", "quality_control"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "foreign_markets", "target": "all", "value": true}],
+      "new_features": ["foreign_market_access"]
+    },
+    "description": "Export license grants access to foreign markets with 50% higher prices."
+  },
+  "global_empire": {
+    "id": "global_empire",
+    "name": "Global Empire",
+    "branch": "commerce",
+    "tier": 5,
+    "cost": 145000,
+    "prerequisites": ["export_license", "national_distribution"],
+    "unlocks": {
+      "building_upgrades": [],
+      "bonuses": [{"type": "price_multiplier", "target": "all", "value": 2.0}]
+    },
+    "description": "Global distribution empire: 100% higher prices on all products. Victory condition?"
+  }
+}

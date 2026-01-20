@@ -214,6 +214,7 @@ func _gather_save_data() -> Dictionary:
 		"economy": _gather_economy_data(),
 		"production": _gather_production_data(),
 		"market": _gather_market_data(),
+		"research": _gather_research_data(),
 	}
 
 
@@ -342,6 +343,11 @@ func _gather_market_data() -> Dictionary:
 	return MarketManager.get_save_data()
 
 
+func _gather_research_data() -> Dictionary:
+	"""Gather research data from ResearchManager"""
+	return ResearchManager.get_save_data()
+
+
 func _apply_save_data(data: Dictionary) -> bool:
 	"""Apply loaded save data to game state"""
 
@@ -377,6 +383,9 @@ func _apply_save_data(data: Dictionary) -> bool:
 	if data.has("market"):
 		_restore_market_data(data.market)
 
+	if data.has("research"):
+		_restore_research_data(data.research)
+
 	print("Save data applied successfully")
 	return true
 
@@ -406,6 +415,9 @@ func _clear_game_state() -> void:
 	# Clear market - reinitialize to base values
 	MarketManager._initialize_market()
 	MarketManager.active_contracts.clear()
+
+	# Clear research
+	ResearchManager.clear_data()
 
 
 func _restore_economy_data(data: Dictionary) -> void:
@@ -590,6 +602,12 @@ func _restore_market_data(data: Dictionary) -> void:
 	"""Restore market state"""
 	MarketManager.load_save_data(data)
 	print("Market restored: %d active contracts" % MarketManager.active_contracts.size())
+
+
+func _restore_research_data(data: Dictionary) -> void:
+	"""Restore research state"""
+	ResearchManager.load_save_data(data)
+	print("Research restored: %d technologies unlocked" % ResearchManager.get_unlocked_count())
 
 
 func _write_save_file(slot_name: String, data: Dictionary) -> bool:

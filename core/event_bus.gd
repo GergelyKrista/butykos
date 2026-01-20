@@ -108,6 +108,13 @@ signal notification_posted(message: String, type: String)
 signal help_requested(topic: String)
 
 # ========================================
+# RESEARCH SIGNALS
+# ========================================
+
+## Emitted when a technology is researched
+signal research_completed(tech_id: String)
+
+# ========================================
 # SAVE/LOAD SIGNALS
 # ========================================
 
