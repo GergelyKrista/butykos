@@ -1,0 +1,25 @@
+{
+	"dirt_road": {
+		"id": "dirt_road",
+		"name": "Dirt Road",
+		"description": "Basic road for vehicle transport. Allows goods to be moved between facilities.",
+		"cost": 25,
+		"speed_multiplier": 1.0,
+		"visual": {
+			"color": "#8B7355"
+		}
+	},
+	"cobblestone_road": {
+		"id": "cobblestone_road",
+		"name": "Cobblestone Road",
+		"description": "Improved road with faster transport speed.",
+		"cost": 75,
+		"speed_multiplier": 1.5,
+		"unlock_requirements": {
+			"research": ["improved_infrastructure"]
+		},
+		"visual": {
+			"color": "#696969"
+		}
+	}
+}

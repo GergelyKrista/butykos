@@ -1,0 +1,87 @@
+[gd_scene load_steps=2 format=3 uid="uid://b4h8f3kq2ntxs"]
+
+[ext_resource type="Script" path="res://scenes/ui/farmhouse_ui.gd" id="1"]
+
+[node name="FarmhouseUI" type="PanelContainer"]
+anchors_preset = 0
+offset_right = 300.0
+offset_bottom = 350.0
+script = ExtResource("1")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Farmhouse"
+theme_override_font_sizes/font_size = 18
+
+[node name="CloseButton" type="Button" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+text = "X"
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CropSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CropLabel" type="Label" parent="MarginContainer/VBoxContainer/CropSection"]
+layout_mode = 2
+text = "Crop Type:"
+theme_override_font_sizes/font_size = 14
+
+[node name="CropSelector" type="OptionButton" parent="MarginContainer/VBoxContainer/CropSection"]
+layout_mode = 2
+
+[node name="PlaceFieldButton" type="Button" parent="MarginContainer/VBoxContainer/CropSection"]
+layout_mode = 2
+text = "Place Field (Drag to Select)"
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatsSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="StatsLabel" type="Label" parent="MarginContainer/VBoxContainer/StatsSection"]
+layout_mode = 2
+text = "Statistics"
+theme_override_font_sizes/font_size = 14
+
+[node name="FieldCountLabel" type="Label" parent="MarginContainer/VBoxContainer/StatsSection"]
+layout_mode = 2
+text = "Fields: 0"
+theme_override_font_sizes/font_size = 12
+
+[node name="HSeparator3" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="InventorySection" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="InventoryTitle" type="Label" parent="MarginContainer/VBoxContainer/InventorySection"]
+layout_mode = 2
+text = "Inventory"
+theme_override_font_sizes/font_size = 14
+
+[node name="InventoryLabel" type="Label" parent="MarginContainer/VBoxContainer/InventorySection"]
+layout_mode = 2
+text = "(empty)"
+theme_override_font_sizes/font_size = 12

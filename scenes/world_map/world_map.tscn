@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scenes/world_map/world_map_ui.gd" id="4"]
 [ext_resource type="Script" path="res://scenes/world_map/route_renderer.gd" id="5"]
 [ext_resource type="Script" path="res://scenes/world_map/vehicle_renderer.gd" id="6"]
+[ext_resource type="Script" path="res://scenes/world_map/road_renderer.gd" id="8"]
 [ext_resource type="PackedScene" uid="uid://dpq4m7xqgape" path="res://scenes/ui/pause_menu.tscn" id="7"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_research_bg"]
@@ -16,6 +17,9 @@ script = ExtResource("1")
 
 [node name="GridRenderer" type="Node2D" parent="."]
 script = ExtResource("2")
+
+[node name="RoadRenderer" type="Node2D" parent="."]
+script = ExtResource("8")
 
 [node name="RoutesRenderer" type="Node2D" parent="."]
 script = ExtResource("5")
@@ -477,3 +481,5 @@ theme_override_constants/separation = 8
 [connection signal="build_button_pressed" from="UI" to="." method="_on_build_button_pressed"]
 [connection signal="create_route_button_pressed" from="UI" to="." method="_on_create_route_button_pressed"]
 [connection signal="demolish_button_pressed" from="UI" to="." method="_on_demolish_button_pressed"]
+[connection signal="logistics_network_button_pressed" from="UI" to="." method="_on_logistics_network_button_pressed"]
+[connection signal="road_button_pressed" from="UI" to="." method="_on_road_button_pressed"]

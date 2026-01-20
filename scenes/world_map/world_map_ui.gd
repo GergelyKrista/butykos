@@ -28,6 +28,8 @@ extends CanvasLayer
 signal build_button_pressed(facility_id: String)
 signal create_route_button_pressed()
 signal demolish_button_pressed()
+signal road_button_pressed(road_id: String)
+signal logistics_network_button_pressed()
 
 # ========================================
 # INITIALIZATION
@@ -225,6 +227,9 @@ func _show_categories() -> void:
 		if not ResearchManager.is_facility_unlocked(facility_id):
 			continue
 		var facility_def = facilities[facility_id]
+		# Skip hidden facilities in counts
+		if facility_def.get("hidden_from_build_menu", false):
+			continue
 		var category = facility_def.get("category", "other")
 		category_counts[category] = category_counts.get(category, 0) + 1
 
@@ -325,7 +330,27 @@ func _on_back_clicked() -> void:
 
 
 func _add_tool_buttons() -> void:
-	"""Add tool buttons (Create Route, Demolish)"""
+	"""Add tool buttons (Logistics Network, Create Route, Demolish, Roads)"""
+	# Logistics Network button (node-based connection UI)
+	var logistics_button = Button.new()
+	logistics_button.text = "Logistics\nNetwork"
+	logistics_button.custom_minimum_size = Vector2(100, 60)
+	logistics_button.pressed.connect(_on_logistics_network_button_clicked)
+	# Style with green color for connections
+	var logistics_style = StyleBoxFlat.new()
+	logistics_style.bg_color = Color(0.2, 0.4, 0.3)
+	logistics_style.border_width_bottom = 4
+	logistics_style.border_color = Color(0.3, 0.7, 0.4)
+	logistics_style.corner_radius_top_left = 4
+	logistics_style.corner_radius_top_right = 4
+	logistics_style.corner_radius_bottom_left = 4
+	logistics_style.corner_radius_bottom_right = 4
+	logistics_button.add_theme_stylebox_override("normal", logistics_style)
+	var logistics_hover_style = logistics_style.duplicate()
+	logistics_hover_style.bg_color = Color(0.25, 0.5, 0.35)
+	logistics_button.add_theme_stylebox_override("hover", logistics_hover_style)
+	build_menu.add_child(logistics_button)
+
 	var route_button = Button.new()
 	route_button.text = "Create\nRoute"
 	route_button.custom_minimum_size = Vector2(100, 60)
@@ -338,6 +363,24 @@ func _add_tool_buttons() -> void:
 	demolish_button.pressed.connect(_on_demolish_button_clicked)
 	build_menu.add_child(demolish_button)
 
+	# Road separator
+	var road_sep = VSeparator.new()
+	road_sep.custom_minimum_size = Vector2(2, 50)
+	build_menu.add_child(road_sep)
+
+	# Road label
+	var road_label = Label.new()
+	road_label.text = "Roads:"
+	road_label.add_theme_font_size_override("font_size", 12)
+	road_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	build_menu.add_child(road_label)
+
+	# Add road buttons
+	var roads = DataManager.get_all_roads()
+	for road_id in roads:
+		var road_def = roads[road_id]
+		_create_road_button(road_id, road_def)
+
 
 func _add_category_buildings(category: String) -> void:
 	"""Add all unlocked buildings in a category"""
@@ -346,6 +389,10 @@ func _add_category_buildings(category: String) -> void:
 	for facility_id in facilities:
 		var facility_def = facilities[facility_id]
 		if facility_def.get("category", "other") != category:
+			continue
+
+		# Skip hidden facilities (fields are placed via farmhouse UI)
+		if facility_def.get("hidden_from_build_menu", false):
 			continue
 
 		# Only show unlocked facilities
@@ -392,6 +439,61 @@ func _on_demolish_button_clicked() -> void:
 	"""Handle demolish button click"""
 	print("Demolish button clicked")
 	demolish_button_pressed.emit()
+
+
+func _on_logistics_network_button_clicked() -> void:
+	"""Handle logistics network button click"""
+	print("Logistics Network button clicked")
+	logistics_network_button_pressed.emit()
+
+
+func _create_road_button(road_id: String, road_def: Dictionary) -> void:
+	"""Create a button for a road type"""
+	var button = Button.new()
+	var road_name = road_def.get("name", road_id)
+	var cost = road_def.get("cost", 25)
+
+	button.text = "%s\n$%d" % [road_name, cost]
+	button.custom_minimum_size = Vector2(100, 60)
+	button.pressed.connect(_on_road_button_clicked.bind(road_id))
+
+	# Style with road color
+	var visual = road_def.get("visual", {})
+	var color = Color(visual.get("color", "#8B7355"))
+	var stylebox = StyleBoxFlat.new()
+	stylebox.bg_color = color.darkened(0.4)
+	stylebox.border_width_bottom = 4
+	stylebox.border_color = color
+	stylebox.corner_radius_top_left = 4
+	stylebox.corner_radius_top_right = 4
+	stylebox.corner_radius_bottom_left = 4
+	stylebox.corner_radius_bottom_right = 4
+	button.add_theme_stylebox_override("normal", stylebox)
+
+	var hover_style = stylebox.duplicate()
+	hover_style.bg_color = color.darkened(0.2)
+	button.add_theme_stylebox_override("hover", hover_style)
+
+	# Check unlock requirements (for cobblestone_road, etc.)
+	var unlock_reqs = road_def.get("unlock_requirements", {})
+	if unlock_reqs.has("research"):
+		var required_research = unlock_reqs.research
+		var is_unlocked = true
+		for tech_id in required_research:
+			if not ResearchManager.is_unlocked(tech_id):
+				is_unlocked = false
+				break
+		if not is_unlocked:
+			button.disabled = true
+			button.tooltip_text = "Requires research"
+
+	build_menu.add_child(button)
+
+
+func _on_road_button_clicked(road_id: String) -> void:
+	"""Handle road button click"""
+	print("Road button clicked: %s" % road_id)
+	road_button_pressed.emit(road_id)
 
 
 # ========================================

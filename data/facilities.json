@@ -1,13 +1,33 @@
 {
+	"farmhouse": {
+		"id": "farmhouse",
+		"name": "Farmhouse",
+		"description": "Central hub for managing crop fields. Place fields via the farmhouse UI.",
+		"category": "agriculture",
+		"size": [3, 3],
+		"cost": 1500,
+		"construction_time": 5.0,
+		"maintenance_cost": 25,
+		"unlock_requirements": {},
+		"production": {},
+		"storage_capacity": 200,
+		"has_farmhouse_ui": true,
+		"max_field_distance": 10,
+		"supported_crops": ["barley", "wheat"],
+		"visual": {
+			"color": "#8b4513",
+			"icon": ""
+		}
+	},
 	"barley_field": {
 		"id": "barley_field",
 		"name": "Barley Field",
 		"description": "Grows barley for brewing. The foundation of your alcohol empire.",
 		"category": "agriculture",
-		"size": [2, 2],
-		"cost": 500,
-		"construction_time": 3.0,
-		"maintenance_cost": 10,
+		"size": [1, 1],
+		"cost": 100,
+		"construction_time": 1.0,
+		"maintenance_cost": 5,
 		"unlock_requirements": {},
 		"production": {
 			"output": "barley",
@@ -17,7 +37,9 @@
 		"visual": {
 			"color": "#7cba3f",
 			"icon": ""
-		}
+		},
+		"hidden_from_build_menu": true,
+		"is_field": true
 	},
 	"grain_mill": {
 		"id": "grain_mill",
@@ -72,18 +94,16 @@
 		},
 		"has_interior": true
 	},
-	"wheat_farm": {
-		"id": "wheat_farm",
-		"name": "Wheat Farm",
+	"wheat_field": {
+		"id": "wheat_field",
+		"name": "Wheat Field",
 		"description": "Grows wheat for distilling. Alternative grain source for spirits.",
 		"category": "agriculture",
-		"size": [2, 2],
-		"cost": 550,
-		"construction_time": 3.0,
-		"maintenance_cost": 12,
-		"unlock_requirements": {
-			"money": 1500
-		},
+		"size": [1, 1],
+		"cost": 120,
+		"construction_time": 1.0,
+		"maintenance_cost": 6,
+		"unlock_requirements": {},
 		"production": {
 			"output": "wheat",
 			"quantity": 10,
@@ -92,7 +112,9 @@
 		"visual": {
 			"color": "#daa520",
 			"icon": ""
-		}
+		},
+		"hidden_from_build_menu": true,
+		"is_field": true
 	},
 	"distillery": {
 		"id": "distillery",

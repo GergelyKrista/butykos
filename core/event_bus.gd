@@ -37,6 +37,18 @@ signal facility_removed(facility_id: String)
 ## Emitted when a facility completes construction
 signal facility_constructed(facility_id: String)
 
+## Emitted when a field is placed for a farmhouse
+signal field_placed_for_farmhouse(field_id: String, farmhouse_id: String)
+
+## Emitted when farmhouse crop type changes
+signal farmhouse_crop_changed(farmhouse_id: String, crop_type: String)
+
+## Emitted when farmhouse UI is opened
+signal farmhouse_ui_opened(farmhouse_id: String)
+
+## Emitted when farmhouse UI is closed
+signal farmhouse_ui_closed(farmhouse_id: String)
+
 # ========================================
 # FACTORY INTERIOR SIGNALS
 # ========================================
@@ -60,19 +72,34 @@ signal production_changed(factory_id: String, is_producing: bool)
 # LOGISTICS SIGNALS
 # ========================================
 
-## Emitted when a route is created between facilities
+## Emitted when a connection is created between facilities
+signal connection_created(connection_data: Dictionary)
+
+## Emitted when a connection is removed
+signal connection_removed(connection_id: String)
+
+## Emitted when a connection is updated (paused/unpaused)
+signal connection_updated(connection_data: Dictionary)
+
+## Emitted when a route is created (alias for connection_created)
 signal route_created(route_data: Dictionary)
 
-## Emitted when a route is removed
+## Emitted when a route is removed (alias for connection_removed)
 signal route_removed(route_id: String)
 
-## Emitted when a route is updated (paused/unpaused)
+## Emitted when a route is updated (alias for connection_updated)
 signal route_updated(route_data: Dictionary)
+
+## Emitted when a road is placed
+signal road_placed(grid_pos: Vector2i, road_type: String)
+
+## Emitted when a road is removed
+signal road_removed(grid_pos: Vector2i)
 
 ## Emitted when a vehicle is created
 signal vehicle_created(vehicle_data: Dictionary)
 
-## Emitted when a vehicle spawns on a route (alias for vehicle_created)
+## Emitted when a vehicle spawns (alias for vehicle_created)
 signal vehicle_spawned(vehicle_data: Dictionary)
 
 ## Emitted when a vehicle is removed
@@ -80,6 +107,12 @@ signal vehicle_removed(vehicle_id: String)
 
 ## Emitted when cargo is delivered
 signal cargo_delivered(vehicle_id: String, cargo_data: Dictionary)
+
+## Emitted when logistics network panel is opened
+signal logistics_panel_opened()
+
+## Emitted when logistics network panel is closed
+signal logistics_panel_closed()
 
 # ========================================
 # MARKET & ECONOMY SIGNALS

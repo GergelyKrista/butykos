@@ -1,8 +1,9 @@
 extends Node2D
 
-## VehicleRenderer - Visualizes vehicles moving along routes
+## VehicleRenderer - Visualizes vehicles moving along connections
 ##
-## Creates sprite representations of vehicles and animates them along route paths
+## Creates sprite representations of vehicles and animates them along connection paths.
+## Supports multiple vehicles per connection with auto-dispatch.
 
 # Dictionary of vehicle visuals: { vehicle_id: vehicle_node }
 var vehicle_visuals: Dictionary = {}
@@ -140,30 +141,19 @@ func _position_at_facility(vehicle_node: Node2D, vehicle: Dictionary, route_id: 
 
 
 func _position_traveling(vehicle_node: Node2D, vehicle: Dictionary, route_id: String) -> void:
-	"""Position vehicle traveling along route"""
-	var route = LogisticsManager.routes.get(route_id, {})
-	if route.is_empty():
-		return
+	"""Position vehicle traveling along route (follows road path)"""
+	# Use the position calculated by LogisticsManager (which follows the road path)
+	var vehicle_pos = vehicle.get("position", Vector2.ZERO)
 
-	var source_facility = WorldManager.get_facility(route.get("source_id", ""))
-	var dest_facility = WorldManager.get_facility(route.get("destination_id", ""))
-
-	if source_facility.is_empty() or dest_facility.is_empty():
-		return
-
-	var source_pos = _get_facility_center_position(source_facility)
-	var dest_pos = _get_facility_center_position(dest_facility)
-
-	# Get travel progress (0.0 to 1.0) directly from vehicle
-	var progress = vehicle.get("travel_progress", 0.0)
-
-	# Interpolate position along route
-	vehicle_node.position = source_pos.lerp(dest_pos, progress)
+	# Store previous position for rotation calculation
+	var prev_pos = vehicle_node.position
+	vehicle_node.position = vehicle_pos
 
 	# Rotate vehicle to face direction of travel
-	var direction = (dest_pos - source_pos).normalized()
-	var angle = atan2(direction.y, direction.x)
-	vehicle_node.rotation = angle
+	if prev_pos.distance_to(vehicle_pos) > 1.0:
+		var direction = (vehicle_pos - prev_pos).normalized()
+		var angle = atan2(direction.y, direction.x)
+		vehicle_node.rotation = angle
 
 
 func _get_facility_center_position(facility: Dictionary) -> Vector2:

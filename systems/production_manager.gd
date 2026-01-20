@@ -64,6 +64,14 @@ var machine_timers: Dictionary = {}
 # Machines now have their own inventory instead of using facility inventory
 var machine_inventories: Dictionary = {}
 
+# Farmhouse crop type tracking
+# Dictionary of farmhouse crop types: { farmhouse_id: crop_type }
+var farmhouse_crop_types: Dictionary = {}
+
+# Field production targets
+# Dictionary mapping field_id to parent farmhouse_id for inventory routing
+var field_production_targets: Dictionary = {}
+
 # ========================================
 # CONFIGURATION
 # ========================================
@@ -251,8 +259,14 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 		_track_consumption(facility_id, input_product, input_quantity)
 		print("Consumed %d %s for production" % [input_quantity, input_product])
 
-	# Add output to inventory (with yield bonus)
-	_add_to_inventory(facility_id, output_product, output_quantity)
+	# Check if this field should route output to a farmhouse
+	var target_facility_id = facility_id
+	var farmhouse_id = field_production_targets.get(facility_id, "")
+	if not farmhouse_id.is_empty():
+		target_facility_id = farmhouse_id
+
+	# Add output to inventory (with yield bonus) - either field's or farmhouse's
+	_add_to_inventory(target_facility_id, output_product, output_quantity)
 	_track_production(facility_id, output_product, output_quantity)
 
 	# Reset timer (with cycle time bonus)
@@ -421,6 +435,45 @@ func add_item_to_facility(facility_id: String, product: String, quantity: int) -
 func remove_item_from_facility(facility_id: String, product: String, quantity: int) -> bool:
 	"""Remove items from facility for logistics. Returns true if successful."""
 	return _remove_from_inventory(facility_id, product, quantity)
+
+
+# ========================================
+# FARMHOUSE MANAGEMENT
+# ========================================
+
+func set_farmhouse_crop_type(farmhouse_id: String, crop_type: String) -> void:
+	"""Set the crop type for a farmhouse"""
+	farmhouse_crop_types[farmhouse_id] = crop_type
+	print("Farmhouse %s crop type set to: %s" % [farmhouse_id, crop_type])
+
+
+func get_farmhouse_crop_type(farmhouse_id: String) -> String:
+	"""Get the crop type for a farmhouse"""
+	return farmhouse_crop_types.get(farmhouse_id, "")
+
+
+func register_field_with_farmhouse(field_id: String, farmhouse_id: String) -> void:
+	"""Register a field to route production to a farmhouse"""
+	field_production_targets[field_id] = farmhouse_id
+	print("Field %s registered with farmhouse %s" % [field_id, farmhouse_id])
+
+
+func unregister_field_from_farmhouse(field_id: String) -> void:
+	"""Unregister a field from its parent farmhouse"""
+	field_production_targets.erase(field_id)
+
+
+func get_field_production_target(field_id: String) -> String:
+	"""Get the farmhouse ID that a field sends production to"""
+	return field_production_targets.get(field_id, "")
+
+
+func get_field_crop_type(field_id: String) -> String:
+	"""Get the crop type for a field based on its parent farmhouse"""
+	var farmhouse_id = field_production_targets.get(field_id, "")
+	if farmhouse_id.is_empty():
+		return ""
+	return get_farmhouse_crop_type(farmhouse_id)
 
 
 # ========================================

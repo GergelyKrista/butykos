@@ -237,9 +237,26 @@ func _gather_world_data() -> Dictionary:
 			"created_date": facility.created_date
 		}
 
+	# Save road grid in sparse format (only non-empty tiles)
+	var roads_data = {}
+	for x in range(WorldManager.GRID_SIZE.x):
+		for y in range(WorldManager.GRID_SIZE.y):
+			var road_type = WorldManager.get_road_type_at(Vector2i(x, y))
+			if not road_type.is_empty():
+				roads_data["%d,%d" % [x, y]] = road_type
+
+	# Save farmhouse relationships
+	var field_parents_data = WorldManager.field_parents.duplicate()
+	var farmhouse_children_data = {}
+	for farmhouse_id in WorldManager.farmhouse_children:
+		farmhouse_children_data[farmhouse_id] = WorldManager.farmhouse_children[farmhouse_id].duplicate()
+
 	return {
 		"next_facility_id": WorldManager._next_facility_id,
-		"facilities": facilities_data
+		"facilities": facilities_data,
+		"roads": roads_data,
+		"field_parents": field_parents_data,
+		"farmhouse_children": farmhouse_children_data
 	}
 
 
@@ -282,41 +299,62 @@ func _gather_factory_data() -> Dictionary:
 
 func _gather_logistics_data() -> Dictionary:
 	"""Gather logistics data from LogisticsManager"""
-	var routes_data = {}
+	var connections_data = {}
 	var vehicles_data = {}
+	var connection_paths_data = {}
 
-	# Save all routes
-	for route_id in LogisticsManager.routes:
-		var route = LogisticsManager.routes[route_id]
-		routes_data[route_id] = {
-			"id": route.id,
-			"source_id": route.source_id,
-			"destination_id": route.destination_id,
-			"product": route.product,
-			"active": route.active,
-			"vehicle_id": route.get("vehicle_id", ""),
-			"created_date": route.get("created_date", GameManager.current_date)
+	# Save all connections (formerly routes)
+	for connection_id in LogisticsManager.connections:
+		var connection = LogisticsManager.connections[connection_id]
+		connections_data[connection_id] = {
+			"id": connection.id,
+			"source_id": connection.source_id,
+			"destination_id": connection.destination_id,
+			"product": connection.product,
+			"active": connection.active,
+			"created_date": connection.get("created_date", GameManager.current_date),
+			"vehicle_capacity": connection.get("vehicle_capacity", LogisticsManager.vehicle_capacity),
+			"current_throughput": connection.get("current_throughput", 0)
 		}
 
-	# Save all vehicles
+	# Save connection paths (road paths for each connection)
+	for connection_id in LogisticsManager.connection_paths:
+		var path = LogisticsManager.connection_paths[connection_id]
+		var path_array = []
+		for pos in path:
+			path_array.append({"x": pos.x, "y": pos.y})
+		connection_paths_data[connection_id] = path_array
+
+	# Save all vehicles (transient - vehicles are auto-dispatched, but save current state)
 	for vehicle_id in LogisticsManager.vehicles:
 		var vehicle = LogisticsManager.vehicles[vehicle_id]
+		var vehicle_path = []
+		for pos in vehicle.get("path", []):
+			vehicle_path.append({"x": pos.x, "y": pos.y})
 		vehicles_data[vehicle_id] = {
 			"id": vehicle.id,
-			"route_id": vehicle.route_id,
+			"connection_id": vehicle.get("connection_id", vehicle.get("route_id", "")),
 			"source_id": vehicle.source_id,
 			"destination_id": vehicle.destination_id,
 			"state": vehicle.state,
 			"position": {"x": vehicle.position.x, "y": vehicle.position.y},
 			"cargo": vehicle.cargo,
-			"travel_progress": vehicle.travel_progress
+			"travel_progress": vehicle.travel_progress,
+			"path": vehicle_path,
+			"path_index": vehicle.get("path_index", 0),
+			"is_returning": vehicle.get("is_returning", false)
 		}
 
 	return {
-		"next_route_id": LogisticsManager._next_route_id,
+		"next_connection_id": LogisticsManager._next_connection_id,
 		"next_vehicle_id": LogisticsManager._next_vehicle_id,
-		"routes": routes_data,
-		"vehicles": vehicles_data
+		"connections": connections_data,
+		"vehicles": vehicles_data,
+		"connection_paths": connection_paths_data,
+		# Keep old keys for backward compatibility when loading
+		"next_route_id": LogisticsManager._next_connection_id,
+		"routes": connections_data,
+		"route_paths": connection_paths_data
 	}
 
 
@@ -339,7 +377,9 @@ func _gather_production_data() -> Dictionary:
 		"production_outputs": ProductionManager.production_outputs,
 		"machine_timers": ProductionManager.machine_timers,
 		"machine_inventories": ProductionManager.machine_inventories,
-		"facility_stats": ProductionManager.facility_stats
+		"facility_stats": ProductionManager.facility_stats,
+		"farmhouse_crop_types": ProductionManager.farmhouse_crop_types,
+		"field_production_targets": ProductionManager.field_production_targets
 	}
 
 
@@ -407,7 +447,8 @@ func _clear_game_state() -> void:
 	FactoryManager.factory_interiors.clear()
 
 	# Clear logistics
-	LogisticsManager.routes.clear()
+	LogisticsManager.connections.clear()
+	LogisticsManager.connection_paths.clear()
 	LogisticsManager.vehicles.clear()
 
 	# Clear production
@@ -482,7 +523,28 @@ func _restore_world_data(data: Dictionary) -> void:
 		# Emit signal so world map can create visuals
 		EventBus.facility_placed.emit(facility)
 
-	print("World restored: %d facilities" % facilities_data.size())
+	# Restore road grid
+	var roads_data = data.get("roads", {})
+	for pos_key in roads_data:
+		var parts = pos_key.split(",")
+		if parts.size() == 2:
+			var x = int(parts[0])
+			var y = int(parts[1])
+			var road_type = roads_data[pos_key]
+			WorldManager.road_grid[x][y] = road_type
+			EventBus.road_placed.emit(Vector2i(x, y), road_type)
+
+	# Restore farmhouse relationships
+	var field_parents_data = data.get("field_parents", {})
+	for field_id in field_parents_data:
+		WorldManager.field_parents[field_id] = field_parents_data[field_id]
+
+	var farmhouse_children_data = data.get("farmhouse_children", {})
+	for farmhouse_id in farmhouse_children_data:
+		var children = farmhouse_children_data[farmhouse_id]
+		WorldManager.farmhouse_children[farmhouse_id] = children.duplicate() if children is Array else []
+
+	print("World restored: %d facilities, %d road tiles" % [facilities_data.size(), roads_data.size()])
 
 
 func _restore_factory_data(data: Dictionary) -> void:
@@ -542,49 +604,73 @@ func _restore_factory_data(data: Dictionary) -> void:
 
 
 func _restore_logistics_data(data: Dictionary) -> void:
-	"""Restore logistics state"""
-	# Restore ID counters
-	LogisticsManager._next_route_id = data.get("next_route_id", 1)
+	"""Restore logistics state (handles both old 'routes' and new 'connections' format)"""
+	# Restore ID counters (try new name first, fall back to old)
+	LogisticsManager._next_connection_id = data.get("next_connection_id", data.get("next_route_id", 1))
 	LogisticsManager._next_vehicle_id = data.get("next_vehicle_id", 1)
 
-	# Restore routes
-	var routes_data = data.get("routes", {})
-	for route_id in routes_data:
-		var route_data = routes_data[route_id]
-		var route = {
-			"id": route_data.id,
-			"source_id": route_data.source_id,
-			"destination_id": route_data.destination_id,
-			"product": route_data.product,
-			"active": route_data.get("active", true),
-			"vehicle_id": route_data.get("vehicle_id", ""),
-			"created_date": route_data.get("created_date", GameManager.current_date)
-		}
-		LogisticsManager.routes[route_id] = route
+	# Restore connection paths first (try new name first, fall back to old)
+	var connection_paths_data = data.get("connection_paths", data.get("route_paths", {}))
+	for connection_id in connection_paths_data:
+		var path_array = connection_paths_data[connection_id]
+		var path: Array = []
+		for pos in path_array:
+			path.append(Vector2i(pos.x, pos.y))
+		LogisticsManager.connection_paths[connection_id] = path
 
-		# Emit signal so route visuals are created
-		EventBus.route_created.emit(route)
+	# Restore connections (try new name first, fall back to old)
+	var connections_data = data.get("connections", data.get("routes", {}))
+	for connection_id in connections_data:
+		var connection_data = connections_data[connection_id]
+		var connection = {
+			"id": connection_data.id,
+			"source_id": connection_data.source_id,
+			"destination_id": connection_data.destination_id,
+			"product": connection_data.product,
+			"active": connection_data.get("active", true),
+			"created_date": connection_data.get("created_date", GameManager.current_date),
+			"vehicle_capacity": connection_data.get("vehicle_capacity", connection_data.get("capacity", LogisticsManager.vehicle_capacity)),
+			"current_throughput": connection_data.get("current_throughput", 0)
+		}
+		LogisticsManager.connections[connection_id] = connection
+
+		# Emit signal so connection visuals are created
+		EventBus.connection_created.emit(connection)
+		EventBus.route_created.emit(connection)  # Backward compatibility
 
 	# Restore vehicles
 	var vehicles_data = data.get("vehicles", {})
 	for vehicle_id in vehicles_data:
 		var vehicle_data = vehicles_data[vehicle_id]
+
+		# Restore vehicle path
+		var vehicle_path: Array = []
+		for pos in vehicle_data.get("path", []):
+			vehicle_path.append(Vector2i(pos.x, pos.y))
+
+		# Get connection_id (try new name first, fall back to old)
+		var connection_id = vehicle_data.get("connection_id", vehicle_data.get("route_id", ""))
+
 		var vehicle = {
 			"id": vehicle_data.id,
-			"route_id": vehicle_data.route_id,
+			"connection_id": connection_id,
+			"route_id": connection_id,  # Backward compatibility
 			"source_id": vehicle_data.source_id,
 			"destination_id": vehicle_data.destination_id,
 			"state": vehicle_data.get("state", "at_source"),
 			"position": Vector2(vehicle_data.position.x, vehicle_data.position.y),
 			"cargo": vehicle_data.get("cargo", {}),
-			"travel_progress": vehicle_data.get("travel_progress", 0.0)
+			"travel_progress": vehicle_data.get("travel_progress", 0.0),
+			"path": vehicle_path,
+			"path_index": vehicle_data.get("path_index", 0),
+			"is_returning": vehicle_data.get("is_returning", false)
 		}
 		LogisticsManager.vehicles[vehicle_id] = vehicle
 
 		# Emit signal so vehicle visuals are created
 		EventBus.vehicle_spawned.emit(vehicle)
 
-	print("Logistics restored: %d routes, %d vehicles" % [routes_data.size(), vehicles_data.size()])
+	print("Logistics restored: %d connections, %d vehicles, %d paths" % [connections_data.size(), vehicles_data.size(), connection_paths_data.size()])
 
 
 func _restore_production_data(data: Dictionary) -> void:
@@ -614,7 +700,17 @@ func _restore_production_data(data: Dictionary) -> void:
 	for facility_id in stats:
 		ProductionManager.facility_stats[facility_id] = stats[facility_id].duplicate(true)
 
-	print("Production restored: %d facilities, %d machines" % [timers.size(), machine_timers.size()])
+	# Restore farmhouse crop types
+	var farmhouse_crop_types = data.get("farmhouse_crop_types", {})
+	for farmhouse_id in farmhouse_crop_types:
+		ProductionManager.farmhouse_crop_types[farmhouse_id] = farmhouse_crop_types[farmhouse_id]
+
+	# Restore field production targets
+	var field_production_targets = data.get("field_production_targets", {})
+	for field_id in field_production_targets:
+		ProductionManager.field_production_targets[field_id] = field_production_targets[field_id]
+
+	print("Production restored: %d facilities, %d machines, %d farmhouses" % [timers.size(), machine_timers.size(), farmhouse_crop_types.size()])
 
 
 func _restore_market_data(data: Dictionary) -> void:

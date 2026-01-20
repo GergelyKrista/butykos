@@ -13,6 +13,7 @@ var facilities: Dictionary = {}
 var products: Dictionary = {}
 var recipes: Dictionary = {}
 var machines: Dictionary = {}
+var roads: Dictionary = {}
 
 # ========================================
 # DATA PATHS
@@ -23,6 +24,7 @@ const FACILITIES_FILE = DATA_DIR + "facilities.json"
 const PRODUCTS_FILE = DATA_DIR + "products.json"
 const RECIPES_FILE = DATA_DIR + "recipes.json"
 const MACHINES_FILE = DATA_DIR + "machines.json"
+const ROADS_FILE = DATA_DIR + "roads.json"
 
 # ========================================
 # INITIALIZATION
@@ -39,12 +41,14 @@ func load_all_data() -> void:
 	products = _load_json_file(PRODUCTS_FILE)
 	recipes = _load_json_file(RECIPES_FILE)
 	machines = _load_json_file(MACHINES_FILE)
+	roads = _load_json_file(ROADS_FILE)
 
-	print("Data loaded: %d facilities, %d products, %d recipes, %d machines" % [
+	print("Data loaded: %d facilities, %d products, %d recipes, %d machines, %d roads" % [
 		facilities.size(),
 		products.size(),
 		recipes.size(),
-		machines.size()
+		machines.size(),
+		roads.size()
 	])
 
 
@@ -70,6 +74,16 @@ func get_recipe_data(recipe_id: String) -> Dictionary:
 func get_machine_data(machine_id: String) -> Dictionary:
 	"""Get machine definition by ID"""
 	return machines.get(machine_id, {})
+
+
+func get_road_data(road_id: String) -> Dictionary:
+	"""Get road definition by ID"""
+	return roads.get(road_id, {})
+
+
+func get_all_roads() -> Dictionary:
+	"""Get all road definitions"""
+	return roads.duplicate()
 
 
 func get_all_facilities() -> Dictionary:

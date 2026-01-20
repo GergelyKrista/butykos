@@ -24,6 +24,13 @@ var facilities: Dictionary = {}
 # 2D grid tracking what's at each position: grid[x][y] = facility_id or null
 var grid: Array = []
 
+# Road grid - separate layer: road_grid[x][y] = road_type_id or null
+var road_grid: Array = []
+
+# Field-to-farmhouse relationships
+var field_parents: Dictionary = {}  # field_id -> farmhouse_id
+var farmhouse_children: Dictionary = {}  # farmhouse_id -> [field_ids]
+
 # Counter for generating unique facility IDs
 var _next_facility_id: int = 1
 
@@ -34,6 +41,7 @@ var _next_facility_id: int = 1
 func _ready() -> void:
 	print("WorldManager initialized")
 	_initialize_grid()
+	_initialize_road_grid()
 
 	# Connect to save/load events
 	EventBus.before_save.connect(_on_before_save)
@@ -41,12 +49,21 @@ func _ready() -> void:
 
 
 func _initialize_grid() -> void:
-	"""Initialize empty grid"""
+	"""Initialize empty facility grid"""
 	grid.clear()
 	for x in range(GRID_SIZE.x):
 		grid.append([])
 		for y in range(GRID_SIZE.y):
 			grid[x].append(null)
+
+
+func _initialize_road_grid() -> void:
+	"""Initialize empty road grid"""
+	road_grid.clear()
+	for x in range(GRID_SIZE.x):
+		road_grid.append([])
+		for y in range(GRID_SIZE.y):
+			road_grid[x].append(null)
 
 
 # ========================================
@@ -64,10 +81,15 @@ func can_place_facility(grid_pos: Vector2i, facility_size: Vector2i = Vector2i(1
 	if grid_pos.y + facility_size.y > GRID_SIZE.y:
 		return false
 
-	# Check if all tiles are empty
+	# Check if all tiles are empty (no facilities AND no roads)
 	for x in range(facility_size.x):
 		for y in range(facility_size.y):
-			if grid[grid_pos.x + x][grid_pos.y + y] != null:
+			var check_pos = Vector2i(grid_pos.x + x, grid_pos.y + y)
+			# Check for existing facility
+			if grid[check_pos.x][check_pos.y] != null:
+				return false
+			# Check for roads - facilities cannot be placed on roads
+			if road_grid[check_pos.x][check_pos.y] != null:
 				return false
 
 	return true
@@ -118,7 +140,7 @@ func place_facility(facility_type: String, grid_pos: Vector2i, facility_data: Di
 		for y in range(size.y):
 			grid[grid_pos.x + x][grid_pos.y + y] = facility_id
 
-	print("Facility placed: %s at %s" % [facility_type, grid_pos])
+	print("Facility placed: %s at %s with size %s (grid tiles occupied: %d)" % [facility_type, grid_pos, size, size.x * size.y])
 	EventBus.facility_placed.emit(facility)
 
 	return facility_id
@@ -184,6 +206,345 @@ func get_all_facilities() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	result.assign(facilities.values())
 	return result
+
+
+# ========================================
+# ROAD MANAGEMENT
+# ========================================
+
+func can_place_road(grid_pos: Vector2i) -> bool:
+	"""Check if a road can be placed at the given position"""
+	if not is_valid_grid_position(grid_pos):
+		return false
+
+	# Already has a road
+	if road_grid[grid_pos.x][grid_pos.y] != null:
+		return false
+
+	# Check if there's a building (non-field facility)
+	var facility_id = grid[grid_pos.x][grid_pos.y]
+	if facility_id != null:
+		var facility = facilities.get(facility_id, {})
+		var facility_def = DataManager.get_facility_data(facility.get("type", ""))
+		# Allow placing road over fields only (will destroy the field with refund)
+		if not facility_def.get("is_field", false):
+			return false
+
+	return true
+
+
+func place_road(grid_pos: Vector2i, road_type: String = "dirt_road") -> bool:
+	"""Place a road tile. Returns true on success."""
+	if not can_place_road(grid_pos):
+		return false
+
+	# If there's a field here, remove it first (with partial refund)
+	var existing_facility_id = grid[grid_pos.x][grid_pos.y]
+	if existing_facility_id != null:
+		_remove_field_for_road(existing_facility_id, grid_pos)
+
+	road_grid[grid_pos.x][grid_pos.y] = road_type
+	print("Road placed: %s at %s" % [road_type, grid_pos])
+	EventBus.road_placed.emit(grid_pos, road_type)
+	return true
+
+
+func _remove_field_for_road(facility_id: String, grid_pos: Vector2i) -> void:
+	"""Remove a field that's being replaced by a road"""
+	var facility = facilities.get(facility_id, {})
+	if facility.is_empty():
+		return
+
+	# Only remove if this is the only tile of the facility at this position
+	# For multi-tile facilities, we need to check if the whole facility should be removed
+	var size = facility.get("size", Vector2i(1, 1))
+
+	# Check if this grid_pos is part of the facility
+	var is_part_of_facility = false
+	for x in range(size.x):
+		for y in range(size.y):
+			if Vector2i(facility.grid_pos.x + x, facility.grid_pos.y + y) == grid_pos:
+				is_part_of_facility = true
+				break
+
+	if is_part_of_facility:
+		# Give partial refund (50%)
+		var facility_def = DataManager.get_facility_data(facility.type)
+		EconomyManager.refund_facility(facility.type, 0.5)
+
+		# Unregister from farmhouse if applicable
+		if field_parents.has(facility_id):
+			_unregister_field_from_farmhouse(facility_id)
+
+		# Remove the entire facility
+		remove_facility(facility_id)
+		print("Field removed for road placement: %s" % facility_id)
+
+
+func remove_road(grid_pos: Vector2i) -> bool:
+	"""Remove a road tile"""
+	if not is_valid_grid_position(grid_pos):
+		return false
+	if road_grid[grid_pos.x][grid_pos.y] == null:
+		return false
+
+	var road_type = road_grid[grid_pos.x][grid_pos.y]
+	road_grid[grid_pos.x][grid_pos.y] = null
+	print("Road removed at %s" % grid_pos)
+	EventBus.road_removed.emit(grid_pos)
+	return true
+
+
+func has_road_at(grid_pos: Vector2i) -> bool:
+	"""Check if there's a road at the position"""
+	if not is_valid_grid_position(grid_pos):
+		return false
+	return road_grid[grid_pos.x][grid_pos.y] != null
+
+
+func get_road_type_at(grid_pos: Vector2i) -> String:
+	"""Get the road type at position"""
+	if not is_valid_grid_position(grid_pos):
+		return ""
+	var road_type = road_grid[grid_pos.x][grid_pos.y]
+	return road_type if road_type else ""
+
+
+func get_adjacent_positions(pos: Vector2i) -> Array[Vector2i]:
+	"""Get 4-directional adjacent positions"""
+	var result: Array[Vector2i] = []
+	var offsets = [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]
+	for offset in offsets:
+		var adj = pos + offset
+		if is_valid_grid_position(adj):
+			result.append(adj)
+	return result
+
+
+# ========================================
+# FARMHOUSE-FIELD RELATIONSHIPS
+# ========================================
+
+func register_field_with_farmhouse(field_id: String, farmhouse_id: String) -> void:
+	"""Register a field as belonging to a farmhouse"""
+	field_parents[field_id] = farmhouse_id
+
+	if not farmhouse_children.has(farmhouse_id):
+		farmhouse_children[farmhouse_id] = []
+	farmhouse_children[farmhouse_id].append(field_id)
+
+	print("Field %s registered with farmhouse %s" % [field_id, farmhouse_id])
+	EventBus.field_placed_for_farmhouse.emit(field_id, farmhouse_id)
+
+
+func _unregister_field_from_farmhouse(field_id: String) -> void:
+	"""Remove field from farmhouse registry"""
+	if field_parents.has(field_id):
+		var farmhouse_id = field_parents[field_id]
+		field_parents.erase(field_id)
+
+		if farmhouse_children.has(farmhouse_id):
+			farmhouse_children[farmhouse_id].erase(field_id)
+
+
+func get_farmhouse_for_field(field_id: String) -> String:
+	"""Get the farmhouse ID that owns a field"""
+	return field_parents.get(field_id, "")
+
+
+func get_fields_for_farmhouse(farmhouse_id: String) -> Array:
+	"""Get all field IDs belonging to a farmhouse"""
+	return farmhouse_children.get(farmhouse_id, [])
+
+
+func get_farmhouse_children(farmhouse_id: String) -> Array:
+	"""Alias for get_fields_for_farmhouse"""
+	return get_fields_for_farmhouse(farmhouse_id)
+
+
+func can_place_field_for_farmhouse(grid_pos: Vector2i, field_size: Vector2i, farmhouse_id: String) -> bool:
+	"""Check if a field can be placed adjacent to a farmhouse or its fields"""
+	var farmhouse = facilities.get(farmhouse_id, {})
+	if farmhouse.is_empty():
+		return false
+
+	# Check basic placement validity
+	if not can_place_facility(grid_pos, field_size):
+		return false
+
+	# Check no roads in the way
+	for x in range(field_size.x):
+		for y in range(field_size.y):
+			if has_road_at(Vector2i(grid_pos.x + x, grid_pos.y + y)):
+				return false
+
+	# Check within max distance from farmhouse
+	var farmhouse_pos = farmhouse.grid_pos
+	var farmhouse_def = DataManager.get_facility_data(farmhouse.type)
+	var max_distance = farmhouse_def.get("max_field_distance", 10)
+
+	var field_center = Vector2(grid_pos.x + field_size.x / 2.0, grid_pos.y + field_size.y / 2.0)
+	var farmhouse_size = farmhouse.size
+	var farmhouse_center = Vector2(
+		farmhouse_pos.x + farmhouse_size.x / 2.0,
+		farmhouse_pos.y + farmhouse_size.y / 2.0
+	)
+
+	if field_center.distance_to(farmhouse_center) > max_distance:
+		return false
+
+	# Check adjacency (must touch farmhouse or another field of this farmhouse)
+	return _is_adjacent_to_farmhouse_network(grid_pos, field_size, farmhouse_id)
+
+
+func _is_adjacent_to_farmhouse_network(grid_pos: Vector2i, field_size: Vector2i, farmhouse_id: String) -> bool:
+	"""Check if the field position is adjacent to farmhouse or its connected fields"""
+	var farmhouse = facilities.get(farmhouse_id, {})
+	if farmhouse.is_empty():
+		return false
+
+	var children = farmhouse_children.get(farmhouse_id, [])
+
+	# Collect all grid positions of farmhouse and its children
+	var network_positions: Array[Vector2i] = []
+
+	# Add farmhouse positions
+	var fh_size = farmhouse.size
+	for x in range(fh_size.x):
+		for y in range(fh_size.y):
+			network_positions.append(Vector2i(farmhouse.grid_pos.x + x, farmhouse.grid_pos.y + y))
+
+	# Add existing field positions
+	for child_id in children:
+		var child = facilities.get(child_id, {})
+		if child.is_empty():
+			continue
+		var child_size = child.size
+		for x in range(child_size.x):
+			for y in range(child_size.y):
+				network_positions.append(Vector2i(child.grid_pos.x + x, child.grid_pos.y + y))
+
+	# Check if new field position is adjacent to any network position
+	for x in range(field_size.x):
+		for y in range(field_size.y):
+			var pos = Vector2i(grid_pos.x + x, grid_pos.y + y)
+			for neighbor in get_adjacent_positions(pos):
+				if neighbor in network_positions:
+					return true
+
+	return false
+
+
+# ========================================
+# A* PATHFINDING FOR ROADS
+# ========================================
+
+func find_road_path(start_facility_id: String, end_facility_id: String) -> Array[Vector2i]:
+	"""Find path along roads between two facilities using A*"""
+	var start_facility = facilities.get(start_facility_id, {})
+	var end_facility = facilities.get(end_facility_id, {})
+
+	if start_facility.is_empty() or end_facility.is_empty():
+		return []
+
+	# Find road tiles adjacent to facilities
+	var start_roads = _get_adjacent_road_tiles(start_facility)
+	var end_roads = _get_adjacent_road_tiles(end_facility)
+
+	if start_roads.is_empty() or end_roads.is_empty():
+		return []  # No road connection possible
+
+	# Try to find path from any start road to any end road
+	var best_path: Array[Vector2i] = []
+	var best_length = INF
+
+	for start_road in start_roads:
+		for end_road in end_roads:
+			var path = _astar_pathfind(start_road, end_road)
+			if not path.is_empty() and path.size() < best_length:
+				best_path = path
+				best_length = path.size()
+
+	return best_path
+
+
+func _get_adjacent_road_tiles(facility: Dictionary) -> Array[Vector2i]:
+	"""Get road tiles adjacent to a facility (must be directly next to facility)"""
+	var result: Array[Vector2i] = []
+	var grid_pos = facility.grid_pos
+	var size = facility.size
+
+	# Check all tiles directly adjacent to facility edges
+	for x in range(-1, size.x + 1):
+		for y in range(-1, size.y + 1):
+			# Skip tiles inside the facility
+			if x >= 0 and x < size.x and y >= 0 and y < size.y:
+				continue
+
+			var check_pos = Vector2i(grid_pos.x + x, grid_pos.y + y)
+			if has_road_at(check_pos):
+				result.append(check_pos)
+
+	return result
+
+
+func _astar_pathfind(start: Vector2i, goal: Vector2i) -> Array[Vector2i]:
+	"""A* pathfinding on road grid"""
+	var open_set: Array[Vector2i] = [start]
+	var came_from: Dictionary = {}
+	var g_score: Dictionary = {start: 0}
+	var f_score: Dictionary = {start: _heuristic(start, goal)}
+
+	while not open_set.is_empty():
+		# Find node with lowest f_score
+		var current = open_set[0]
+		var lowest_f = f_score.get(current, INF)
+		for node in open_set:
+			var f = f_score.get(node, INF)
+			if f < lowest_f:
+				lowest_f = f
+				current = node
+
+		if current == goal:
+			return _reconstruct_path(came_from, current)
+
+		open_set.erase(current)
+
+		for neighbor in _get_road_neighbors(current):
+			var tentative_g = g_score.get(current, INF) + 1
+
+			if tentative_g < g_score.get(neighbor, INF):
+				came_from[neighbor] = current
+				g_score[neighbor] = tentative_g
+				f_score[neighbor] = tentative_g + _heuristic(neighbor, goal)
+
+				if neighbor not in open_set:
+					open_set.append(neighbor)
+
+	return []  # No path found
+
+
+func _get_road_neighbors(pos: Vector2i) -> Array[Vector2i]:
+	"""Get adjacent road tiles"""
+	var result: Array[Vector2i] = []
+	for neighbor in get_adjacent_positions(pos):
+		if has_road_at(neighbor):
+			result.append(neighbor)
+	return result
+
+
+func _heuristic(a: Vector2i, b: Vector2i) -> float:
+	"""Manhattan distance heuristic"""
+	return abs(a.x - b.x) + abs(a.y - b.y)
+
+
+func _reconstruct_path(came_from: Dictionary, current: Vector2i) -> Array[Vector2i]:
+	"""Reconstruct path from A* result"""
+	var path: Array[Vector2i] = [current]
+	while came_from.has(current):
+		current = came_from[current]
+		path.push_front(current)
+	return path
 
 
 # ========================================
