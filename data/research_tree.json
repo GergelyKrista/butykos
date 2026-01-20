@@ -21,7 +21,8 @@
     "prerequisites": ["crop_rotation"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "yield_multiplier", "target": "fields", "value": 1.25}]
+      "bonuses": [{"type": "yield_multiplier", "target": "fields", "value": 1.25}],
+      "new_facilities": ["water_source"]
     },
     "description": "Apply natural fertilizers to boost all crop yields by 25%."
   },
@@ -62,7 +63,7 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [],
-      "new_facilities": ["hop_farm", "vineyard"]
+      "new_facilities": ["hop_farm", "vineyard", "winery"]
     },
     "description": "Scientific farming methods unlock specialized crops for premium products."
   },
@@ -115,7 +116,8 @@
     "prerequisites": ["steam_power"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "efficiency_multiplier", "target": "grain_mill", "value": 1.4}]
+      "bonuses": [{"type": "efficiency_multiplier", "target": "grain_mill", "value": 1.4}],
+      "new_facilities": ["industrial_mill"]
     },
     "description": "Steel roller mills produce higher quality malt with 40% better efficiency."
   },
@@ -183,7 +185,8 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [],
-      "new_products": ["lager"]
+      "new_products": ["lager"],
+      "new_facilities": ["lager_brewery"]
     },
     "description": "Cold fermentation and lagering techniques for crisp, clean lagers ($140/unit)."
   },
@@ -238,7 +241,8 @@
     "unlocks": {
       "building_upgrades": ["distillery_3"],
       "bonuses": [],
-      "new_products": ["whiskey"]
+      "new_products": ["whiskey"],
+      "new_facilities": ["whiskey_distillery"]
     },
     "description": "Double distillation process for smoother, premium whiskey production."
   },
@@ -252,7 +256,8 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [{"type": "speed_multiplier", "target": "distillery", "value": 1.3}],
-      "new_products": ["vodka"]
+      "new_products": ["vodka"],
+      "new_facilities": ["vodka_distillery"]
     },
     "description": "Continuous column stills for high-volume production and neutral spirits."
   },
@@ -292,7 +297,8 @@
     "prerequisites": ["oak_barrels"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "value_multiplier", "target": "aged_spirits", "value": 1.25}]
+      "bonuses": [{"type": "value_multiplier", "target": "aged_spirits", "value": 1.25}],
+      "new_facilities": ["aging_cellar"]
     },
     "description": "Charred barrel interiors add rich flavor and 25% more value to aged spirits."
   },
@@ -319,7 +325,8 @@
     "unlocks": {
       "building_upgrades": [],
       "bonuses": [],
-      "new_products": ["premium_whiskey"]
+      "new_products": ["premium_whiskey"],
+      "new_facilities": ["barrel_house"]
     },
     "description": "Fractional blending system for exceptionally complex premium whiskey ($350/unit)."
   },
@@ -360,7 +367,8 @@
     "prerequisites": ["wooden_casks"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "value_multiplier", "target": "packaged", "value": 1.2}]
+      "bonuses": [{"type": "value_multiplier", "target": "packaged", "value": 1.2}],
+      "new_facilities": ["bottling_facility"]
     },
     "description": "Glass bottle packaging increases product value by 20%."
   },
@@ -446,7 +454,8 @@
       "bonuses": [
         {"type": "speed_multiplier", "target": "vehicles", "value": 1.5},
         {"type": "capacity_multiplier", "target": "vehicles", "value": 2.0}
-      ]
+      ],
+      "new_facilities": ["distribution_depot"]
     },
     "description": "Steam-powered wagons: 50% faster, double capacity."
   },
@@ -462,7 +471,8 @@
       "bonuses": [
         {"type": "speed_multiplier", "target": "vehicles", "value": 2.0},
         {"type": "capacity_multiplier", "target": "vehicles", "value": 10.0}
-      ]
+      ],
+      "new_facilities": ["rail_depot"]
     },
     "description": "Rail networks enable fast, high-capacity goods transport."
   },
@@ -489,7 +499,8 @@
     "prerequisites": [],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "price_multiplier", "target": "all", "value": 1.1}]
+      "bonuses": [{"type": "price_multiplier", "target": "all", "value": 1.1}],
+      "new_facilities": ["tavern"]
     },
     "description": "Establish local market presence for 10% better sell prices."
   },
@@ -518,7 +529,8 @@
     "prerequisites": ["regional_trade"],
     "unlocks": {
       "building_upgrades": [],
-      "bonuses": [{"type": "contract_bonus", "target": "contracts", "value": 1.25}]
+      "bonuses": [{"type": "contract_bonus", "target": "contracts", "value": 1.25}],
+      "new_facilities": ["trade_office"]
     },
     "description": "Trade agreements increase contract bonuses by 25%."
   },

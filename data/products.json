@@ -151,5 +151,59 @@
 		"base_price": 10,
 		"stack_size": 100,
 		"is_final_product": false
+	},
+	"water": {
+		"id": "water",
+		"name": "Water",
+		"description": "Clean water for brewing and distilling",
+		"category": "raw_material",
+		"base_price": 1,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"wine": {
+		"id": "wine",
+		"name": "Wine",
+		"description": "Fermented grape wine",
+		"category": "finished_product",
+		"base_price": 160,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"stout": {
+		"id": "stout",
+		"name": "Stout",
+		"description": "Dark, rich beer with roasted malt flavors",
+		"category": "finished_product",
+		"base_price": 130,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"porter": {
+		"id": "porter",
+		"name": "Porter",
+		"description": "Dark brown ale with chocolate and coffee notes",
+		"category": "finished_product",
+		"base_price": 125,
+		"stack_size": 50,
+		"is_final_product": true
+	},
+	"reserve_25_year": {
+		"id": "reserve_25_year",
+		"name": "25-Year Reserve",
+		"description": "Exceptionally aged spirit with unmatched complexity",
+		"category": "finished_product",
+		"base_price": 500,
+		"stack_size": 25,
+		"is_final_product": true
+	},
+	"limited_edition": {
+		"id": "limited_edition",
+		"name": "Limited Edition",
+		"description": "Luxury packaged product with collector value",
+		"category": "finished_product",
+		"base_price": 400,
+		"stack_size": 25,
+		"is_final_product": true
 	}
 }

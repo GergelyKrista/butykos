@@ -6,7 +6,7 @@ signal research_requested(tech_id: String)
 
 # Layout constants - spacious horizontal layout
 const NODE_WIDTH: float = 180.0
-const NODE_HEIGHT: float = 70.0
+const NODE_HEIGHT: float = 90.0  # Increased for unlock info
 const TIER_SPACING: float = 240.0  # Horizontal space between tiers
 const BRANCH_SPACING: float = 85.0  # Vertical space between branches
 const MARGIN_LEFT: float = 60.0
@@ -34,6 +34,10 @@ var BRANCH_ORDER: Array[String] = [
 
 # Reference to ResearchManager
 var _research_manager: Node
+
+# Dev mode toggle
+var dev_mode_enabled: bool = false
+var dev_toggle_button: CheckButton
 
 func _ready() -> void:
 	_research_manager = get_node("/root/ResearchManager")
@@ -82,6 +86,26 @@ func _setup_containers() -> void:
 
 	# Tier column headers
 	_create_tier_headers()
+
+	# Dev mode toggle button in top-right (added last to be on top)
+	var dev_container = HBoxContainer.new()
+	dev_container.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	dev_container.offset_left = -220
+	dev_container.offset_top = 5
+	dev_container.offset_right = -10
+	dev_container.offset_bottom = 35
+	add_child(dev_container)
+
+	var dev_label = Label.new()
+	dev_label.text = "Dev Mode (Free Research):"
+	dev_label.add_theme_font_size_override("font_size", 11)
+	dev_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	dev_container.add_child(dev_label)
+
+	dev_toggle_button = CheckButton.new()
+	dev_toggle_button.text = ""
+	dev_toggle_button.toggled.connect(_on_dev_mode_toggled)
+	dev_container.add_child(dev_toggle_button)
 
 
 func _create_tier_headers() -> void:
@@ -254,8 +278,22 @@ func _create_tech_node(tech: Dictionary) -> PanelContainer:
 
 	vbox.add_child(status_label)
 
-	# Make clickable if can research
-	if can_research:
+	# Unlock summary line
+	var unlock_summary = _get_unlock_summary(tech)
+	if unlock_summary != "" and (is_unlocked or can_research or prereqs_done):
+		var unlock_label = Label.new()
+		unlock_label.add_theme_font_size_override("font_size", 10)
+		unlock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		unlock_label.text = unlock_summary
+		if is_unlocked:
+			unlock_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
+		else:
+			unlock_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+		vbox.add_child(unlock_label)
+
+	# Make clickable if can research (including dev mode)
+	var can_click = can_research or (dev_mode_enabled and prereqs_done and not is_unlocked)
+	if can_click:
 		panel.gui_input.connect(_on_node_clicked.bind(tech_id))
 		panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
@@ -339,10 +377,48 @@ func _refresh_tree() -> void:
 		if child is Label and child.text.begins_with("TIER"):
 			var tier = int(child.text.replace("TIER ", ""))
 			var current_tier = _research_manager.get_current_tier()
-			if tier <= current_tier:
+			if tier <= current_tier or dev_mode_enabled:
 				child.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3))
 			else:
 				child.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
 
 	# Rebuild nodes
 	call_deferred("_build_tree")
+
+
+func _on_dev_mode_toggled(button_pressed: bool) -> void:
+	"""Toggle dev mode which bypasses tier requirements"""
+	dev_mode_enabled = button_pressed
+	_research_manager.set_dev_mode(button_pressed)
+	_refresh_tree()
+
+
+func _get_unlock_summary(tech: Dictionary) -> String:
+	"""Get a short summary of what this tech unlocks"""
+	var unlocks = tech.get("unlocks", {})
+	var parts: Array[String] = []
+
+	# New facilities
+	var facilities = unlocks.get("new_facilities", [])
+	if facilities.size() > 0:
+		parts.append("+%d Building%s" % [facilities.size(), "s" if facilities.size() > 1 else ""])
+
+	# New products
+	var products = unlocks.get("new_products", [])
+	if products.size() > 0:
+		parts.append("+%d Product%s" % [products.size(), "s" if products.size() > 1 else ""])
+
+	# Bonuses
+	var bonuses = unlocks.get("bonuses", [])
+	if bonuses.size() > 0:
+		parts.append("+%d Bonus%s" % [bonuses.size(), "es" if bonuses.size() > 1 else ""])
+
+	# Building upgrades
+	var upgrades = unlocks.get("building_upgrades", [])
+	if upgrades.size() > 0:
+		parts.append("+%d Upgrade%s" % [upgrades.size(), "s" if upgrades.size() > 1 else ""])
+
+	if parts.size() == 0:
+		return ""
+
+	return ", ".join(parts)

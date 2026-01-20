@@ -19,6 +19,9 @@ var current_tier: int = 1
 # Deliveries toward next tier unlock
 var tier_deliveries: Dictionary = {}  # product_id -> amount delivered
 
+# Dev mode - bypasses tier requirements
+var dev_mode: bool = false
+
 # Tier unlock requirements (product deliveries needed)
 const TIER_REQUIREMENTS: Dictionary = {
 	2: {"barley": 500, "wheat": 500, "malt": 100},
@@ -211,15 +214,19 @@ func can_research(tech_id: String) -> bool:
 	if not tech:
 		return false
 
-	# Check tier requirement
+	# Check tier requirement (skip in dev mode)
 	var tech_tier = tech.get("tier", 1)
-	if tech_tier > current_tier:
+	if not dev_mode and tech_tier > current_tier:
 		return false
 
 	# Check prerequisites
 	for prereq in tech.get("prerequisites", []):
 		if not is_unlocked(prereq):
 			return false
+
+	# Dev mode bypasses money requirements
+	if dev_mode:
+		return true
 
 	# Check funds
 	var cost = tech.get("cost", 0)
@@ -240,12 +247,22 @@ func get_missing_prerequisites(tech_id: String) -> Array:
 
 ## Check if tech is locked due to tier (not prerequisites)
 func is_tier_locked(tech_id: String) -> bool:
+	# Dev mode bypasses tier locks
+	if dev_mode:
+		return false
+
 	var tech = research_tree.get(tech_id)
 	if not tech:
 		return true
 
 	var tech_tier = tech.get("tier", 1)
 	return tech_tier > current_tier
+
+
+## Set dev mode (bypasses tier requirements for testing)
+func set_dev_mode(enabled: bool) -> void:
+	dev_mode = enabled
+	print("ResearchManager: Dev mode %s" % ("enabled" if enabled else "disabled"))
 
 ## Attempt to research a technology
 func research(tech_id: String) -> bool:
@@ -255,13 +272,14 @@ func research(tech_id: String) -> bool:
 	var tech = research_tree.get(tech_id)
 	var cost = tech.get("cost", 0)
 
-	# Deduct cost
-	EconomyManager.subtract_money(cost, "Research: %s" % tech.get("name", tech_id))
+	# Deduct cost (skip in dev mode)
+	if not dev_mode:
+		EconomyManager.subtract_money(cost, "Research: %s" % tech.get("name", tech_id))
 
 	# Unlock tech
 	unlocked_techs[tech_id] = true
 
-	print("ResearchManager: Unlocked %s" % tech.get("name", tech_id))
+	print("ResearchManager: Unlocked %s%s" % [tech.get("name", tech_id), " (DEV MODE)" if dev_mode else ""])
 	research_completed.emit(tech_id)
 	EventBus.research_completed.emit(tech_id)
 

@@ -12,14 +12,33 @@ extends Node
 
 # Map facility types to bonus targets
 const FACILITY_TARGET_MAP: Dictionary = {
+	# Agriculture
 	"barley_field": ["fields", "agriculture"],
 	"wheat_farm": ["fields", "agriculture"],
 	"corn_field": ["fields", "agriculture"],
+	"hop_farm": ["fields", "agriculture"],
+	"vineyard": ["fields", "agriculture"],
+	"water_source": ["fields", "agriculture"],
+	# Processing
 	"grain_mill": ["processing", "grain_mill"],
-	"brewery": ["production", "brewery", "beers"],
-	"distillery": ["production", "distillery", "spirits"],
+	"industrial_mill": ["processing", "grain_mill"],
 	"packaging_plant": ["processing", "packaging", "packaged"],
-	"storage_warehouse": ["storage"]
+	"bottling_facility": ["processing", "packaging", "packaged"],
+	# Production
+	"brewery": ["production", "brewery", "beers"],
+	"lager_brewery": ["production", "brewery", "beers"],
+	"distillery": ["production", "distillery", "spirits"],
+	"whiskey_distillery": ["production", "distillery", "spirits"],
+	"vodka_distillery": ["production", "distillery", "spirits"],
+	"winery": ["production", "winery", "wine"],
+	"tavern": ["production", "commerce"],
+	"trade_office": ["production", "commerce"],
+	# Storage
+	"storage_warehouse": ["storage"],
+	"aging_cellar": ["storage", "aging", "aged_spirits"],
+	"barrel_house": ["storage", "aging", "aged_spirits"],
+	"distribution_depot": ["storage", "logistics"],
+	"rail_depot": ["storage", "logistics"]
 }
 
 # ========================================
@@ -63,7 +82,8 @@ var _fallback_prices: Dictionary = {
 	"barley": 5, "wheat": 5, "corn": 6, "water": 1, "hops": 12, "grapes": 10,
 	"malt": 15, "mash": 20, "fermented_wash": 40, "raw_spirit": 50,
 	"ale": 100, "packaged_ale": 150, "lager": 120, "wheat_beer": 110,
-	"whiskey": 200, "vodka": 180, "premium_whiskey": 300, "aged_spirit": 250
+	"whiskey": 200, "vodka": 180, "premium_whiskey": 300, "aged_spirit": 250,
+	"wine": 160, "stout": 130, "porter": 125, "reserve_25_year": 500, "limited_edition": 400
 }
 
 

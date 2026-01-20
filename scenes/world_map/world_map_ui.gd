@@ -125,63 +125,144 @@ const CATEGORY_NAMES: Dictionary = {
 	"storage": "Storage"
 }
 
+const CATEGORY_COLORS: Dictionary = {
+	"tools": Color(0.5, 0.5, 0.6),
+	"agriculture": Color(0.3, 0.6, 0.3),
+	"processing": Color(0.6, 0.5, 0.3),
+	"production": Color(0.6, 0.4, 0.3),
+	"storage": Color(0.4, 0.4, 0.5)
+}
+
+# Current menu state
+var current_category: String = ""  # Empty = showing categories, otherwise showing buildings in category
+
+
 func _create_build_menu() -> void:
-	"""Create categorized build menu with research-based unlock filtering"""
+	"""Create build menu - shows categories at top level"""
 	if not build_menu:
 		return
 
-	# Clear existing buttons
+	_clear_build_menu()
+	current_category = ""
+	_show_categories()
+
+
+func _clear_build_menu() -> void:
+	"""Clear all children from build menu"""
 	for child in build_menu.get_children():
 		child.queue_free()
 
-	# Tools category (Create Route, Demolish)
-	_add_category_label("Tools")
-	_add_tool_buttons()
 
-	# Get all facility definitions
+func _show_categories() -> void:
+	"""Show category buttons at top level"""
+	_clear_build_menu()
+	current_category = ""
+
+	# Get facility counts per category for display
 	var facilities = DataManager.get_all_facilities()
+	var category_counts: Dictionary = {}
 
-	# Group facilities by category
-	var categorized: Dictionary = {}
 	for facility_id in facilities:
+		if not ResearchManager.is_facility_unlocked(facility_id):
+			continue
 		var facility_def = facilities[facility_id]
 		var category = facility_def.get("category", "other")
-		if not categorized.has(category):
-			categorized[category] = []
-		categorized[category].append({"id": facility_id, "def": facility_def})
+		category_counts[category] = category_counts.get(category, 0) + 1
 
-	# Add facilities by category
+	# Create category buttons
 	for category in CATEGORY_ORDER:
+		var cat_name = CATEGORY_NAMES.get(category, category.capitalize())
+		var count = category_counts.get(category, 0)
+
+		# Tools category is special - always show
 		if category == "tools":
-			continue  # Already handled
-
-		if not categorized.has(category):
-			continue
-
-		_add_category_separator()
-		_add_category_label(CATEGORY_NAMES.get(category, category.capitalize()))
-
-		for facility_data in categorized[category]:
-			_create_build_button(facility_data.id, facility_data.def)
+			_add_category_button(category, cat_name, -1)  # -1 means don't show count
+		elif count > 0:
+			_add_category_button(category, cat_name, count)
 
 
-func _add_category_label(category_name: String) -> void:
-	"""Add a category label to the build menu"""
+func _add_category_button(category: String, display_name: String, count: int) -> void:
+	"""Add a category button to the build menu"""
+	var button = Button.new()
+
+	if count >= 0:
+		button.text = "%s\n(%d)" % [display_name, count]
+	else:
+		button.text = display_name
+
+	button.custom_minimum_size = Vector2(120, 60)
+	button.pressed.connect(_on_category_clicked.bind(category))
+
+	# Style with category color
+	var color = CATEGORY_COLORS.get(category, Color(0.5, 0.5, 0.5))
+	var stylebox = StyleBoxFlat.new()
+	stylebox.bg_color = color.darkened(0.3)
+	stylebox.border_width_bottom = 4
+	stylebox.border_color = color
+	stylebox.corner_radius_top_left = 4
+	stylebox.corner_radius_top_right = 4
+	stylebox.corner_radius_bottom_left = 4
+	stylebox.corner_radius_bottom_right = 4
+	button.add_theme_stylebox_override("normal", stylebox)
+
+	var hover_style = stylebox.duplicate()
+	hover_style.bg_color = color.darkened(0.1)
+	button.add_theme_stylebox_override("hover", hover_style)
+
+	build_menu.add_child(button)
+
+
+func _on_category_clicked(category: String) -> void:
+	"""Handle category button click - show buildings in category"""
+	current_category = category
+	_show_category_contents(category)
+
+
+func _show_category_contents(category: String) -> void:
+	"""Show all buildings in a category with back button"""
+	_clear_build_menu()
+
+	# Back button
+	var back_button = Button.new()
+	back_button.text = "< Back"
+	back_button.custom_minimum_size = Vector2(80, 60)
+	back_button.pressed.connect(_on_back_clicked)
+
+	var back_style = StyleBoxFlat.new()
+	back_style.bg_color = Color(0.3, 0.3, 0.35)
+	back_style.corner_radius_top_left = 4
+	back_style.corner_radius_top_right = 4
+	back_style.corner_radius_bottom_left = 4
+	back_style.corner_radius_bottom_right = 4
+	back_button.add_theme_stylebox_override("normal", back_style)
+	build_menu.add_child(back_button)
+
+	# Category label
+	var cat_name = CATEGORY_NAMES.get(category, category.capitalize())
 	var label = Label.new()
-	label.text = category_name
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	label.text = cat_name
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", CATEGORY_COLORS.get(category, Color(0.8, 0.8, 0.8)))
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.custom_minimum_size = Vector2(80, 60)
+	label.custom_minimum_size = Vector2(100, 60)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	build_menu.add_child(label)
 
-
-func _add_category_separator() -> void:
-	"""Add a visual separator between categories"""
+	# Separator
 	var separator = VSeparator.new()
 	separator.custom_minimum_size = Vector2(2, 50)
 	build_menu.add_child(separator)
+
+	# Show content based on category
+	if category == "tools":
+		_add_tool_buttons()
+	else:
+		_add_category_buildings(category)
+
+
+func _on_back_clicked() -> void:
+	"""Return to category view"""
+	_show_categories()
 
 
 func _add_tool_buttons() -> void:
@@ -199,41 +280,41 @@ func _add_tool_buttons() -> void:
 	build_menu.add_child(demolish_button)
 
 
+func _add_category_buildings(category: String) -> void:
+	"""Add all unlocked buildings in a category"""
+	var facilities = DataManager.get_all_facilities()
+
+	for facility_id in facilities:
+		var facility_def = facilities[facility_id]
+		if facility_def.get("category", "other") != category:
+			continue
+
+		# Only show unlocked facilities
+		if not ResearchManager.is_facility_unlocked(facility_id):
+			continue
+
+		_create_build_button(facility_id, facility_def)
+
+
 func _create_build_button(facility_id: String, facility_def: Dictionary) -> void:
-	"""Create a build button for a facility (with research lock check)"""
+	"""Create a build button for a facility"""
 	var button = Button.new()
-	var name = facility_def.get("name", facility_id)
+	var fname = facility_def.get("name", facility_id)
 	var cost = facility_def.get("cost", 0)
 
-	# Check if facility is unlocked via research
-	var is_unlocked = ResearchManager.is_facility_unlocked(facility_id)
-	var missing_research = ResearchManager.get_facility_missing_research(facility_id)
-
-	if is_unlocked:
-		# Normal unlocked button
-		button.text = "%s\n$%d" % [name, cost]
-		button.custom_minimum_size = Vector2(100, 60)
-		button.pressed.connect(_on_build_button_clicked.bind(facility_id))
-	else:
-		# Locked button - show research requirement
-		var research_names: Array[String] = []
-		for tech_id in missing_research:
-			research_names.append(ResearchManager.get_tech_name(tech_id))
-
-		button.text = "%s\n[Locked]" % name
-		button.custom_minimum_size = Vector2(100, 60)
-		button.disabled = true
-		button.tooltip_text = "Requires research:\n" + "\n".join(research_names)
-
-		# Dim the locked button
-		button.modulate = Color(0.6, 0.6, 0.6)
+	button.text = "%s\n$%d" % [fname, cost]
+	button.custom_minimum_size = Vector2(100, 60)
+	button.pressed.connect(_on_build_button_clicked.bind(facility_id))
 
 	build_menu.add_child(button)
 
 
 func refresh_build_menu() -> void:
 	"""Refresh build menu (call after research completion)"""
-	_create_build_menu()
+	if current_category == "":
+		_show_categories()
+	else:
+		_show_category_contents(current_category)
 
 
 func _on_build_button_clicked(facility_id: String) -> void:

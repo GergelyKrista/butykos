@@ -53,7 +53,14 @@ var base_prices: Dictionary = {
 	"whiskey": 200,
 	"vodka": 180,
 	"premium_whiskey": 300,
-	"aged_spirit": 250
+	"aged_spirit": 250,
+
+	# Premium products (added via research)
+	"wine": 160,
+	"stout": 130,
+	"porter": 125,
+	"reserve_25_year": 500,
+	"limited_edition": 400
 }
 
 # ========================================
