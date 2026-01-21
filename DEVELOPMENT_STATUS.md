@@ -1,7 +1,7 @@
 # Development Status - Alcohol Empire Tycoon
 
-**Last Updated:** 2026-01-20
-**Current Phase:** Phase 6C Complete - Research Bonuses Applied ✅
+**Last Updated:** 2026-01-21
+**Current Phase:** Phase 4F Complete - Node-Based Logistics & Farmhouse Fields ✅
 **Target:** 15-18 months to Early Access
 
 ## 🎯 Project Vision
@@ -13,7 +13,45 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 
 ---
 
-## ✅ Completed Features (Latest Session - 2026-01-20)
+## ✅ Completed Features (Latest Session - 2026-01-21)
+
+### Phase 4F: Node-Based Logistics Network ✅ COMPLETE
+- [x] **Logistics Network Panel** - Visual node-based connection management UI
+- [x] **Drag-to-Connect** - Drag from one facility node to another to create connections
+- [x] **Network Visualization** - Facilities shown as nodes with connection lines
+- [x] **Right-click Delete** - Remove connections from the network panel
+- [x] **Renamed Routes to Connections** - Clearer terminology with backward compatibility
+- [x] **Multi-Vehicle Auto-Dispatch** - Trucks spawn automatically when source has 50+ units
+- [x] **Higher Truck Capacity** - Increased from 10 to 50 units per truck
+- [x] **Vehicle Limits** - Maximum 3 trucks per connection (prevents traffic jams)
+- [x] **No Return Trips** - Vehicles removed after delivery (continuous flow)
+- [x] **Save/Load Compatibility** - Old route saves load as new connection format
+
+### Phase 4G: Farmhouse Field System ✅ COMPLETE
+- [x] **Farmhouse UI Panel** - Dedicated panel for farmhouse management
+- [x] **Crop Field Placement** - Place barley/wheat fields around farmhouses
+- [x] **Drag-to-Place Fields** - Drag over multiple tiles to place fields in bulk
+- [x] **Field Adjacency Rules** - Fields must connect to farmhouse or other fields
+- [x] **Max Distance Limit** - Fields limited to 10 tiles from farmhouse
+- [x] **Field Preview System** - Green/red preview showing valid placement areas
+- [x] **1x1 Field Tiles** - Each field occupies single grid cell (scaled sprites)
+- [x] **Barley Field Animation** - Growth stage animation (6 stages)
+
+### Phase 4H: Road System ✅ COMPLETE
+- [x] **Road Placement** - Place roads on the world map
+- [x] **Road Renderer** - Visual rendering of road network
+- [x] **Facility-Road Validation** - Facilities cannot be placed over roads
+- [x] **roads.json Data File** - Road type definitions
+
+### Bug Fixes & Improvements
+- [x] Fixed facility placement over roads (now properly blocked)
+- [x] Fixed truck spam issue (limited to 3 per connection)
+- [x] Added debug output for field placement troubleshooting
+- [x] Improved sprite scaling for 1x1 field tiles
+
+---
+
+## ✅ Completed Features (Previous Session - 2026-01-20)
 
 ### Phase 6A: Market System ✅ COMPLETE
 - [x] Dynamic pricing with ±30% variance
@@ -115,15 +153,17 @@ OTTD-inspired business tycoon game with dual-layer gameplay:
 | System | Completion | Status |
 |--------|------------|--------|
 | Core Architecture | 100% | ✅ All managers functional |
-| World Map Layer | 100% | ✅ Sprite rendering, routes, vehicles, demolish mode, tooltips |
+| World Map Layer | 100% | ✅ Sprite rendering, roads, vehicles, demolish mode, tooltips, field placement |
 | Factory Interior | 98% | ✅ Manual connections, machine production, sprites, demolish mode |
-| Logistics | 95% | ✅ Routes, vehicles, visual feedback |
+| Logistics | 100% | ✅ Node-based network UI, multi-vehicle auto-dispatch, connection management |
 | Production | 95% | ✅ Input-based, pricing, auto-sell |
 | Economy | 95% | ✅ Money, dynamic pricing, market system |
-| UI/UX | 85% | ✅ Tooltips, stats panel, mode indicators, demolish mode, save/load UI, market panel, research panel |
+| UI/UX | 90% | ✅ Tooltips, stats panel, mode indicators, demolish mode, save/load UI, market panel, research panel, logistics panel, farmhouse UI |
 | Research | 100% | ✅ Full tech tree with 40 technologies, 8 branches |
 | Content | 45% | 🟡 Basic chains working, needs expansion |
 | Save/Load | 100% | ✅ Full save/load with multiple slots, persistence, hotkeys |
+| Farmhouse System | 100% | ✅ Field placement, drag-to-place, adjacency rules, animations |
+| Road System | 90% | ✅ Road placement, rendering, facility validation |
 
 ---
 
@@ -430,26 +470,32 @@ Storage: 500 units capacity
 - `core/save_manager.gd` - Save/load system (✅ complete)
 
 ### Managers
-- `systems/world_manager.gd` - 50×50 grid, isometric math, facility placement
+- `systems/world_manager.gd` - 50×50 grid, isometric math, facility placement, farmhouse-field relationships
 - `systems/economy_manager.gd` - Money tracking, transactions
 - `systems/production_manager.gd` - Production cycles, inventory, pricing
-- `systems/logistics_manager.gd` - Routes, vehicles, cargo transport
+- `systems/logistics_manager.gd` - Connections (formerly routes), multi-vehicle auto-dispatch, cargo transport
 - `systems/factory_manager.gd` - Factory interiors, machine placement, connections
-- `systems/market_manager.gd` - Dynamic pricing, contracts ⭐ NEW
-- `systems/research_manager.gd` - Tech tree, research unlocks ⭐ NEW
+- `systems/market_manager.gd` - Dynamic pricing, contracts
+- `systems/research_manager.gd` - Tech tree, research unlocks
 
 ### Scenes
-- `scenes/world_map/world_map.tscn/.gd` - Strategic layer (isometric)
-- `scenes/world_map/route_renderer.gd` - Route visualization
-- `scenes/world_map/vehicle_renderer.gd` - Vehicle rendering
+- `scenes/world_map/world_map.tscn/.gd` - Strategic layer (isometric), field placement mode
+- `scenes/world_map/road_renderer.gd` - Road visualization ⭐ NEW
+- `scenes/world_map/vehicle_renderer.gd` - Vehicle rendering (multi-vehicle support)
 - `scenes/factory_interior/factory_interior.tscn/.gd` - Tactical layer (orthogonal)
 
+### UI Panels
+- `scenes/ui/logistics_network_panel.gd/.tscn` - Node-based connection management ⭐ NEW
+- `scenes/ui/network_view.gd` - Custom control for network visualization ⭐ NEW
+- `scenes/ui/farmhouse_ui.gd/.tscn` - Farmhouse management and field placement ⭐ NEW
+
 ### Data Files
-- `data/facilities.json` - 7 facility definitions
+- `data/facilities.json` - 10 facility definitions (includes farmhouses and fields)
 - `data/products.json` - 14 product definitions
 - `data/machines.json` - 13 machine definitions
 - `data/recipes.json` - Empty (future expansion)
-- `data/research_tree.json` - 40 technology definitions ⭐ NEW
+- `data/research_tree.json` - 40 technology definitions
+- `data/roads.json` - Road type definitions ⭐ NEW
 
 ### Documentation
 - `TESTING.md` - Comprehensive testing guide
@@ -465,9 +511,11 @@ Storage: 500 units capacity
 
 ### Current Limitations
 - ✅ ~~No save/load functionality~~ **COMPLETE - Full save/load system working!**
+- ✅ ~~Basic logistics~~ **COMPLETE - Node-based network UI with multi-vehicle auto-dispatch!**
 - ⚠️ No multi-input recipes (can add in Phase 5C)
-- ⚠️ Static pricing (dynamic pricing in Phase 6A)
+- ⚠️ Wheat field animation not yet implemented (barley has 6-stage growth animation)
 - ⚠️ No tutorial/onboarding (Phase 7D)
+- ⚠️ Field 1x1 placement needs verification (debug output added)
 
 ### Performance Notes
 - ✅ 60 FPS with 10+ facilities and 15+ routes
@@ -530,83 +578,80 @@ Storage: 500 units capacity
 
 ---
 
-## 🎯 Session Summary (2025-10-16)
+## 🎯 Session Summary (2026-01-21)
 
 ### What We Completed Today
 
-#### Phase 7A: Save/Load System ✅
-1. ✅ **Save/Load Dialog** - Unified UI component for both save and load operations
-2. ✅ **Multiple Named Save Slots** - Custom save names with timestamps and in-game dates
-3. ✅ **Main Menu Integration** - Load Game button with save slot selection
-4. ✅ **Pause Menu Integration** - Save and Load buttons accessible during gameplay
-5. ✅ **Quick Save/Load Hotkeys** - F5 to quick save, F9 to quick load
-6. ✅ **Delete Save Functionality** - Remove unwanted save files
-7. ✅ **Game State Reset** - Clean new game initialization
-8. ✅ **Full Persistence** - All game state persists across restarts
+#### Phase 4F: Node-Based Logistics Network ✅
+1. ✅ **Logistics Network Panel** - Visual panel showing all facilities as nodes
+2. ✅ **Drag-to-Connect** - Drag from one facility to another to create connection
+3. ✅ **Network View Control** - Custom drawing control with facility nodes and connection lines
+4. ✅ **Right-click Delete** - Remove connections directly from the panel
+5. ✅ **Multi-Vehicle Auto-Dispatch** - Trucks spawn automatically when source has 50+ units
+6. ✅ **Higher Capacity** - Trucks carry 50 units (was 10)
+7. ✅ **Vehicle Limits** - Maximum 3 trucks per connection to prevent traffic jams
+8. ✅ **Routes → Connections** - Renamed with full backward compatibility
 
-#### Phase 7B: UI/UX Improvements ✅ (Previous Session)
-9. ✅ **Production Statistics Panel** - Toggleable right-side panel showing all facilities
-10. ✅ **Facility Tooltips** - Hover tooltips with production status and inventory
-11. ✅ **Demolish Mode** - Delete facilities/machines with 50% refund
-12. ✅ **Visual Mode Indicators** - Colored panels showing current mode
+#### Phase 4G: Farmhouse Field System ✅
+9. ✅ **Farmhouse UI Panel** - Dedicated panel for managing farmhouses
+10. ✅ **Crop Field Placement** - Place barley/wheat fields around farmhouses
+11. ✅ **Drag-to-Place** - Drag over area to place multiple 1x1 fields at once
+12. ✅ **Adjacency Rules** - Fields must connect to farmhouse or other fields
+13. ✅ **Distance Limits** - Fields limited to 10 tiles from parent farmhouse
+14. ✅ **Visual Preview** - Green/red preview showing valid/invalid placement
+
+#### Phase 4H: Road System ✅
+15. ✅ **Road Placement** - Roads can be placed on the world map
+16. ✅ **Road Renderer** - Visual rendering of road network
+17. ✅ **Placement Validation** - Facilities cannot be placed over roads
 
 ### Key Achievements
-- **Save/Load System Complete** - Players can now save progress and resume later
-- **Persistent Game State** - All facilities, machines, routes, money, and date saved
-- **Professional UI** - Clean save slot management with proper validation
-- **Seamless Integration** - Works from both main menu and pause menu
-- **Quick Access** - Hotkeys for rapid save/load during gameplay
+- **Professional Logistics UI** - Node-based drag-to-connect replaces click-based route creation
+- **Scalable Transport** - Multi-vehicle system with auto-dispatch handles high throughput
+- **Intuitive Farming** - Drag-to-place makes field expansion fast and easy
+- **Clean Architecture** - New UI panels follow established patterns
 
 ### Technical Improvements
-- SaveManager backend (90% pre-existing, UI layer added)
-- Save/load dialog component with mode switching
-- Game state reset system (GameManager.reset_game())
-- Economy reset system (EconomyManager.reset_economy())
-- Scene reload integration for loading saves
-- EventBus game_reset signal for coordination
-- Help panel updated with F5/F9 hotkey information
+- LogisticsNetworkPanel with custom NetworkView control
+- FarmhouseUI panel for field management
+- RoadRenderer for road visualization
+- WorldManager farmhouse-field relationship tracking
+- EventBus signals for connections (replacing routes)
+- Save/load backward compatibility for old route format
 
-### Testing Confirmed Working
+### Testing Needed
 ```
-✅ Save game with custom name from pause menu
-✅ Load game from main menu showing all saves
-✅ Load game from pause menu with scene reload
-✅ Delete save files successfully
-✅ Quick save (F5) creates/updates quicksave slot
-✅ Quick load (F9) restores game state
-✅ Close and restart - saves persist correctly
-✅ All game state restored (facilities, money, routes, machines)
-✅ Timestamps and game dates display correctly
+⬜ Verify field placement is truly 1x1 (debug output added)
+⬜ Test logistics network drag-to-connect
+⬜ Test multi-vehicle auto-dispatch with 50+ units
+⬜ Test road placement and facility blocking
+⬜ Test farmhouse field adjacency rules
 ```
 
 ---
 
 ## 🚀 Next Session Recommended Focus
 
-**Top Priority:** Apply Research Bonuses ⭐ RECOMMENDED
-- Wire up research bonuses to actual game systems
-- Production speed multipliers from techs
-- Price multipliers from commerce research
-- Vehicle speed/capacity from logistics research
-- 2-3 hours implementation
+**Top Priority:** Verify & Polish New Systems ⭐ RECOMMENDED
+- Test field 1x1 placement with debug output
+- Add wheat field growth animation (barley has it, wheat doesn't)
+- Test logistics network panel thoroughly
+- Fix any issues found during testing
 
-**Alternative:** Content Expansion (Phase 8)
-- More facility types (vineyard, hop farm, water source)
-- More machine types (conveyor belt, aging barrel)
-- More product chains (wine, premium whiskey)
-- 2-4 hours implementation
-
-**Third Option:** Building Upgrade System
-- Enable building level upgrades
-- Tie upgrades to research unlocks
-- Upgrade costs and visual indicators
-- 2-3 hours implementation
-
-**Fourth Option:** Remaining UI/UX (Phase 7C)
-- Route management UI (view, pause, delete routes)
-- Resource flow visualization (animated particles on routes)
+**Alternative 1:** Phase 7C - Remaining UI/UX
+- Resource flow visualization (animated particles on connections)
 - Mini-map for world navigation
-- 2-3 hours implementation
+- Connection stats display (throughput, vehicle count)
+
+**Alternative 2:** Phase 8 - Content Expansion
+- More facility types (water source, quality control lab)
+- More machine types (conveyor belt, aging barrel)
+- Wine production chain (grapes → juice → wine)
+
+**Alternative 3:** Phase 6C - Maintenance Costs
+- Daily/monthly facility upkeep
+- Machine wear and repair
+- Operating cost vs profit balance
 
 ---
 
@@ -620,10 +665,10 @@ Storage: 500 units capacity
 
 ---
 
-**Status:** Phase 6A & 6B Complete! Market system with dynamic pricing + Research tree with 40 technologies.
+**Status:** Phase 4F/4G/4H Complete! Node-based logistics network + Farmhouse field system + Road system.
 
-**Next Session:** Apply research bonuses to game systems OR Content Expansion (Phase 8)
+**Next Session:** Verify new systems, add wheat field animation, or continue with content expansion
 
 **GitHub Branch:** `dev`
 
-**Build:** Fully playable with save/load, market system, research tree, improved UI/UX, tested production chains
+**Build:** Fully playable with save/load, market system, research tree, node-based logistics, farmhouse fields, multi-vehicle transport
