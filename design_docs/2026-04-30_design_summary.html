@@ -318,7 +318,7 @@
       </div>
       <div class="meta-item">
         <div class="meta-label">Doc Type</div>
-        <div class="meta-value">Working brief · rev. after SP/MP discussion</div>
+        <div class="meta-value">Working brief · rev. + Anno/Sierra comparative pass</div>
       </div>
     </div>
   </header>
@@ -336,6 +336,7 @@
       <li><a href="#decisions">Decisions Needed for the Next Meeting</a></li>
       <li><a href="#roadmap">Proposed Phasing &amp; Roadmap</a></li>
       <li><a href="#art">Art Track — Parallel Workstream</a></li>
+      <li><a href="#comparative">Comparative Reference — Anno &amp; Sierra City Builders</a></li>
       <li><a href="#references">References &amp; Inspiration</a></li>
     </ol>
   </nav>
@@ -1083,8 +1084,229 @@
     </p>
   </section>
 
+  <section id="comparative">
+    <h2>11. Comparative Reference — Anno &amp; Sierra Historical City Builders</h2>
+    <p>
+      The 2026-05-01 design pass surfaced two reference families worth analyzing explicitly:
+      <strong>Anno</strong> (1404, 1800, 2070, 2205, 117) and the <strong>Sierra / Impressions historical city builders</strong>
+      (Caesar III, Pharaoh + Cleopatra, Zeus: Master of Olympus + Poseidon, Emperor: Rise of the Middle Kingdom). Both
+      franchises sit upstream of the modern production-chain tycoon genre, and several Drinkustry mechanics are inheriting
+      their conventions implicitly. Worth pulling them onto the table.
+    </p>
+
+    <h3>11.1 Shared DNA — what we are already doing that they pioneered</h3>
+    <table>
+      <thead>
+        <tr><th>Mechanic</th><th>Drinkustry plan</th><th>Anno</th><th>Sierra historical builders</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Multi-step production chains</strong></td>
+          <td>Barley → malt → beer; later cider, spirits</td>
+          <td>Defining mechanic: hops → beer; sheep → cloth → garments</td>
+          <td>Defining mechanic: reeds → papyrus; grain → mill → bakery</td>
+        </tr>
+        <tr>
+          <td><strong>Crop suitability / land fertility</strong></td>
+          <td>Tropico-style heat map; pollution shrinks suitable land over time</td>
+          <td>Per-island fertility; some islands grow grapes, others spices</td>
+          <td>Floodplains in Pharaoh; soil tiles per crop in Emperor</td>
+        </tr>
+        <tr>
+          <td><strong>Storage buffers</strong></td>
+          <td>Silos owned by agri</td>
+          <td>Warehouses with working radius</td>
+          <td>Granaries, storage yards with accept/reject configs</td>
+        </tr>
+        <tr>
+          <td><strong>External trade with NPCs</strong></td>
+          <td>Business corp's trading depots and trade routes</td>
+          <td>NPC traders (Old Nate, Anne Harlow, etc.); ship-based</td>
+          <td>Foreign trade partners; caravan + ship</td>
+        </tr>
+        <tr>
+          <td><strong>Logistics network</strong></td>
+          <td>Roads, rails, pipes, vehicles; node-graph routing</td>
+          <td>Trade routes between own islands; abstract but multi-modal</td>
+          <td>Walker AI on roads — workers carry goods on foot</td>
+        </tr>
+        <tr>
+          <td><strong>Demand sinks (cities, towns)</strong></td>
+          <td>Sales outlets at settlements; demand shifts late game</td>
+          <td>Population tiers (Farmer → Worker → Artisan → Engineer) demand specific goods</td>
+          <td>Foreign markets demand specific goods; housing tiers</td>
+        </tr>
+        <tr>
+          <td><strong>External pressure / disasters</strong></td>
+          <td>Pollution creep + narrative events + corporate espionage</td>
+          <td>Disasters, hostile AI factions, expedition mishaps</td>
+          <td>Plagues, fires, riots, invasions, drought</td>
+        </tr>
+        <tr>
+          <td><strong>Progression / tech</strong></td>
+          <td>Shared higher-level tree + per-corp internal trees</td>
+          <td>Research panels + era progression (1800: passages between worlds)</td>
+          <td>Population tiers gate building options; campaign-gated tech</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Drinkustry's <strong>chain shape</strong> is closest to Anno's. Its <strong>suitability handling</strong>
+      is closest to Pharaoh's floodplain logic. Its <strong>storage role</strong> and <strong>demand-sink shape</strong>
+      are shared across both franchises. We are not stealing — we are extending an inherited tradition into asymmetric
+      co-op territory.
+    </p>
+
+    <h3>11.2 Mechanics worth borrowing — concrete proposals</h3>
+
+    <div class="callout success">
+      <div class="callout-title">Anno settlement tiers → city demand evolution</div>
+      <p style="margin-top: 0;">
+        Anno's defining loop: a population tier demands specific goods; satisfying demand consistently lets the tier
+        evolve, which unlocks the next tier and demands more diverse goods.
+      </p>
+      <p>
+        <strong>Drinkustry analogue:</strong> cities, towns, and outposts each have a tier (e.g., Outpost → Town → City → Megacity).
+        At the lowest tier they demand only <em>lager beer</em>; consistent supply for a duration evolves them, and
+        they begin demanding <em>cider</em> alongside; further evolution adds spirits, premium products, branded variants.
+        This gives the business corp a <em>visible map of growth</em> and a structural reason for the production corps
+        to keep diversifying. Pairs cleanly with the existing pollution-shrinks-suitable-land mechanic — late game has
+        fewer fields but richer markets, forcing optimisation.
+      </p>
+      <p style="margin-bottom: 0;">
+        Architectural fit: this dovetails with the 2026-05-01 gameplay doc's "demand isn't a problem early game; market shifts later" framing.
+        Settlement tiers are the explicit mechanism behind that shift.
+      </p>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Sierra monuments → the Co-op Megaproject</div>
+      <p style="margin-top: 0;">
+        Pyramids in Pharaoh, the Parthenon in Zeus, the Great Wall in Emperor — multi-year construction projects
+        requiring sustained logistics from many industries simultaneously. They are the city's <em>shared pinnacle</em>.
+      </p>
+      <p>
+        <strong>Drinkustry analogue:</strong> a slow-build endgame megaproject the four corps pursue together. Candidate forms:
+      </p>
+      <ul>
+        <li><strong>Megaplant</strong> — one giant brewery requiring constant raw input from agri, custom machinery from industrial, dedicated trunk lines from logistics, and pre-sold contracts from business</li>
+        <li><strong>Flagship Brand</strong> — multi-stage marketing campaign that elevates the table's reputation and unlocks new market tiers</li>
+        <li><strong>District Reclamation</strong> — reverse a polluted region, requires the fertilizer-loop sustained over time, returns valuable suitable land</li>
+      </ul>
+      <p style="margin-bottom: 0;">
+        Gives campaigns and scenarios a natural climactic objective without scripted authoring. The "guys, can we do this together?"
+        question scales from per-contract to per-megaproject.
+      </p>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Anno specialists / items → corp specialists</div>
+      Anno 1800's items are equippable buffs slotted into buildings: yield boosts, throughput speedups, recipe changers.
+      <strong>Drinkustry analogue:</strong> the per-corp internal tech tree (§5, §7.4) could deliver part of its bonuses
+      through equippable specialists — <em>"Master Maltster"</em> assigned to a malthouse, <em>"Hops Whisperer"</em> assigned to
+      an agri field. Gives the corp-internal tree texture beyond pure stat tweaks, and gives players visible decisions about
+      <em>where</em> their corp's progress is being spent. Naturally absorbs corp-exclusive event rewards (§7.3) — events can hand out
+      named specialists.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Sierra festivals → city-targeted ad campaigns</div>
+      Sierra's festivals are scheduled, paid events that generate temporary city-wide bonuses (or appease angry deities).
+      <strong>Drinkustry analogue:</strong> the business corp's ad campaign mechanic (§4) sharpens into <em>festivals</em> —
+      scheduled, paid, city-targeted events that spike demand or accelerate tier evolution at a chosen settlement. Reads more
+      grounded than a generic "ad campaign" and creates a natural "pick the city we'll push this run" moment. Pairs with the
+      settlement-tier system above.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Anno influence → reputation as a meta-currency</div>
+      Anno 1800's <em>influence</em> is a meta-resource that gates diplomacy, propaganda, and expedition power — parallel to credits.
+      <strong>Drinkustry analogue:</strong> a <em>reputation</em> meta-currency tracked per corp <em>and</em> per table.
+      Spent on accepting better contracts, running festivals, navigating regulatory pressure (D-11). Lost on accepting black-market
+      deals or letting pollution run wild. Earned through finished contracts, festival success, environmental remediation. Adds a
+      third resource axis (alongside materials and credits) that the four corps must coordinate on, and gives the business corp
+      a non-monetary lever to manage.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Pharaoh's seasonal cycles → harvest seasons</div>
+      Pharaoh's calendar centers on the annual Nile flood: a forced rhythm that shapes every farming decision.
+      <strong>Drinkustry analogue:</strong> certain crops carry seasonal cycles — apples have a harvest window, hops have a
+      flowering month, future grapes have a vintage year. Adds a temporal beat to agri's verb set and gives long-aging spirits
+      (whisky, calvados) a natural mechanical home. Optional in slice 1; appears alongside orchards as a slice-2+ feature.
+    </div>
+
+    <h3>11.3 Mechanics deliberately not carried over</h3>
+
+    <div class="callout warn">
+      <div class="callout-title">Sierra walker AI — too granular for our logistics scope</div>
+      Walker-based logistics (each worker walks the road carrying one good) is iconic but it would micro-shred Drinkustry's
+      logistics corp into per-tile pathfinding management, against an abstracted vehicle-route model that's already working
+      at Phase 7B. Worth admiring as an inspiration, not as an implementation.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Sierra housing evolution — we don't simulate citizens</div>
+      In Sierra builders, every house is a unit that evolves through housing tiers as services arrive. Drinkustry's
+      "settlements as demand sinks" approach is much lighter — cities are entities with tiers, not collections of simulated
+      households. The Anno settlement-tier mechanic above (§11.2) gives us the same gameplay shape without the simulation cost.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Anno expeditions — out of scope for v1</div>
+      Anno 1800's expedition system (send a ship with crew/supplies/skills to resolve away missions) is great but cuts
+      against the four-corp negotiation focus. Saved as a v2+ idea if a "trade expedition" fits into the business corp's late game.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Sierra mythology / gods → reskinned as cyberpunk regulatory bodies</div>
+      Zeus's gods, Pharaoh's pantheon — divine actors who reward festivals and punish neglect. Doesn't fit a cyberpunk megacorp
+      setting literally, but the <em>shape</em> reskins cleanly: government regulators, media bodies, AI overlords as the
+      "deities" we appease through compliance, ad spend, and donations. This bends back into the narrative event system (§7.3)
+      rather than becoming its own subsystem.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Anno combat / Sierra military — already declined (D-11)</div>
+      Anno is combat-optional; Sierra has tower-defense-style invasions in some campaigns. Drinkustry explicitly opted out
+      of literal combat in §7.2 / D-11. The soft alternatives (espionage, regulatory pressure, market warfare) cover the same
+      "external threat" beat without changing the genre.
+    </div>
+
+    <h3>11.4 Where Drinkustry diverges</h3>
+    <p>Three commitments that Anno and Sierra do not share, and that genuinely change the design problem:</p>
+    <ul>
+      <li><strong>Asymmetric four-player co-op.</strong> Anno and Sierra are SP. Drinkustry's whole spine — shared tech tree,
+        cross-corp negotiation, contract acceptance as a table decision — only exists because of co-op. The "alpha player"
+        failure mode (§6) is a problem those games never had to solve.</li>
+      <li><strong>Inside-the-building factory layout.</strong> Anno's production buildings are black boxes; Sierra's are too.
+        Drinkustry's industrial corp <em>steps inside</em> to design machine layouts Mindustry / Modulus-style. This is the
+        depth axis those references don't have.</li>
+      <li><strong>Cyberpunk megacorp framing.</strong> Anno reskins across eras; Sierra reskins across civilizations.
+        Drinkustry's cyberpunk reskin is closer to Anno 2070 than to anything Sierra shipped — but the <em>narrative pillar</em>
+        (events as corporate scandals, regulator inspections, black-market deals) leans heavier than Anno did.</li>
+    </ul>
+
+    <div class="callout success">
+      <div class="callout-title">One-line positioning</div>
+      Drinkustry = <em>Anno's production chains and tier demand</em> + <em>Sierra's industry-specific suitability and
+      shared-monument feel</em> + <em>Mindustry's inside-the-building factory</em> + <em>cyberpunk megacorp reskin</em>
+      + <em>asymmetric four-player co-op</em>. The first two ingredients are decades-tested; the last three are where
+      the design's originality lives.
+    </div>
+
+    <h3>11.5 What this analysis implies for the open decisions</h3>
+    <ul>
+      <li><strong>D-11 (external pressure)</strong> — Sierra-style "deity" appeasement reframed as regulatory bodies fits the cyberpunk theme cleanly. Picks up festivals as a natural sub-mechanic.</li>
+      <li><strong>D-12 (narrative events)</strong> — settlement-tier evolution and reputation meta-currency are <em>structural pillars</em> the event library can hook into; events become more meaningful when they shift tier or reputation.</li>
+      <li><strong>D-13/D-14 (game modes)</strong> — the Co-op Megaproject is a natural <em>scenario objective</em> and a natural <em>campaign climax</em>. Strengthens the case for scenarios as a content surface.</li>
+      <li><strong>D-15 (persistent unlocks)</strong> — Anno's specialists/items map onto per-corp persistent unlocks cleanly: the campaign hands out named specialists across scenarios.</li>
+      <li><strong>2026-05-01 gameplay doc Q3</strong> — settlement tiers give business a clear spatial purpose: place outlets, evolve cities, choose which markets to push. Resolves "is business just a UI layer?" in favour of strong spatial presence.</li>
+    </ul>
+  </section>
+
   <section id="references">
-    <h2>11. References &amp; Inspiration</h2>
+    <h2>12. References &amp; Inspiration</h2>
     <ul>
       <li><strong>Mindustry</strong> — closest tonal match for cyberpunk-industrial tycoon</li>
       <li><strong>Modulus / Factorio</strong> — interior factory chain design (industrial corp's inside-the-building gameplay)</li>
@@ -1098,6 +1320,8 @@
       <li><strong>Anno / Captain of Industry</strong> — factory-tycoon designs that handle combat as optional or absent</li>
       <li><strong>Frostpunk / Captain of Industry / Anno 1800 / AoE2 / Northgard</strong> — sandbox + scenarios + campaign as a shipping pattern (D-13/D-14)</li>
       <li><strong>Pixel-art tycoon inspo folder</strong> — Banished, Mini Settlers, Sim Farm, Stardew, Dwarf Fortress, Zeus Master of Olympus</li>
+      <li><strong>Anno series</strong> (1404, 1800, 2070, 2205, 117) — multi-step production chains, settlement tier demand, island fertility, NPC trade routes, equippable specialists, influence as meta-currency (full comparison in §11)</li>
+      <li><strong>Sierra / Impressions historical city builders</strong> — Caesar III, Pharaoh / Cleopatra, Zeus: Master of Olympus / Poseidon, Emperor: Rise of the Middle Kingdom — production chains, crop suitability, granaries, monuments as sustained shared projects, festivals, walker-based logistics (full comparison in §11)</li>
     </ul>
     <h4>Internal references</h4>
     <ul>
