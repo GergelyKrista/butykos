@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Gameplay Brainstorm: Corps, Production Lines &amp; Starting Buildings (2026-05-01)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --agri: #7ee787;
+    --industrial: #f0883e;
+    --logistics: #4cc2ff;
+    --business: #ff6ec7;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 40px; }
+  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  h3 { font-size: 18px; margin: 32px 0 12px; font-weight: 600; }
+  h4 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 40px; }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout.scratch { border-left-color: var(--accent-2); }
+  .callout-title { font-weight: 600; margin-bottom: 6px; color: #fff; }
+
+  .corp-grid { display: grid; gap: 20px; margin: 24px 0 8px; }
+  .corp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; border-top: 3px solid var(--accent); }
+  .corp-card.agri { border-top-color: var(--agri); }
+  .corp-card.industrial { border-top-color: var(--industrial); }
+  .corp-card.logistics { border-top-color: var(--logistics); }
+  .corp-card.business { border-top-color: var(--business); }
+  .corp-card h3 { margin-top: 0; }
+  .corp-tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: var(--surface-2); color: var(--text-dim); margin-bottom: 8px; }
+  .corp-card.agri .corp-tag { color: var(--agri); }
+  .corp-card.industrial .corp-tag { color: var(--industrial); }
+  .corp-card.logistics .corp-tag { color: var(--logistics); }
+  .corp-card.business .corp-tag { color: var(--business); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+  th { background: var(--surface-2); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .pill { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  .pill.tbd { color: var(--warn); border-color: rgba(240,180,41,0.3); }
+  .pill.seed { color: var(--accent-3); border-color: rgba(126,231,135,0.3); }
+  .pill.q { color: var(--accent-2); border-color: rgba(255,110,199,0.3); }
+  .pill.set { color: var(--accent); border-color: rgba(76,194,255,0.3); }
+
+  .chain { display: grid; gap: 8px; margin: 16px 0; }
+  .chain-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
+  .chain-stage { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .chain-body { font-size: 14px; }
+  .arrow { color: var(--text-dim); font-family: var(--mono); }
+
+  .recipe { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin: 16px 0; font-family: var(--mono); font-size: 14px; }
+  .recipe .out { color: var(--accent-3); font-weight: 700; }
+  .recipe .ing { color: var(--accent); }
+  .recipe .src { color: var(--text-dim); }
+  .recipe .indent { padding-left: 20px; }
+
+  .qbox { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
+  .qbox-q { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .qbox-note { font-size: 13px; color: var(--text-dim); }
+
+  .principle { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin: 10px 0; }
+  .principle-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+    .chain-row { grid-template-columns: 1fr; }
+  }
+
+  footer.doc-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Gameplay Brainstorm</div>
+    <h1>Corps, Production Lines &amp; Starting Buildings</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      A working scratchpad for the next layer down from the 2026-04-30 strategic doc — moving from "what kind of game is this" to "what does a player actually do in the first 10 minutes." Updated 2026-05-01 with concrete per-corp design from Ambrus.
+    </p>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">2026-05-01</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">Drinkustry / butykos</div></div>
+      <div class="meta-item"><div class="meta-label">Doc Type</div><div class="meta-value">Gameplay scratchpad · rev. 2</div></div>
+      <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">First concrete pass — ready for Gergely review</div></div>
+      <div class="meta-item"><div class="meta-label">Authors</div><div class="meta-value">Ambrus &amp; Gergely</div></div>
+      <div class="meta-item"><div class="meta-label">Predecessor</div><div class="meta-value">2026-04-30 design summary</div></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#purpose">Purpose &amp; Method</a></li>
+      <li><a href="#principles">General Principles</a></li>
+      <li><a href="#corps">What Each Corp Can Do</a></li>
+      <li><a href="#firstline">First Production Chain — Lager Beer</a></li>
+      <li><a href="#starting">Starting Buildings Available to Players</a></li>
+      <li><a href="#tech">Tech Tree Structure</a></li>
+      <li><a href="#firsttenmin">The First 10 Minutes of a Session</a></li>
+      <li><a href="#open">Open Questions</a></li>
+      <li><a href="#scratch">Scratch / Parking Lot</a></li>
+      <li><a href="#references">References</a></li>
+    </ol>
+  </nav>
+
+  <section id="purpose">
+    <h2>1. Purpose &amp; Method</h2>
+    <p>
+      The 2026-04-30 doc settled the <em>direction</em>: cyberpunk reskin, four-corp asymmetric co-op, shared tech tree, interference mechanics. This doc is the next layer down — concrete answers to "what does each corp build, what does each corp do moment-to-moment, and what's the first end-to-end chain we want to prove."
+    </p>
+    <div class="callout">
+      <div class="callout-title">The driving question</div>
+      <em>If we sat four players down today, what is the smallest playable slice that lets each of them do their corp's job, depend on the others, and produce <strong>one</strong> finished drink end-to-end?</em>
+    </div>
+    <h3>How to read the tags</h3>
+    <ul>
+      <li><span class="pill set">SET</span> — design call made; folded into the slice unless re-opened.</li>
+      <li><span class="pill seed">SEED</span> — starting idea worth challenging.</li>
+      <li><span class="pill tbd">TBD</span> — explicitly empty; needs a call.</li>
+      <li><span class="pill q">Q</span> — open question for the next session.</li>
+    </ul>
+  </section>
+
+  <section id="principles">
+    <h2>2. General Principles</h2>
+    <p>Cross-cutting rules that apply to every corp and every production chain. These are the connective tissue that makes the four-corp loop a system rather than four parallel games.</p>
+
+    <div class="principle">
+      <div class="principle-title">Most buildings need water and electricity</div>
+      Especially industrial. A building without its utilities connected is placed but inert. Logistics is the gatekeeper of "can this thing actually run."
+    </div>
+    <div class="principle">
+      <div class="principle-title">Every industrial recipe consumes an agri input</div>
+      No industrial activity exists in a vacuum. Even the simplest recipe pulls a raw resource from a field. This is the structural reason agri can never be skipped.
+    </div>
+    <div class="principle">
+      <div class="principle-title">Every industrial building produces waste</div>
+      Two waste types: <strong>biological waste</strong> (returnable to agri as fertilizer — closing a loop) and <strong>sewage / chemical waste</strong> (must be piped away by logistics). Pollution is the long-term consequence of poor handling and slowly shrinks agri-suitable land.
+    </div>
+    <div class="principle">
+      <div class="principle-title">Pollution reshapes the map over time</div>
+      At session start, most of the map is agri-suitable. As industry produces, a creeping unsuitability spreads. This converts the early-game "where do I plant?" into a late-game "is there anywhere left to plant?" — a natural escalation curve without scripted events.
+    </div>
+    <div class="principle">
+      <div class="principle-title">Suitability is visualized as a heat map</div>
+      Tropico-style. Agri toggles a heat-map overlay per crop type; tiles tint by suitability. The same overlay system can later show pollution, water access, or power coverage for the other corps.
+    </div>
+    <div class="principle">
+      <div class="principle-title">Two-layer tech: per-corp internal + shared higher-level</div>
+      Each corp has its own internal tech tree of <em>boosts and modifiers</em> to what it already owns (yield, efficiency, building upgrades). The shared higher-level tree unlocks <em>new stages</em> that affect everyone (new production chains, new building types, new vehicle tiers). See <a href="#tech">Section 6</a>.
+    </div>
+    <div class="principle">
+      <div class="principle-title">Machines are reused across drink types where logical</div>
+      A fermenter is a fermenter. Where the real-world process overlaps, the machine asset and recipe slot overlap too. This keeps the machine roster manageable and rewards players for reading the recipe family tree. <em>Needs research pass: which machines are actually shared between beer / cider / spirits / wine.</em>
+    </div>
+  </section>
+
+  <section id="corps">
+    <h2>3. What Each Corp Can Do</h2>
+    <p>
+      For each corp: the verbs the player executes, the buildings they place, what they manage, and their <strong>MVP action</strong> for the first slice.
+    </p>
+
+    <div class="corp-grid">
+
+      <!-- ============ AGRI ============ -->
+      <div class="corp-card agri">
+        <div class="corp-tag">Corp 01 · Agricultural</div>
+        <h3>Grows the inputs. Tends the land.</h3>
+        <p>The soil-and-suitability puzzle. The corp closest to the land and the first to feel the cost of pollution from elsewhere.</p>
+
+        <h4>Core verbs <span class="pill set">SET</span></h4>
+        <ul>
+          <li>Place the <strong>main farm building</strong> (water connection point — logistics hooks pipes here)</li>
+          <li>Place <strong>fields</strong> (generic farmland tiles; player chooses crop)</li>
+          <li>Place <strong>orchards</strong> (after first agri unlock)</li>
+          <li>Toggle the <strong>suitability heat map</strong> per crop type</li>
+          <li>Tend fields by hand: provide water, nutrients, monitor soil pH (manual at first, automatable later)</li>
+          <li>Place <strong>silos</strong> for grain/fruit temporary storage</li>
+        </ul>
+
+        <h4>Buildings on day one <span class="pill set">SET</span></h4>
+        <ul>
+          <li><strong>Main farm building</strong> — required, water terminus</li>
+          <li><strong>Field tile</strong> — generic; crop chosen per-field at placement (barley or hops at start)</li>
+          <li><strong>Silo</strong> — grain/fruit buffer storage; logistics pickup point</li>
+        </ul>
+
+        <h4>Crops &amp; orchards <span class="pill set">SET</span></h4>
+        <ul>
+          <li><strong>Start of game:</strong> barley, hops</li>
+          <li><strong>First agri unlock:</strong> orchards · apples (feeds early-game cider, later calvados and other apple spirits)</li>
+          <li><em>Each crop demands a different soil type — heat map exposes the choice</em></li>
+        </ul>
+
+        <h4>What the player manages</h4>
+        <ul>
+          <li><strong>Soil suitability:</strong> per-tile, per-crop. Tropico-style overlay.</li>
+          <li><strong>Water:</strong> incoming from logistics water mains via main farm building</li>
+          <li><strong>Nutrients &amp; pH:</strong> hand-tended at first; could be a <em>field-tending minigame</em> that gives the player something to do between expansions <span class="pill seed">SEED</span></li>
+          <li><strong>Pollution encroachment:</strong> watch the suitability map shrink as industry grows</li>
+        </ul>
+
+        <h4>Internal tech (later)</h4>
+        <ul>
+          <li>Yield boosts, faster growth, better water efficiency</li>
+          <li><strong>Drones &amp; robotics</strong> — automate the manual field-tending</li>
+          <li>Pollution-resistant crop variants</li>
+        </ul>
+
+        <h4>Open question for agri</h4>
+        <p><span class="pill q">Q</span> Should agri be allowed to build the <strong>simplest dirt roads</strong> for its own internal logistics (silo→farm→field), leaving logistics corp to handle everything inter-industry? Leaning yes — gives agri a self-contained loop without making logistics babysit every silo.</p>
+
+        <h4>MVP action for the first slice</h4>
+        <p><strong>Place main farm building, two fields (barley + hops), watch the heat map, harvest into silos, hand off to logistics.</strong></p>
+      </div>
+
+      <!-- ============ INDUSTRIAL ============ -->
+      <div class="corp-card industrial">
+        <div class="corp-tag">Corp 02 · Industrial</div>
+        <h3>Turns inputs into product. Owns recipes.</h3>
+        <p>Places production buildings on the strategic map and steps inside them to design machine layouts. Each building is a recipe family; each machine slot is a step in that recipe.</p>
+
+        <h4>Core verbs <span class="pill set">SET</span></h4>
+        <ul>
+          <li>Place a <strong>production building</strong> on the strategic map</li>
+          <li>Step inside its interior (top-down 20×20)</li>
+          <li>Lay down machines + connections to define the active recipe</li>
+          <li>Connect input ports (logistics delivers raw materials here)</li>
+          <li>Connect waste output: biological waste → fertilizer pickup; sewage → logistics pipe</li>
+        </ul>
+
+        <h4>Buildings on day one <span class="pill set">SET</span></h4>
+        <ul>
+          <li><strong>Malthouse</strong> — water-pipe required; runs the barley-malt recipe; upgradeable to handle multiple recipes simultaneously</li>
+          <li><strong>Generic brewery</strong> — water-pipe required; first chain is lager beer (see <a href="#firstline">Section 4</a>)</li>
+        </ul>
+
+        <h4>Recipes <span class="pill set">SET</span></h4>
+        <ul>
+          <li><strong>Start:</strong> barley malt (in malthouse) · lager beer (in brewery)</li>
+          <li><strong>Malthouse upgrades</strong> unlock more malt recipes and let one malthouse run multiple in parallel</li>
+          <li><strong>First industrial unlock:</strong> cider chain (apples → cider, in a brewery building)</li>
+          <li><em>Probably needs a <strong>new brewery building per chain</strong> rather than one brewery hot-swapping recipes</em> <span class="pill seed">SEED</span> — keeps interior layouts stable and visually legible</li>
+        </ul>
+
+        <h4>Machines</h4>
+        <ul>
+          <li><strong>Basic machinery available at start;</strong> advanced machinery later via tech</li>
+          <li>Machines are reused across drink types where the real process actually overlaps (fermenters, milling, filtration). <em>Needs a research pass to map the actual overlap.</em></li>
+        </ul>
+
+        <h4>What the player manages</h4>
+        <ul>
+          <li>Recipe selection &amp; machine layout inside each building</li>
+          <li>Input pacing matched to logistics delivery cadence</li>
+          <li><strong>Waste streams:</strong> biological → fertilizer (closes loop with agri); chemical/sewage → logistics piping</li>
+          <li>Building utilities: water + power on, or building is inert</li>
+        </ul>
+
+        <h4>Internal tech (later)</h4>
+        <ul>
+          <li>Throughput boosts, recipe efficiency, lower waste output</li>
+          <li>Machine upgrades (faster, cleaner, multi-recipe)</li>
+          <li>Building expansions (bigger interior footprint)</li>
+        </ul>
+
+        <h4>MVP action for the first slice</h4>
+        <p><strong>Receive barley → malthouse produces malt → brewery combines malt + hops + water → outputs lager beer at loading bay.</strong> Waste handling can start minimal in slice 1.</p>
+      </div>
+
+      <!-- ============ LOGISTICS ============ -->
+      <div class="corp-card logistics">
+        <div class="corp-tag">Corp 03 · Logistics</div>
+        <h3>Connects everything. Owns infrastructure.</h3>
+        <p>Without logistics, no other corp can interact. Owns water, sewage, power, roads, and vehicle routing — utilities and transport rolled together (<a href="#open">see Q1, now resolved</a>).</p>
+
+        <h4>Core verbs <span class="pill set">SET</span></h4>
+        <ul>
+          <li>Lay <strong>water mains</strong> to buildings that need them (agri farms, industrial buildings)</li>
+          <li>Lay <strong>sewage pipes</strong> from industrial waste outputs</li>
+          <li>Lay <strong>power lines</strong> (or skip if roads carry power — see below)</li>
+          <li>Build <strong>roads</strong>; <em>roads can carry power, Cities Skylines 2 style</em> <span class="pill seed">SEED</span></li>
+          <li>Place vehicles and <strong>configure routes in a node-based view</strong> (OpenTTD's logic, but visualized as a node graph rather than a list/table)</li>
+        </ul>
+
+        <h4>Buildings &amp; infrastructure on day one <span class="pill set">SET</span></h4>
+        <ul>
+          <li>Water main segment + pumping station</li>
+          <li>Sewage pipe segment</li>
+          <li>Road tile (basic; carries power)</li>
+          <li>Truck depot · 1 truck</li>
+        </ul>
+
+        <h4>Routing model <span class="pill seed">SEED</span></h4>
+        <p>
+          Old-school transport-tycoon route lists are brutal to read. Instead: a <strong>node graph view</strong> where each pickup/dropoff is a node, vehicles are edges with assigned cargo. Reads at a glance, scales with the network.
+        </p>
+
+        <h4>What logistics moves</h4>
+        <ul>
+          <li>Agri silos <span class="arrow">→</span> industrial input bays</li>
+          <li>Industrial output <span class="arrow">→</span> next industrial building (inter-industry)</li>
+          <li>Industrial output <span class="arrow">→</span> business sales/trade points</li>
+          <li>Industrial biological waste <span class="arrow">→</span> agri (fertilizer loop)</li>
+        </ul>
+
+        <h4>Internal tech (later)</h4>
+        <ul>
+          <li>New road tiers · larger / faster vehicles</li>
+          <li><strong>Rail / monorail</strong></li>
+          <li><strong>Drone / aerial logistics</strong> (fits the cyberpunk theme cleanly)</li>
+          <li>Pipeline efficiency, smaller substations</li>
+        </ul>
+
+        <h4>MVP action for the first slice</h4>
+        <p><strong>Connect water mains (source → farm, source → malthouse, source → brewery), lay roads silo → malthouse → brewery → sales outlet, configure one truck route on the node graph.</strong></p>
+      </div>
+
+      <!-- ============ BUSINESS ============ -->
+      <div class="corp-card business">
+        <div class="corp-tag">Corp 04 · Economic / Marketing</div>
+        <h3>Sells the product. Holds the wallet. Brokers between corps.</h3>
+        <p>Spatial presence (sales outlets, trade depots) plus the financial layer that ties all four corps together.</p>
+
+        <h4>Core verbs <span class="pill set">SET</span></h4>
+        <ul>
+          <li>Place <strong>selling points</strong> at suitable locations (cities, towns, outposts)</li>
+          <li>Place <strong>trading depots</strong> and set up trade routes with third parties</li>
+          <li>Manage <strong>loans</strong>, monitor income / expenditure tables</li>
+          <li><strong>Move credits between players</strong> on demand</li>
+          <li>Configure <strong>auto-income percentages</strong> per corp (default X% each, adjustable) — so other corps have working capital to expand</li>
+          <li>Run <strong>ad campaigns</strong> and <strong>sales boosts</strong></li>
+          <li>Communicate market demand changes to other corps so they can adapt production</li>
+        </ul>
+
+        <h4>Buildings on day one <span class="pill set">SET</span></h4>
+        <ul>
+          <li>Sales outlet (one — bar / kiosk equivalent at a nearby town)</li>
+          <li>Trading depot <span class="pill tbd">TBD</span> — could be slice-2 if too much for first session</li>
+        </ul>
+
+        <h4>Demand model</h4>
+        <ul>
+          <li><strong>Early game:</strong> demand isn't a constraint — sell everything you make</li>
+          <li><strong>Later:</strong> demand shifts by region, drink type, season — business has to read the market and tell the others "switch some breweries to cider"</li>
+        </ul>
+
+        <h4>Trade &amp; logistics handoff</h4>
+        <ul>
+          <li>Trading routes need <strong>logistics infrastructure</strong> (roads, vehicles) — business books the route, logistics provides the wheels</li>
+          <li>This forces ongoing business ↔ logistics dialogue (good — it's another co-op pressure point)</li>
+        </ul>
+
+        <h4>Internal tech (later)</h4>
+        <ul>
+          <li>Better ad-campaign efficiency, larger sales-radius outlets</li>
+          <li>More favorable loan terms, larger trade contracts</li>
+          <li>Market-intelligence upgrades (forecasting, demand previews)</li>
+        </ul>
+
+        <h4>MVP action for the first slice</h4>
+        <p><strong>Place one sales outlet, set the auto-income split across corps, watch credits flow when beer arrives.</strong> Loans, ads, trading depots can wait.</p>
+      </div>
+
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Cross-corp consistency check</div>
+      The four MVP actions above interlock into one chain: <strong>field → silo → malthouse → brewery → sales outlet</strong>, with logistics threading water, power, roads, and trucks through every link, and business setting the price and routing the credits back. If any of the four can't do their MVP without help from another, that's the co-op-essential design proving itself in the smallest possible slice.
+    </div>
+  </section>
+
+  <section id="firstline">
+    <h2>4. First Production Chain — Lager Beer</h2>
+    <p>
+      Lager is the slice-1 chain. Reasons: malthouse and brewery sprites already exist; barley field is animated; grain-to-beer is the cleanest pipeline in the drinks space; everyone understands what beer is. (Detailed brewing reference on the project's Miro page.)
+    </p>
+
+    <h3>Recipe (set)</h3>
+    <div class="recipe">
+      <div><span class="out">Lager Beer</span> <span class="src">←</span></div>
+      <div class="indent">+ <span class="ing">Malt</span> <span class="src">←</span> <span class="ing">Barley</span> <span class="src">(Field, Agri)</span></div>
+      <div class="indent">+ <span class="ing">Hops</span> <span class="src">(Field, Agri)</span></div>
+      <div class="indent">+ <span class="ing">Water</span> <span class="src">(main, Logistics)</span></div>
+    </div>
+    <p style="color: var(--text-dim); font-size: 13px;">
+      <em>Later beers introduce different grains and hop varieties — same recipe shape, different inputs. The chain is a template.</em>
+    </p>
+
+    <h3>Stages on the map</h3>
+    <div class="chain">
+      <div class="chain-row"><div class="chain-stage">Stage 1 · Agri</div><div class="chain-body"><strong>Barley field + Hops field</strong> on suitable tiles → harvested into <strong>silos</strong></div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 2 · Logistics</div><div class="chain-body">Truck pickup at silos <span class="arrow">→</span> deliver barley to <strong>malthouse</strong>; deliver hops directly to <strong>brewery</strong></div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 3 · Industrial A</div><div class="chain-body"><strong>Malthouse</strong> (water-fed): barley <span class="arrow">→</span> malt</div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 4 · Logistics</div><div class="chain-body">Truck pickup at malthouse <span class="arrow">→</span> deliver malt to <strong>brewery</strong></div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 5 · Industrial B</div><div class="chain-body"><strong>Brewery</strong> (water + power-fed): malt + hops + water <span class="arrow">→</span> lager beer; biological waste branches off; sewage piped out</div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 6 · Logistics</div><div class="chain-body">Truck pickup at brewery <span class="arrow">→</span> deliver lager beer to <strong>sales outlet</strong></div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 7 · Business</div><div class="chain-body"><strong>Sales outlet</strong>: lager beer <span class="arrow">→</span> credits flow to shared pool, split per the auto-income config</div></div>
+    </div>
+
+    <h3>What the chain teaches each corp</h3>
+    <table>
+      <thead><tr><th>Corp</th><th>What slice 1 teaches them</th><th>What it deliberately doesn't</th></tr></thead>
+      <tbody>
+        <tr><td>Agri</td><td>Heat map, two crops on suitable tiles, manual tending, hand-off to silo</td><td>Orchards, pollution-shrunk land, automation, fertilizer loop</td></tr>
+        <tr><td>Industrial</td><td>Place malthouse + brewery, basic machine layout, water/power dependency</td><td>Multi-recipe malthouse, byproduct-heavy chains, advanced machinery</td></tr>
+        <tr><td>Logistics</td><td>Water mains, roads (carrying power), one truck on a node-based route</td><td>Sewage piping, rail, drones, multi-modal optimization</td></tr>
+        <tr><td>Business</td><td>Place sales outlet, set auto-income split, watch credits arrive</td><td>Loans, ad campaigns, demand shifts, trading depots, third-party trade</td></tr>
+      </tbody>
+    </table>
+
+    <h3>First unlocks (slice 2 preview)</h3>
+    <ul>
+      <li><strong>Agri:</strong> orchards · apples</li>
+      <li><strong>Industrial:</strong> cider chain (apples → cider) — likely a new brewery building dedicated to cider rather than hot-swapping the lager brewery</li>
+      <li>Eventually: apple spirits (calvados) once distillation infrastructure unlocks</li>
+    </ul>
+
+    <div class="callout success">
+      <div class="callout-title">Why lager first, not whisky/spirits</div>
+      Distillation adds aging/maturation timing, water purity sensitivity, higher byproduct, and a meaningfully longer feedback loop. Lager is a clean fermentation pipeline that closes in minutes, not seasons. Save spirits for after the loop is proven.
+    </div>
+  </section>
+
+  <section id="starting">
+    <h2>5. Starting Buildings Available to Players</h2>
+    <p>The set of placeable buildings unlocked from frame 1, before any tech-tree progression. Tight on purpose — the existing tech tree (profit-gates-new-buildings) takes over from there.</p>
+
+    <table>
+      <thead><tr><th>Corp</th><th>Building</th><th>Sprite Status</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Agri</td><td>Main farm building</td><td><span class="pill tbd">TBD</span></td><td>Water terminus for the farm; required before fields can be irrigated</td></tr>
+        <tr><td>Agri</td><td>Field tile (generic)</td><td><span class="pill seed">partial</span></td><td>Barley field animation exists — generic farmland sprite still needed</td></tr>
+        <tr><td>Agri</td><td>Silo</td><td><span class="pill tbd">TBD</span></td><td>Buffer storage; logistics pickup point</td></tr>
+        <tr><td>Agri</td><td>Dirt road tile <span class="pill q">Q</span></td><td><span class="pill tbd">TBD</span></td><td>Only if agri owns its internal logistics — see <a href="#open">Q1</a></td></tr>
+        <tr><td>Industrial</td><td>Malthouse</td><td><span class="pill set">in repo</span></td><td>Renamed from Grain Mill recently</td></tr>
+        <tr><td>Industrial</td><td>Brewery (lager)</td><td><span class="pill set">in repo</span></td><td>Sprite shipped on brewery_feature_branch</td></tr>
+        <tr><td>Logistics</td><td>Road tile (carries power)</td><td><span class="pill q">Q</span></td><td>Confirm with Gergely whether Phase 7B already has this</td></tr>
+        <tr><td>Logistics</td><td>Water main + pump</td><td><span class="pill tbd">TBD</span></td><td>Required for farm + every industrial building</td></tr>
+        <tr><td>Logistics</td><td>Sewage pipe segment</td><td><span class="pill tbd">TBD</span></td><td>Could be deferred to slice 2 if waste handling is minimal in slice 1</td></tr>
+        <tr><td>Logistics</td><td>Truck depot · 1 truck</td><td><span class="pill tbd">TBD</span></td><td>Single-vehicle minimum to prove routing</td></tr>
+        <tr><td>Business</td><td>Sales outlet</td><td><span class="pill tbd">TBD</span></td><td>Bar / kiosk equivalent; could borrow existing facility art for prototype</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="callout-title">Art-track reality check</div>
+      Of the 11 starting buildings, <strong>2 are fully shipped</strong> (malthouse, brewery) and <strong>1 is partial</strong> (barley field — needs generic farmland variant). The remaining 8 are the realistic art workload to make slice 1 feel complete. If any becomes a bottleneck, the colored-shape fallback the asset pipeline already supports is the right escape hatch.
+    </div>
+  </section>
+
+  <section id="tech">
+    <h2>6. Tech Tree Structure</h2>
+    <p>The 2026-04-30 doc described <em>a single shared tech tree</em>. Refining that into a two-layer model:</p>
+
+    <h3>Layer 1 — Per-corp internal tech</h3>
+    <p>Each corp has its own internal progression that <strong>boosts or modifies what it already has</strong>. No new gameplay verbs introduced; just better numbers and quality-of-life.</p>
+    <ul>
+      <li><strong>Agri:</strong> yield, water efficiency, soil tolerance, eventual drone/robotics automation of field tending</li>
+      <li><strong>Industrial:</strong> machine throughput, waste reduction, recipe efficiency, building expansion</li>
+      <li><strong>Logistics:</strong> vehicle speed/capacity, pipe efficiency, road durability, route-planning aids</li>
+      <li><strong>Business:</strong> ad efficiency, loan terms, market intelligence, sales-outlet radius</li>
+    </ul>
+    <p>Internal tech is paid out of that corp's own balance sheet and never blocks the others. It's the corp's personal growth track.</p>
+
+    <h3>Layer 2 — Shared higher-level tech</h3>
+    <p>The communal tree from the 2026-04-30 doc. Unlocks <strong>new stages</strong> that affect every corp at once: new production chains (cider, spirits, wine), new building tiers, new vehicle classes, theme-changing reskins. Funded from shared credits, requires negotiation.</p>
+
+    <div class="callout">
+      <div class="callout-title">Why two layers</div>
+      A single shared tree means every player has to negotiate every upgrade — eventually exhausting. A pure per-corp tree means players grow alone — losing the co-op pressure. Two layers gives each player a personal progression for steady dopamine, while the shared tree remains the table-level decision and the source of headline unlocks.
+    </div>
+  </section>
+
+  <section id="firsttenmin">
+    <h2>7. The First 10 Minutes of a Session</h2>
+    <p>A loose script for slice 1, updated against the concrete design above.</p>
+    <ol>
+      <li><strong>0:00</strong> — Players pick corps. Map loads. Agri toggles the barley heat map and sees most of the map glowing green.</li>
+      <li><strong>0:30</strong> — Agri places main farm building. Two fields placed nearby, one set to barley, one to hops. Both show "needs water."</li>
+      <li><strong>1:00</strong> — Logistics places a water source pump and starts running mains toward agri's farm and the spots industrial is hovering over.</li>
+      <li><strong>2:00</strong> — Industrial places malthouse and brewery, shows "needs water + power" until logistics catches up.</li>
+      <li><strong>2:30</strong> — Business places one sales outlet at the nearest town and opens the auto-income panel; sets default split.</li>
+      <li><strong>3:30</strong> — Logistics finishes water mains; industrial buildings come online. Roads laid silo → malthouse → brewery → sales outlet (carrying power as they go).</li>
+      <li><strong>5:00</strong> — Agri tends fields manually (provides nutrients, watches pH); first harvest into silos.</li>
+      <li><strong>6:00</strong> — Logistics configures one truck route on the node graph: silo → malthouse → brewery → sales outlet.</li>
+      <li><strong>7:00</strong> — Industrial steps inside the malthouse, lays the minimal machine line; same for the brewery.</li>
+      <li><strong>8:00–10:00</strong> — First malt produced, first lager brewed, first crate delivered. Credits hit the shared pool. Round of high-fives. <em>End of slice 1 success state.</em></li>
+    </ol>
+    <div class="callout warn">
+      <div class="callout-title">Failure modes to watch in playtest</div>
+      <ul style="margin-bottom: 0;">
+        <li>Any corp finishes setup in 30 seconds and sits idle for 9 minutes — that corp's MVP is too thin.</li>
+        <li>Two corps need to make the same decision and don't know who decides — ownership unclear.</li>
+        <li>One corp blocks all three others — leverage is fine; single point of failure isn't.</li>
+        <li>Heat map / suitability is too subtle — agri places fields anywhere and never engages with the system.</li>
+        <li>The node-based route view confuses logistics more than it helps — fall back to a hybrid view if needed.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="open">
+    <h2>8. Open Questions</h2>
+    <h3>Resolved since the previous draft <span class="pill set">SET</span></h3>
+    <ul>
+      <li><strong>Q1 (was: utilities corp split?)</strong> — Resolved: <em>logistics owns water, sewage, power, and roads</em>. Roads can carry power (Cities Skylines 2 style).</li>
+      <li><strong>Q3 (was: business spatial presence?)</strong> — Resolved: <em>yes, business places sales outlets and trading depots; it is not a UI-only corp</em>.</li>
+    </ul>
+
+    <h3>Still open</h3>
+
+    <div class="qbox">
+      <div class="qbox-q">Q1. Should agri build its own simplest dirt roads for internal logistics?</div>
+      <div class="qbox-note">Leaning yes — agri runs silo↔farm↔field on dirt roads it owns; logistics handles every inter-industry connection. Keeps logistics from babysitting every farm tile, but adds a road-system to agri's plate.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q2. Field-tending minigame — what is it actually?</div>
+      <div class="qbox-note">Provides "something to do" between expansions. Could be a clicker for water/nutrient/pH, a small layout puzzle, or a periodic alert system. Need to nail the scope before art commits to it. Risks becoming busywork.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q3. Are corp sub-types picked at session start, or unlocked through the shared tech tree?</div>
+      <div class="qbox-note">Pick-at-start gives players identity from minute 0. Tech-tree unlock keeps slice 1 simpler. Carries over from previous draft.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q4. Is recipe layout inside an industrial building required in slice 1, or can it auto-resolve?</div>
+      <div class="qbox-note">Required layout is honest to the design but expands scope. Auto-resolve gets us to "first beer" faster. Could ship slice 1 with auto-resolve and introduce real layout in slice 2.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q5. New brewery building per chain, or one brewery hot-swaps recipes?</div>
+      <div class="qbox-note">Per-chain building keeps interior layouts stable, makes the map readable, and gives art clear silhouettes. Hot-swap is more efficient on real estate. Lean is per-chain — but worth a call.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q6. What's the loss / failure state in slice 1?</div>
+      <div class="qbox-note">If there is no fail state, slice 1 is a sandbox demo — fine for prototype. Worth deciding before playtest so feedback is calibrated.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q7. Where does pollution / the suitability shrink first show up — slice 1 or slice 2?</div>
+      <div class="qbox-note">Pollution is core to the design. Showing nothing in slice 1 risks the slice looking like solitaire-with-extra-steps. Showing too much in slice 1 confuses the tutorial. Probably: <em>visible but inactive</em> — heat map is on, pollution stays at zero in slice 1.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q8. Default auto-income split percentages?</div>
+      <div class="qbox-note">Equal 25/25/25/25? Weighted toward agri/industrial early because they're capital-hungry? This is a tuning question, but the default sets the tone of "who's expected to grow first."</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q9. Machine-overlap research pass — what is actually shared between drink types?</div>
+      <div class="qbox-note">Beer, cider, wine, spirits all involve fermentation but diverge sharply at distillation, aging, carbonation. Need a real-world pass before locking the machine list. Could be a weekend research task before slice 2.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q10. Roads-as-powerlines — adopt CS2 model directly or hybrid?</div>
+      <div class="qbox-note">CS2 model: every road carries power. Hybrid: only certain road tiers carry power, dedicated power lines for higher capacity. Hybrid gives logistics a real progression on the power side; pure CS2 keeps things simpler.</div>
+    </div>
+  </section>
+
+  <section id="scratch">
+    <h2>9. Scratch / Parking Lot</h2>
+    <div class="callout scratch">
+      <div class="callout-title">Half-formed thoughts</div>
+      <ul style="margin-bottom: 0;">
+        <li>Could the brewery interior double as a tutorial space — first time you enter, ghosts show you where to place machines?</li>
+        <li>Cyberpunk reskin opportunity: barley field → synth-grain vat later. Slice 1 stays barley to keep art reuse.</li>
+        <li>Narrative event hook: "regulator inspection — first crate of beer must arrive by minute 10" — converts the success state into a beat instead of a quiet milestone.</li>
+        <li>Per-corp HUD palette: each corp's UI tinted in their color. Cheap, readable, screams "asymmetric."</li>
+        <li>Fertilizer loop visualization: when biological waste returns to agri, show a small circular indicator on the world map — players see the loop close.</li>
+        <li>Heat-map system is reusable: same overlay infrastructure later shows pollution, power coverage, water access, even market reach for business.</li>
+        <li>Field-tending minigame might double as an idle-progress meter — when you're not interacting, it slowly drifts toward bad pH; tending pulls it back up.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="references">
+    <h2>10. References</h2>
+    <ul>
+      <li><strong>Tropico</strong> — soil suitability heat map, per-crop tile tinting</li>
+      <li><strong>Cities Skylines 2</strong> — roads carrying power as a single combined network</li>
+      <li><strong>OpenTTD</strong> — transport routing logic; we keep the depth, replace the table UI with a node graph</li>
+      <li><strong>Mindustry / Modulus Factory Automation</strong> — interior machine-layout reference for industrial buildings (carried from 2026-04-30 doc)</li>
+      <li><strong>Drinkustry Miro page</strong> — beer brewing reference and chain diagrams</li>
+      <li><strong>2026-04-30 design summary</strong> — predecessor doc; strategic direction and asymmetric co-op framing</li>
+    </ul>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / Butykos · Gameplay Brainstorm rev. 2 · 2026-05-01 · Working draft — to be edited together
+  </footer>
+
+</div>
+</body>
+</html>
