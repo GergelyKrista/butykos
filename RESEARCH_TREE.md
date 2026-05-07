@@ -1,4 +1,8 @@
-# Research Tree Design - Alcohol Empire Tycoon
+# Research Tree Design — Alcohol Empire Tycoon (PRE-PIVOT SNAPSHOT)
+
+> **⚠️ Pre-pivot single-tree design.** The Drinkustry pivot splits research into two layers: per-corp internal (boosts/efficiency) + shared higher-level (new chains/tiers/vehicles). The 40 nodes below stay as content but get tagged `tier: "corp_internal"` and distributed across the four corps in new Phase 8. The tier-unlock-by-selling mechanic stays for the corp-internal layer; shared layer is funded by shared credits with proposal/vote UI.
+>
+> See `design_docs/2026-04-30_design_summary.html` (Two-Layer Tech Tree section) and `design_docs/2026-05-07_technical_architecture.html` for the refactor.
 
 ## Overview
 

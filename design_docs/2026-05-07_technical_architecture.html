@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Technical Architecture: Engine Retrofit for the Pivot (2026-05-07)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --agri: #7ee787;
+    --industrial: #f0883e;
+    --logistics: #4cc2ff;
+    --business: #ff6ec7;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 40px; }
+  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  h3 { font-size: 18px; margin: 32px 0 12px; font-weight: 600; }
+  h4 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; color: var(--accent); }
+  pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; overflow-x: auto; margin: 14px 0; }
+  pre code { background: transparent; padding: 0; color: var(--text); font-size: 0.88em; line-height: 1.5; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 40px; }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout.scratch { border-left-color: var(--accent-2); }
+  .callout-title { font-weight: 600; margin-bottom: 6px; color: #fff; }
+
+  .corp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; border-top: 3px solid var(--accent); margin: 20px 0; }
+  .corp-card.agri { border-top-color: var(--agri); }
+  .corp-card.industrial { border-top-color: var(--industrial); }
+  .corp-card.logistics { border-top-color: var(--logistics); }
+  .corp-card.business { border-top-color: var(--business); }
+  .corp-card h3 { margin-top: 0; }
+  .corp-tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: var(--surface-2); color: var(--text-dim); margin-bottom: 8px; }
+  .corp-card.agri .corp-tag { color: var(--agri); }
+  .corp-card.industrial .corp-tag { color: var(--industrial); }
+  .corp-card.logistics .corp-tag { color: var(--logistics); }
+  .corp-card.business .corp-tag { color: var(--business); }
+
+  .pill { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  .pill.tbd { color: var(--warn); border-color: rgba(240,180,41,0.3); }
+  .pill.seed { color: var(--accent-3); border-color: rgba(126,231,135,0.3); }
+  .pill.q { color: var(--accent-2); border-color: rgba(255,110,199,0.3); }
+  .pill.set { color: var(--accent); border-color: rgba(76,194,255,0.3); }
+  .pill.locked { color: var(--industrial); border-color: rgba(240,136,62,0.35); }
+
+  .signature { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin: 14px 0; }
+  .signature-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+  .signature-body { font-size: 15px; color: #fff; font-weight: 600; }
+
+  .qbox { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
+  .qbox-q { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .qbox-note { font-size: 13px; color: var(--text-dim); }
+
+  .principle { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin: 10px 0; }
+  .principle-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+
+  .system-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin: 14px 0; border-left: 3px solid var(--border); }
+  .system-card.new { border-left-color: var(--accent-3); }
+  .system-card.extend { border-left-color: var(--accent); }
+  .system-card.refactor { border-left-color: var(--warn); }
+  .system-card.unchanged { border-left-color: var(--text-dim); }
+  .system-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .system-card-name { font-weight: 600; color: #fff; font-family: var(--mono); font-size: 14px; }
+  .system-card-verdict { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+  .system-card.new .system-card-verdict { color: var(--accent-3); }
+  .system-card.extend .system-card-verdict { color: var(--accent); }
+  .system-card.refactor .system-card-verdict { color: var(--warn); }
+  .system-card-note { font-size: 14px; color: var(--text); }
+  .system-card-note .reason { display: block; margin-top: 6px; font-size: 13px; color: var(--text-dim); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+  th { background: var(--surface-2); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .step { display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step-n { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--accent); text-align: right; }
+  .step-body .step-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .step-body .step-why { font-size: 13px; color: var(--text-dim); }
+
+  .checklist { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 22px; margin: 16px 0; }
+  .checklist li { list-style: none; position: relative; padding-left: 26px; margin-bottom: 8px; }
+  .checklist li::before { content: ""; position: absolute; left: 0; top: 4px; width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-2); }
+  .checklist ul { padding-left: 0; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+  }
+
+  footer.doc-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Technical Architecture</div>
+    <h1>Engine Retrofit for the Pivot — Architectural Decisions Pre-Phase 8</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      The three preceding design docs settled <em>what Drinkustry becomes</em>: four asymmetric corps, shared map, two-layer tech tree, signature mechanics per corp. This doc settles <strong>how the existing Phase 7B code carries that load</strong>. Decisions here govern every line written from Phase 8 onward — they exist to keep refactor work from being redone.
+    </p>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">2026-05-07</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">Drinkustry / butykos</div></div>
+      <div class="meta-item"><div class="meta-label">Doc Type</div><div class="meta-value">Technical architecture · rev. 1</div></div>
+      <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">Decisions — for Krista review</div></div>
+      <div class="meta-item"><div class="meta-label">Authors</div><div class="meta-value">Ambrus &amp; Gergely</div></div>
+      <div class="meta-item"><div class="meta-label">Predecessor</div><div class="meta-value">2026-05-02 per-corp v1 mechanics</div></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#why">Why This Doc Exists</a></li>
+      <li><a href="#principles">Architectural Principles</a></li>
+      <li><a href="#ownership">Ownership / Permission Layer</a></li>
+      <li><a href="#mp">Multiplayer Architecture — Decided Now</a></li>
+      <li><a href="#save">Save Schema Migration</a></li>
+      <li><a href="#reuse">Subsystem-Reuse Map</a></li>
+      <li><a href="#order">Refactor Ordering</a></li>
+      <li><a href="#perf">Performance Bounds</a></li>
+      <li><a href="#determinism">Determinism</a></li>
+      <li><a href="#mod">Modding Boundaries</a></li>
+      <li><a href="#open">Open Architectural Questions</a></li>
+      <li><a href="#checklist">Phase 8 Entry Checklist</a></li>
+    </ol>
+  </nav>
+
+  <section id="why">
+    <h2>1. Why This Doc Exists</h2>
+    <p>
+      As of 2026-05-07, the project just pivoted from <em>Alcohol Empire Tycoon</em> (single-player, Phase 7B Save/Load complete, ~7 facilities and 13 machines wired into a working factory-interior loop) to <strong>Drinkustry</strong> — a four-player asymmetric co-op cyberpunk megacorp game.
+    </p>
+    <p>
+      The three design docs in this folder describe the destination. They do not describe the engine retrofit. This doc fills that gap. It pins architectural decisions <em>before</em> Phase 8 work starts so refactor work doesn't have to be redone every time a new system lands on top of an old assumption.
+    </p>
+    <div class="callout">
+      <div class="callout-title">Frame</div>
+      The Phase 7B build is the foundation, not legacy. The autoload-singleton structure, the data-driven JSON content pipeline, the dual-layer (isometric strategic + orthogonal interior) split, the EventBus signal hub, and the working factory-interior prototype are <strong>load-bearing assets</strong>. The pivot does not throw them out; it adds an ownership layer, a multi-player concept, and four new content domains on top.
+    </div>
+    <p>
+      <em>This doc is decisions, not exhaustive specs.</em> Each section names the choice, names the alternative that lost, and names the reason. Detailed schemas, signal lists, and migration scripts are deliberately out of scope — those land in Phase-8-onward implementation tickets, with this doc as their constraint.
+    </p>
+    <p>
+      Document references throughout: <code>CLAUDE.md</code> for the current code state, the 2026-04-30 / 05-01 / 05-02 design docs for game design intent. Where this doc and <code>CLAUDE.md</code> conflict, this doc wins forward — <code>CLAUDE.md</code> describes the past tense build, this doc describes the constraint surface for the next one.
+    </p>
+  </section>
+
+  <section id="principles">
+    <h2>2. Architectural Principles</h2>
+    <p>
+      The rules every later section must follow. If a recommendation in §3–§7 violates one of these, the recommendation is wrong, not the principle.
+    </p>
+
+    <div class="principle">
+      <div class="principle-title">P1 — Additive over rewrite</div>
+      Singletons stay. Ownership becomes a layer on top, not a replacement for any existing manager. Anything that already works in Phase 7B (factory interior, vehicle pathfinding, road grid, save/load) keeps working through the pivot.
+    </div>
+
+    <div class="principle">
+      <div class="principle-title">P2 — Theme-agnostic core</div>
+      Cyberpunk is reskin. Every mechanic name, signal, JSON key, and schema field stays neutral (<code>integrity_meter</code>, not <code>chrome_loyalty</code>; <code>utility_network</code>, not <code>neon_grid</code>). Theme lives in display strings, sprites, audio. <em>If we ever pivot the theme again the engine survives intact.</em>
+    </div>
+
+    <div class="principle">
+      <div class="principle-title">P3 — Data-driven everywhere new</div>
+      Events, recipes, corps, utilities, contracts, demand models — all in JSON under <code>data/</code>. The Phase 7B precedent (facilities, machines, products, research, roads all as JSON) is the standard. New code defines schema; new content does not require code changes.
+    </div>
+
+    <div class="principle">
+      <div class="principle-title">P4 — Hot-seat first, networked last</div>
+      Phase 8 ships as four corps on one machine, taking turns or playing in parallel via a single shared simulation. Networking lands at Phase 12. <strong>But every decision made now must hold at the network boundary.</strong> If a design works hot-seat but breaks at MP, it is wrong now, not later.
+    </div>
+
+    <div class="principle">
+      <div class="principle-title">P5 — One catchment rule, applied everywhere it fits</div>
+      Per the 2026-05-02 doc's Recommendation: pick one catchment-radius behavior and apply it identically to Agri silos, Industrial output bays, and Economic markets. Owned by Logistics conceptually — see §6.
+    </div>
+
+    <div class="principle">
+      <div class="principle-title">P6 — Per-corp data namespaced from day one, even pre-MP</div>
+      Even in single-corp dev playthroughs, every owned entity carries a <code>corp_id</code>. There is no "no-corp" or "default corp" except the explicit <code>"shared"</code> sentinel. This avoids a future refactor where every system has to learn ownership at once.
+    </div>
+  </section>
+
+  <section id="ownership">
+    <h2>3. Ownership / Permission Layer</h2>
+    <p>
+      The keystone change. Every singleton currently assumes one player. None of the manager files (<code>core/</code>, <code>systems/</code>) contain the words <em>corp</em>, <em>player_id</em>, or <em>owner</em>. That has to be the first thing that changes — every later subsystem decision depends on ownership being present.
+    </p>
+
+    <h3>3.1 Where ownership lives</h3>
+    <p>
+      <span class="pill set">SET</span> Add a <code>corp_id: String</code> field to every owned entity:
+    </p>
+    <ul>
+      <li><strong>Facility</strong> (<code>WorldManager.facilities</code>) — set at <code>place_facility()</code> from the active corp.</li>
+      <li><strong>Machine</strong> (<code>FactoryManager.factory_interiors[fid].machines</code>) — inherits from parent facility.</li>
+      <li><strong>Connection / Route</strong> (<code>LogisticsManager.connections</code>) — set by route creator; cross-corp routes require both corps' consent (deferred — see Q-A1).</li>
+      <li><strong>Vehicle</strong> (<code>LogisticsManager.vehicles</code>) — inherits from parent connection.</li>
+      <li><strong>Contract</strong> (<code>MarketManager.active_contracts</code>) — set when contract is offered; only owner can accept.</li>
+      <li><strong>Research node unlock state</strong> (<code>ResearchManager.unlocked_techs</code>) — partition by <code>corp_id</code>; shared tier uses <code>"shared"</code>.</li>
+      <li><strong>Road tile</strong> (<code>WorldManager.road_grid</code>) — <em>unowned by default</em> (<code>"shared"</code>); see §3.4.</li>
+      <li><strong>Field-to-farmhouse links</strong> (<code>WorldManager.field_parents</code>, <code>farmhouse_children</code>) — fields inherit corp from farmhouse. <em>Existing farmhouse logic survives unchanged.</em></li>
+    </ul>
+
+    <p>
+      Active player indicator on <code>GameManager</code>:
+    </p>
+    <pre><code>var active_corp_id: String = "agri"  # or "industrial", "logistics", "business"
+var local_corp_id: String = "agri"   # in MP, the corp this client controls; equals active in hot-seat
+</code></pre>
+
+    <h3>3.2 Validation pattern</h3>
+    <p>
+      <span class="pill set">SET</span> Each manager exposes a <code>can_&lt;action&gt;(corp_id, ...)</code> predicate that returns <code>{allowed: bool, reason: String}</code>. UI calls the predicate first; manager re-checks before the mutation as defense-in-depth. <strong>Managers do not silently filter.</strong> An invalid action returns a reason, never a no-op. This matters now (clean error UX) and even more later (network desync surfaces immediately as a rejection rather than silent state divergence).
+    </p>
+    <p>
+      Existing patterns to mirror: <code>WorldManager.can_place_facility()</code>, <code>DataManager.validate_facility_requirements()</code>. Both already return <code>{can_build, reason}</code>-shaped dictionaries. Extend that convention; do not invent a new one.
+    </p>
+
+    <h3>3.3 The "shared" sentinel</h3>
+    <p>
+      Reserve <code>corp_id: "shared"</code> for entities no single corp owns:
+    </p>
+    <ul>
+      <li>Roads (CS2-style — anyone can drive on them, anyone can build them, removal requires consent or vote — see Q-A1).</li>
+      <li>Shared-tier research nodes.</li>
+      <li>Neutral utility infrastructure (water mains, power trunk lines if Logistics builds them as public goods).</li>
+      <li>NPC-emitted contracts before acceptance.</li>
+    </ul>
+    <p>
+      <strong>World tiles default to unowned</strong>, not <code>"shared"</code>. Unowned means no corp claim; <code>"shared"</code> means explicitly all corps. The distinction matters for permission queries.
+    </p>
+
+    <h3>3.4 Migration path</h3>
+    <p>
+      <span class="pill locked">LOCKED</span> Save schema break. Legacy Phase 7B saves load with all owned entities defaulting to <code>corp_id: "single"</code>. A migration script promotes <code>"single"</code> to one of four corps based on facility type:
+    </p>
+    <ul>
+      <li>Fields, farms, water sources → <code>"agri"</code></li>
+      <li>Mills, breweries, distilleries, packaging plants → <code>"industrial"</code></li>
+      <li>Storage, depots, road networks → <code>"logistics"</code></li>
+      <li>Markets, taverns, trade offices → <code>"business"</code></li>
+    </ul>
+    <p>
+      Migration runs once, in <code>SaveManager._apply_save_data()</code>, when <code>version &lt; 3</code>. No reverse migration. Pre-pivot saves are convertible <em>once</em>; post-pivot saves are not downgradable.
+    </p>
+    <div class="callout warn">
+      <div class="callout-title">Save schema break is non-negotiable</div>
+      The current <code>CURRENT_SAVE_VERSION = 1</code> in <code>core/save_manager.gd</code>. Bumping to v3 (skipping v2 to leave headroom for an interim shape) is a hard break — old saves load via migration, but the file format changes shape. Communicate this in patch notes.
+    </div>
+  </section>
+
+  <section id="mp">
+    <h2>4. Multiplayer Architecture — Decided Now</h2>
+    <p>
+      Networking is Phase 12. Every line of code from Phase 8 onward is written under the model chosen below. Pinning it now avoids the death-march scenario where Phase 12 discovers half the systems are unshippable to MP and need rewriting.
+    </p>
+
+    <h3>4.1 The recommendation</h3>
+    <div class="callout success">
+      <div class="callout-title">Authoritative-host + deterministic action pipe + lockstep on tick boundaries</div>
+      Host runs the simulation. All state mutations across all managers go through a single pipe: <code>submit_action(corp_id, action_type, payload)</code>. Clients submit actions; host validates, sequences, broadcasts. Simulation advances on fixed game-tick boundaries — actions queued during a tick fire in deterministic order at the next tick.
+    </div>
+
+    <p>
+      Hot-seat is the same pipe with the host being the local machine and all four corps submitting from the same client. <em>The network code is just a transport swap on top of an architecture that already exists locally.</em>
+    </p>
+
+    <h3>4.2 What this means for Phase 8 code</h3>
+    <ul>
+      <li><strong>EventBus becomes the local notification layer.</strong> It still does what it does — UI listens to <code>facility_placed</code>, <code>money_changed</code>, etc. — but it is no longer where mutations originate. Mutations originate in <code>submit_action()</code>; <code>EventBus</code> emits as a <em>consequence</em> of the manager applying the validated action.</li>
+      <li><strong>Every <code>WorldManager.place_facility()</code> / <code>FactoryManager.place_machine()</code> / <code>LogisticsManager.create_connection()</code> call from UI gets routed through the action pipe.</strong> The managers themselves keep their current API as the underlying mutator — the pipe is the wrapper.</li>
+      <li><strong>Determinism becomes a hard constraint</strong> (see §9).</li>
+    </ul>
+
+    <h3>4.3 Why this beats alternatives</h3>
+    <table>
+      <thead><tr><th>Model</th><th>Bandwidth</th><th>Replay/save</th><th>Disconnect handling</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Authoritative state-sync (server pushes full state diffs)</td><td>High — every facility/machine/inventory change crosses wire</td><td>Bad — state snapshots, not action log</td><td>Easy — late-joiner just downloads state</td><td>Rejected — bandwidth scales with sim, not player input</td></tr>
+        <tr><td>Lockstep peer-to-peer (no host)</td><td>Low</td><td>Good — action log is the save</td><td>Hard — disconnect is a stall; desync is unrecoverable</td><td>Rejected — disconnect recovery is the killer for a 4-player co-op</td></tr>
+        <tr><td><strong>Authoritative-host lockstep (chosen)</strong></td><td>Low — actions only</td><td>Excellent — action log + tick number = perfect replay</td><td>Tractable — host arbitrates, late-joiner gets state snapshot then catches up via action log</td><td>Selected</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.4 The action pipe shape</h3>
+    <pre><code># core/game_manager.gd (Phase 8 addition)
+func submit_action(corp_id: String, action_type: String, payload: Dictionary) -> Dictionary:
+    # 1. Validate (manager-specific can_<action> predicate)
+    # 2. Sequence (assign monotonic action_id, attach tick number)
+    # 3. Apply (call into the appropriate manager)
+    # 4. EventBus emits as consequence (not as cause)
+    # 5. Return {accepted: bool, reason: String, action_id: int}
+</code></pre>
+    <p>
+      <span class="pill locked">LOCKED</span> Every UI-driven mutation goes through this. No exceptions. Phase 8 starts with the skeleton wired but unenforced (managers still callable directly during transition); Phase 9 enforces it.
+    </p>
+
+    <div class="callout warn">
+      <div class="callout-title">The two things this is not</div>
+      <strong>Not</strong> a command/undo system — actions are not reversible. <strong>Not</strong> a generic event bus — actions are <em>requests for mutation</em>, not notifications of fact. Notifications stay on EventBus.
+    </div>
+  </section>
+
+  <section id="save">
+    <h2>5. Save Schema Migration</h2>
+    <p>
+      Current save (<code>core/save_manager.gd</code>) is a flat dictionary keyed by subsystem (<code>world</code>, <code>factories</code>, <code>logistics</code>, <code>economy</code>, <code>production</code>, <code>market</code>, <code>research</code>) plus metadata. <code>CURRENT_SAVE_VERSION = 1</code>. Skip v2 (leave headroom) and target v3 directly.
+    </p>
+
+    <h3>5.1 New shape</h3>
+    <pre><code>{
+  "version": 3,
+  "tick": 145820,            // game-tick counter, replaces unix timestamp for sim time
+  "wall_timestamp": ...,     // unix time, only for save-list display sort
+  "date": {...},
+  "active_corp_id": "agri",
+  "corps": {
+    "agri":       { "money": ..., "research": {...}, "stats": {...} },
+    "industrial": { ... },
+    "logistics":  { ... },
+    "business":   { ... },
+    "shared":     { "research": {...} }
+  },
+  "world":     { "facilities": {...}, "roads": {...}, "field_parents": {...} },
+  "factories": { ... },                           // unchanged shape, machines carry corp_id
+  "logistics": { "connections": {...}, "vehicles": {...} },
+  "production":{ ... },                           // unchanged shape
+  "utilities": { "water": {...}, "power": {...}, "sewage": {...} },   // new in v3
+  "events":    { "active": [...], "fired": [...], "queue": [...] },   // new in v3
+  "demand":    { "settlements": {...}, "reputation": {...} },         // new in v3
+  "security":  { "integrity_by_region": {...}, "outposts": [...] }    // new in v3
+}
+</code></pre>
+
+    <h3>5.2 Migration rule (v1 → v3)</h3>
+    <ol>
+      <li>Read <code>version</code>; if <code>&lt; 3</code>, run migration.</li>
+      <li>Wrap existing per-system dicts under <code>corps.single</code> initially.</li>
+      <li>Walk all facilities, assign <code>corp_id</code> per the §3.4 type map. Push corp-specific state (money, research) into <code>corps.&lt;corp_id&gt;</code>; current single-player money becomes <code>corps.business.money</code> (the corp that "had" the income).</li>
+      <li>Initialize empty <code>utilities</code>, <code>events</code>, <code>demand</code>, <code>security</code> sections.</li>
+      <li>Set <code>tick: 0</code> (replay isn't preserved across migration; current state is).</li>
+      <li>Bump version to 3.</li>
+    </ol>
+
+    <h3>5.3 Format decision</h3>
+    <p>
+      <span class="pill locked">LOCKED</span> Stay JSON. Human-readable wins over binary size every time during an active dev cycle, and no current save approaches a size where parse cost matters. <em>If save size becomes a problem post-launch, gzip the JSON; do not invent a binary format.</em>
+    </p>
+    <p>
+      The existing <code>JSON.stringify(data, "\t")</code> in <code>SaveManager._write_save_file()</code> stays. Indent with tabs, debuggable in any editor.
+    </p>
+  </section>
+
+  <section id="reuse">
+    <h2>6. Subsystem-Reuse Map</h2>
+    <p>
+      For each new system implied by the design docs, the call: <strong>new manager</strong> vs <strong>extend existing</strong>. The bias is <em>extend</em> — every new manager is one more thing that has to learn ownership, save/load, action-pipe, and determinism. New managers only when the data shape genuinely diverges.
+    </p>
+
+    <div class="system-card new">
+      <div class="system-card-head">
+        <div class="system-card-name">UtilityManager</div>
+        <div class="system-card-verdict">NEW · single manager, three named graphs</div>
+      </div>
+      <div class="system-card-note">
+        Water, power, sewage are all the same propagation algorithm with different tags. <strong>One manager, three graphs</strong> (<code>graphs["water"]</code>, <code>graphs["power"]</code>, <code>graphs["sewage"]</code>), not three managers. Edges are the existing road graph extended with pipe-only nodes (CS2-style: power follows roads by default, dedicated lines optional per the 2026-05-02 logistics card).
+        <span class="reason">Why not extend Logistics: utility graphs are passive (no vehicles, no schedules); fundamentally different update pattern (dirty-flag propagation vs. per-tick vehicle movement).</span>
+      </div>
+    </div>
+
+    <div class="system-card extend">
+      <div class="system-card-head">
+        <div class="system-card-name">Irrigation → LogisticsManager extension</div>
+        <div class="system-card-verdict">EXTEND</div>
+      </div>
+      <div class="system-card-note">
+        Irrigation <em>is</em> a logistics graph, agri-flavored. Same data structure as roads + connections. Add a <code>network_kind: "transport" | "irrigation" | "utility"</code> tag per network. Different visual mode in <code>scenes/world_map/route_renderer.gd</code>; same backing structure.
+        <span class="reason">Why not new manager: irrigation pipes have the same place / connect / pathfind / save shape as roads. Splitting them duplicates A* and connection-graph code.</span>
+      </div>
+    </div>
+
+    <div class="system-card new">
+      <div class="system-card-head">
+        <div class="system-card-name">CatchmentManager</div>
+        <div class="system-card-verdict">NEW · spatial-query infrastructure</div>
+      </div>
+      <div class="system-card-note">
+        Catchment radius (per-station, per-silo, per-market — see 2026-05-02 §6) replaces direct-connect routing as the default model. Lives standalone for performance — spatial-hash queries are hot-path and don't belong in any existing manager's process loop. Owned by Logistics conceptually (priority resolution when ranges overlap is Logistics' job, per the 2026-05-02 doc) but independent of <code>LogisticsManager</code>'s connection state.
+        <span class="reason">Existing direct connections become a degenerate catchment (radius 0). The current <code>connection_paths</code> structure stays, just stops being the only routing mechanism.</span>
+      </div>
+    </div>
+
+    <div class="system-card new">
+      <div class="system-card-head">
+        <div class="system-card-name">OverlayManager</div>
+        <div class="system-card-verdict">NEW · render-layer in world_map scene</div>
+      </div>
+      <div class="system-card-note">
+        Generic data → tile-tinted texture pipeline. Suitability, pollution, water coverage, power coverage, market reach, integrity all go through the same path. <strong>Build it generic the first time</strong> — second-overlay-onward becomes content, not code.
+        <span class="reason">The Phase 7B grid renderer (<code>scenes/world_map/grid_renderer.gd</code>) is overlay-shaped already; OverlayManager is a slim service that feeds it data sources.</span>
+      </div>
+    </div>
+
+    <div class="system-card new">
+      <div class="system-card-head">
+        <div class="system-card-name">DemandManager</div>
+        <div class="system-card-verdict">NEW · settlement tiers + reputation</div>
+      </div>
+      <div class="system-card-note">
+        Sales become spatial: outlets read demand at their catchment, not flat. Owned conceptually by Business corp but the manager itself is system-level. Replaces <code>auto_sell</code> behavior — products sell at outlet-resolved prices via demand model, not at flat <code>product_prices</code> dictionary.
+        <span class="reason">Why not extend MarketManager: MarketManager is a global price-fluctuation model. Demand is per-settlement, per-product, per-tier — needs spatial state MarketManager doesn't have. They cooperate (demand modulates the price MarketManager publishes for that location) but are different shapes.</span>
+      </div>
+    </div>
+
+    <div class="system-card new">
+      <div class="system-card-head">
+        <div class="system-card-name">EventManager</div>
+        <div class="system-card-verdict">NEW · data-driven narrative engine</div>
+      </div>
+      <div class="system-card-note">
+        Reads facts from EventBus (drought conditions, money below threshold, tech unlocked). Loads event JSON from <code>data/events/*.json</code>. Emits as <code>event_fired</code> / <code>event_resolved</code> signals. Generates Business contracts via <code>EventManager → DemandManager</code> pipe — <em>no direct coupling between Business systems and Agri/Industrial/Logistics</em>. Events are the broker.
+        <span class="reason">This keeps the cross-corp loops (per 2026-05-02 §7) data-driven and modular. Drought event triggers Agri yield drop AND a Business import contract — but neither corp's manager knows about the other; they both react to the event.</span>
+      </div>
+    </div>
+
+    <div class="system-card new">
+      <div class="system-card-head">
+        <div class="system-card-name">SecurityManager</div>
+        <div class="system-card-verdict">NEW · integrity / espionage</div>
+      </div>
+      <div class="system-card-note">
+        Owns integrity meters per region (per 2026-05-02 Q3 — region is the strongest default). Outposts are facilities owned by Business, placed on the world map, visible to other players. Reuses placement and overlay infra; does <strong>not</strong> get its own coordinate system. Espionage actions submit through the action pipe like everything else.
+        <span class="reason">Why not extend MarketManager: Security has its own state shape (region meters, outpost coverage, threat queue) that has nothing to do with prices.</span>
+      </div>
+    </div>
+
+    <div class="system-card refactor">
+      <div class="system-card-head">
+        <div class="system-card-name">ResearchManager (refactor)</div>
+        <div class="system-card-verdict">REFACTOR IN PLACE · two-layer tree</div>
+      </div>
+      <div class="system-card-note">
+        Add <code>tier: "corp_internal" | "shared"</code> and <code>corp_id: String</code> to research nodes. Spend logic accepts multi-source contributions for shared-tier nodes; proposal/vote UI deferred to Phase 11. Existing 40 nodes (per <code>data/research_tree.json</code>) migrate to <code>tier: "corp_internal"</code>, distributed across the four corps based on the branch they touch (the existing 8 branches: agriculture, grain_processing, brewing, distillation, aging, packaging, logistics, commerce already align cleanly with the four corps).
+        <span class="reason">Branch-to-corp mapping is already implicit: agriculture → Agri; grain_processing/brewing/distillation/aging/packaging → Industrial; logistics → Logistics; commerce → Business. The migration writes itself.</span>
+      </div>
+    </div>
+
+    <div class="system-card unchanged">
+      <div class="system-card-head">
+        <div class="system-card-name">EconomyManager</div>
+        <div class="system-card-verdict">EXTEND · per-corp money</div>
+      </div>
+      <div class="system-card-note">
+        Replace single <code>money: int</code> with <code>money_by_corp: Dictionary</code>. Every transaction takes a <code>corp_id</code>. Maintenance collection iterates per-corp and bills the corp that owns the facility. Disabled-facilities tracking gains a per-corp partition.
+        <span class="reason">Smaller refactor than it sounds — every existing call site already has access to a facility id; that id resolves to a corp. Most call sites need a one-line addition.</span>
+      </div>
+    </div>
+
+    <div class="system-card unchanged">
+      <div class="system-card-head">
+        <div class="system-card-name">FactoryManager</div>
+        <div class="system-card-verdict">UNCHANGED · already in good shape</div>
+      </div>
+      <div class="system-card-note">
+        The factory-interior model is the prototyped depth bar (per 2026-05-02 §2). It already separates per-facility state cleanly. Adding <code>corp_id</code> on the parent facility is enough — interior data inherits ownership from the parent. No internal restructure.
+        <span class="reason">Surprising finding from code review: <code>_next_machine_id</code> is global on FactoryManager, not per-interior. That's correct and stays — global id space simplifies routing references.</span>
+      </div>
+    </div>
+
+    <div class="system-card unchanged">
+      <div class="system-card-head">
+        <div class="system-card-name">WorldManager</div>
+        <div class="system-card-verdict">EXTEND · per-tile claims, otherwise unchanged</div>
+      </div>
+      <div class="system-card-note">
+        Add per-tile claim metadata when needed (probably not v1 — facilities-on-tiles already encode ownership through the facility's <code>corp_id</code>). Isometric coordinate system, A* pathfinding, road grid, farmhouse-field relationships all stay. The 50×50 grid is fine for four-corp v1; if maps grow later that's a separate decision.
+      </div>
+    </div>
+  </section>
+
+  <section id="order">
+    <h2>7. Refactor Ordering</h2>
+    <p>
+      The order is the artifact. Wrong order = redo. Each step's prerequisites must already exist.
+    </p>
+
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <div class="step-title">Ownership layer (<code>corp_id</code> on every owned entity)</div>
+        <div class="step-why">Touches every manager. Has to come first because every later step assumes it.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <div class="step-title">Save schema v3 + migration</div>
+        <div class="step-why">Locks ownership in to disk. After this, no later step can quietly drop <code>corp_id</code> in serialization without breaking saves.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-body">
+        <div class="step-title">Action pipe scaffold (<code>submit_action</code>)</div>
+        <div class="step-why">Empty wrapper at first — every UI mutation gets routed through it but managers stay directly callable. Makes the network seam explicit before there are too many call sites to retrofit.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">4</div>
+      <div class="step-body">
+        <div class="step-title">Tech-tree two-layer refactor</div>
+        <div class="step-why">Cheapest non-ownership refactor with a real design payoff. Lets the team validate the per-corp / shared distinction in the simplest existing system before applying it to harder ones.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">5</div>
+      <div class="step-body">
+        <div class="step-title">UtilityManager (water / power / sewage)</div>
+        <div class="step-why">First brand-new system. Picks up ownership, save schema, action pipe — proves all three work for greenfield code before any harder system tries.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">6</div>
+      <div class="step-body">
+        <div class="step-title">CatchmentManager (replaces direct routes)</div>
+        <div class="step-why">Catchment is the foundational rule per 2026-05-02 §6 — every per-corp signature mechanic depends on it. Has to land before signature mechanics start.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">7</div>
+      <div class="step-body">
+        <div class="step-title">OverlayManager (suitability + pollution overlays first)</div>
+        <div class="step-why">Two overlays prove the generic pipeline. After this, every later overlay (water coverage, power, market reach, integrity) is content not code.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">8</div>
+      <div class="step-body">
+        <div class="step-title">Per-corp signature mechanics in dependency order</div>
+        <div class="step-why">Industrial (already done) → Agri irrigation (uses Logistics extension + Overlay) → Logistics route-network (uses Catchment) → Business demand + espionage (uses DemandManager + SecurityManager + EventManager — heaviest, last).</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">9</div>
+      <div class="step-body">
+        <div class="step-title">EventManager</div>
+        <div class="step-why">Plugs into all the cross-corp loops. Has to come after the systems it broadcasts to exist, or every event is a no-op.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">10</div>
+      <div class="step-body">
+        <div class="step-title">Networking glue (Phase 12)</div>
+        <div class="step-why">Final swap — replace local action pipe with networked transport. If steps 1–9 held the line, this is a transport layer, not a refactor.</div>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">The order is the deliverable</div>
+      Reordering steps 1–3 is fatal. Reordering 4–9 within their dependency arrows is allowed but costs little. Networking last is non-negotiable — if it moves earlier, the lockstep contract leaks into every system and every system rewrites.
+    </div>
+  </section>
+
+  <section id="perf">
+    <h2>8. Performance Bounds</h2>
+    <p>
+      Per <code>CLAUDE.md</code>, the Phase 7B build hits 60fps with ~10 facilities and ~15 routes; not tested past 50. New systems add several update loops. Targets:
+    </p>
+
+    <table>
+      <thead><tr><th>Target</th><th>Bound</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td>Frame budget</td><td>60 fps with 200 facilities, 4 corps active, all overlays on</td><td>Profile early; v1 ships at 100 facilities if 200 doesn't hold</td></tr>
+        <tr><td>Utility propagation</td><td>O(edges) per recompute, dirty-flagged</td><td>Recompute only when graph topology changes (place/remove); not per-frame</td></tr>
+        <tr><td>Catchment queries</td><td>O(1) amortized via spatial hash</td><td>Hash bucket size = catchment-radius granularity; rebuild on facility move</td></tr>
+        <tr><td>Overlay textures</td><td>Regenerate on dirty event, not per-frame</td><td>Each overlay subscribes to invalidating signals; re-render on debounced timer</td></tr>
+        <tr><td>Event tick</td><td>1 Hz, bounded queue</td><td>Per-frame event evaluation is wasteful and non-deterministic at high frame rates; pin to game-tick</td></tr>
+        <tr><td>Vehicle update</td><td>Already O(N_vehicles); fine</td><td>Existing <code>LogisticsManager._update_vehicles()</code> pattern keeps</td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      <span class="pill set">SET</span> Profile after step 8 (signature mechanics complete) on a populated map. If targets miss, optimization is a discrete project — not interleaved with feature work.
+    </p>
+  </section>
+
+  <section id="determinism">
+    <h2>9. Determinism</h2>
+    <p>
+      The MP plan in §4 needs deterministic simulation. That means the same action log applied to the same state on two machines produces identical results. Phase 7B is <em>not</em> deterministic; the changes are localized but real.
+    </p>
+
+    <h3>9.1 Specific things to fix</h3>
+    <ul>
+      <li>
+        <strong><code>randf()</code> / <code>randi()</code> calls.</strong> Audit found nine sites in <code>systems/market_manager.gd</code> alone (price drift, trend changes, contract generation). Wrap a per-game RNG state seeded by save-load and advanced through the action pipe — every action that needs randomness draws from a deterministic stream.
+      </li>
+      <li>
+        <strong>Dictionary iteration order.</strong> Godot's GDScript dictionaries iterate in insertion order, which is deterministic <em>within a single process</em> but can diverge across machines if entries are inserted in different orders due to async signal processing. <em>Where iteration order affects state mutation</em> (rare but real — auto-dispatch sweeps in Logistics are a candidate), iterate sorted keys.
+      </li>
+      <li>
+        <strong><code>Time.get_unix_time_from_system()</code>.</strong> Currently called in <code>save_manager.gd</code> for save metadata and (more dangerously) implicitly throughout via <code>_process(delta)</code> using wall-clock delta. Replace sim-relevant time with a game-tick counter advanced by the action pipe. Wall time stays only for save-list display sort.
+      </li>
+      <li>
+        <strong>Physics-based positioning.</strong> Vehicles already use fixed-tick movement (<code>_update_vehicles(delta)</code>) — verify under varied frame rates that integration is identical. <em>Likely fine but unverified.</em>
+      </li>
+    </ul>
+
+    <h3>9.2 Enforcement</h3>
+    <p>
+      <span class="pill q">Q</span> Per Q-A6: hard (assert) or soft (linter)? Recommendation: targeted asserts in the action pipe (every action either declares deterministic or routes through the seeded RNG; non-declared <code>randf()</code> in a manager hot path is an assert in debug builds). Plus a one-shot linter pass for the existing codebase.
+    </p>
+
+    <div class="callout">
+      <div class="callout-title">Determinism is a property of the action pipe, not every line</div>
+      UI animations, particle systems, sprite jitter — all the cosmetic stuff — can use <code>randf()</code> freely. <strong>Determinism applies to the simulation, not the presentation.</strong> The pipe is the boundary.
+    </div>
+  </section>
+
+  <section id="mod">
+    <h2>10. Modding Boundaries</h2>
+    <p>
+      The design docs assume heavy data-driven content (events, recipes, corps, contracts). Define the mod surface now so schema decisions don't paint themselves into a corner.
+    </p>
+
+    <table>
+      <thead><tr><th>Surface</th><th>File pattern</th><th>Stable for mods?</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Events</td><td><code>data/events/*.json</code></td><td>Yes (v1)</td><td>Trigger conditions + outcomes both data-driven</td></tr>
+        <tr><td>Recipes</td><td><code>data/recipes/*.json</code></td><td>Yes (v1)</td><td>Currently empty file; schema-defined when first recipe lands</td></tr>
+        <tr><td>Contracts</td><td><code>data/contracts/*.json</code></td><td>Yes (v1)</td><td>Templates; runtime instantiation by EventManager</td></tr>
+        <tr><td>Research nodes</td><td><code>data/research/*.json</code></td><td>Yes (v1)</td><td>Existing schema in <code>research_tree.json</code> works; split into per-corp files for moddability</td></tr>
+        <tr><td>Facilities</td><td><code>data/facilities.json</code></td><td>Yes, with caveats</td><td>Adding new facilities is safe; changing visual/sprite contracts may break</td></tr>
+        <tr><td>Machines</td><td><code>data/machines.json</code></td><td>Yes, with caveats</td><td>Same as facilities</td></tr>
+        <tr><td>Products</td><td><code>data/products.json</code></td><td>Yes</td><td>Pricing categories already live here</td></tr>
+        <tr><td>Corps</td><td><code>data/corps.json</code></td><td><strong>No</strong></td><td>Structure too coupled to per-corp manager logic; v1 is four corps, hardcoded</td></tr>
+        <tr><td>Utility types</td><td><code>data/utility_types.json</code></td><td><strong>No</strong></td><td>Network primitives — adding a new utility kind requires manager support</td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      <span class="pill set">SET</span> Ship slice-1 with the mod-stable surface schema-locked. Defer <em>tooling</em> (mod loader, mod manager UI, Workshop integration) but don't paint the schema into a non-moddable corner.
+    </p>
+  </section>
+
+  <section id="open">
+    <h2>11. Open Architectural Questions</h2>
+
+    <div class="qbox">
+      <div class="qbox-q">A1 — Is corp ownership immutable per-game, or can corps trade buildings?</div>
+      <div class="qbox-note">Recommend <strong>immutable for v1, tradable for v1.5+</strong>. Trade introduces vote-on-removal-of-shared-roads questions and complicates ownership UX. Ship without it; revisit when the four-corp loop is proven.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">A2 — Hot-seat single-machine vs multi-process from day 1?</div>
+      <div class="qbox-note">Recommend <strong>single-machine</strong> until the action pipe is proven (steps 1–4 of §7), then multi-process for testing pre-network. Multi-process from day 1 is over-engineering — the action pipe model holds either way, but local in-process is faster to iterate on.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">A3 — How does save merge across hot-seat sessions?</div>
+      <div class="qbox-note">Recommend <strong>one save per session, no merging</strong>. All four corps live in one save file. Hot-seat means swapping <code>active_corp_id</code>; the save is the whole world. Avoids a merge-conflict problem nobody asked for.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">A4 — Heat-map overlay texture resolution?</div>
+      <div class="qbox-note">Recommend <strong>per-tile, GPU-accelerated, profile first</strong>. The 50×50 grid is small enough that per-tile is cheap. If it isn't, per-2×2 blocks fall back well.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">A5 — Event engine triggers — pure conditional polling, or signal-driven via EventBus?</div>
+      <div class="qbox-note">Recommend <strong>signal-driven for facts already on the bus</strong> (drought conditions emitted by climate sim, money thresholds emitted by EconomyManager), <strong>polling only for derived facts not worth bus-ifying</strong> (e.g., "agri inventory of barley exceeds X for Y ticks" — that's polling). Hybrid wins; pure-signal would balloon the EventBus surface.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">A6 — Determinism enforcement — hard (assert) or soft (linter)?</div>
+      <div class="qbox-note">Recommend <strong>linter pass + targeted asserts in the action pipe</strong>. A full determinism audit slows feature work; pragma-style assertions in the action pipe catch the cases that actually break MP. Linter as a once-a-phase sanity sweep.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">A7 — Cross-corp routes: who owns a route from Agri silo to Industrial mill?</div>
+      <div class="qbox-note">Not explicitly raised in design docs but lands here. Recommend <strong>Logistics owns transport routes by default</strong> (per 2026-05-02 Q4 — "Logistics-owned reinforces cross-corp dependency"). Agri and Industrial buy capacity from Logistics; the route's <code>corp_id</code> is <code>logistics</code>. Direct Agri→Industrial routes (no Logistics involvement) become a v1.5 feature gated on negotiation UI.</div>
+    </div>
+  </section>
+
+  <section id="checklist">
+    <h2>12. Phase 8 Entry Checklist</h2>
+    <p>
+      Concrete items that, when done, mean Phase 8 is set up to start safely. Not a roadmap — a gate.
+    </p>
+
+    <div class="checklist">
+      <ul>
+        <li><code>CLAUDE.md</code> updated to point at design docs as forward-looking; explicit note that the Phase 7B "Alcohol Empire Tycoon" framing is historical.</li>
+        <li><code>DEVELOPMENT_STATUS.md</code> flagged as historical / archived. New status doc tracks Drinkustry phases.</li>
+        <li>This doc reviewed and signed off by Krista.</li>
+        <li>Decisions A1–A7 either resolved (recommendation accepted) or explicitly deferred with a note.</li>
+        <li><code>corp_id</code> field added to facility / machine / route / vehicle / contract entity dicts. <em>No behavior change yet</em> — the field exists, defaults to <code>"single"</code>, gets serialized.</li>
+        <li>Save schema v3 written (the new shape exists in code; migration not yet wired to the load path).</li>
+        <li>One-line <code>submit_action()</code> skeleton in <code>core/game_manager.gd</code> — accepts payload, calls into managers directly, no validation, no sequencing. Just the shape.</li>
+        <li>Per-corp money plumbing in <code>EconomyManager</code> — <code>money</code> becomes <code>money_by_corp</code>; existing call sites read via getter that picks active corp.</li>
+        <li>One determinism site fixed end-to-end as proof: pick the MarketManager <code>randf()</code> usages, route them through a seeded RNG, verify via load-save-load that prices replay identically.</li>
+      </ul>
+    </div>
+
+    <p>
+      When this checklist is done, Phase 8 starts on solid footing. Until it's done, every Phase 8 ticket risks tripping over an assumption that wasn't pinned.
+    </p>
+
+    <div class="callout success">
+      <div class="callout-title">The shape of Phase 8</div>
+      With this doc accepted, Phase 8 is not "build the four corps." It is <strong>build the ownership scaffolding plus the first new system (UtilityManager) and prove the action pipe holds at hot-seat scale</strong>. Per-corp signature mechanics start in Phase 9 once the scaffolding is load-bearing.
+    </div>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / butykos · technical architecture · 2026-05-07 · pairs with <a href="2026-04-30_design_summary.html">2026-04-30 design summary</a> · <a href="2026-05-01_gameplay_corps_production.html">2026-05-01 corps &amp; production</a> · <a href="2026-05-02_per_corp_v1_mechanics.html">2026-05-02 per-corp v1 mechanics</a>
+  </footer>
+
+</div>
+</body>
+</html>

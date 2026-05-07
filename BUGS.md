@@ -1,8 +1,10 @@
-# Known Bugs & Issues - Alcohol Empire Tycoon
+# Known Bugs & Issues — Alcohol Empire Tycoon (PRE-PIVOT SNAPSHOT)
 
-**Last Updated:** 2025-10-16
-**Current Branch:** dev
-**Phase:** Phase 5 Complete
+> **⚠️ STALE — Last updated 2025-10-16, before Phase 6/7/4F-H work AND before the May 2026 design pivot to Drinkustry.**
+>
+> Many "won't fix" items below are now resolved (save/load, static pricing, isometric grid math, facility upgrades) and many "high priority" items are no longer phased the same way. The "Won't Fix / By Design" section reflects the pre-pivot single-player frame.
+>
+> See `design_docs/` for current direction. Treat this file as a historical bug log, not as a current backlog.
 
 ---
 
@@ -17,18 +19,10 @@
 *Important bugs that affect gameplay but don't block development*
 
 ### Isometric Grid System
-- [ ] **Temporary 45° rotation** - Current implementation rotates camera/world by 45° instead of true isometric coordinate conversion
-  - **Impact:** Mouse input slightly imprecise, sprite artists need proper isometric specs
-  - **Fix:** Implement proper cart_to_iso() and iso_to_cart() functions
-  - **Planned:** Next development phase after Save/Load system
-  - **File:** `systems/world_manager.gd`, `scenes/world_map/world_map.gd`
+- [x] ~~**Temporary 45° rotation**~~ — RESOLVED. True `cart_to_iso()` / `iso_to_cart()` math now in `systems/world_manager.gd`. CLAUDE.md "Critical: Isometric Coordinate System" section is the current source of truth.
 
 ### Mouse Input
-- [ ] **Mouse position offset in rotated view** - Click position doesn't perfectly match grid tile in isometric view
-  - **Impact:** Placement feels slightly off, especially for larger facilities
-  - **Fix:** Implement proper isometric mouse coordinate conversion
-  - **Workaround:** Currently using rotated mouse position, good enough for testing
-  - **File:** `scenes/world_map/world_map.gd` (_input function)
+- [x] ~~**Mouse position offset in rotated view**~~ — RESOLVED with the proper isometric conversion above. (Note: factory-interior mouse picking has its own gotcha — use `get_viewport().get_mouse_position()` + canvas transform inverse, see CLAUDE.md gotcha #9.)
 
 ---
 
@@ -111,33 +105,13 @@
 ## ✅ Won't Fix (By Design / Planned Features)
 *Issues that are intentional limitations or planned features for later phases*
 
-### Incomplete Systems
-- **No save/load functionality** - SaveManager framework exists but not implemented
-  - **Status:** Planned for Phase 7A (next major development phase)
-  - **Impact:** Can't persist progress between sessions
-  - **File:** `core/save_manager.gd`
-
-- **Static product pricing** - All products have fixed prices, no supply/demand
-  - **Status:** Planned for Phase 6A (Market System)
-  - **Impact:** Limited economic gameplay
-  - **File:** `systems/production_manager.gd`
-
-- **No tutorial/onboarding** - New players have to figure out mechanics themselves
-  - **Status:** Planned for Phase 7D (Tutorial & Progression)
-  - **Impact:** Steep learning curve
-
-- **No multi-input recipes** - All production only uses single input type
-  - **Status:** Optional Phase 5C, may be added later
-  - **Impact:** Limited production complexity
-  - **File:** `data/recipes.json` (currently empty)
-
-- **No facility upgrades** - Can't improve existing facilities
-  - **Status:** Planned for Phase 6B (Upgrades & Research)
-  - **Impact:** Limited progression mechanics
-
-- **No AI competition** - Player has monopoly on all markets
-  - **Status:** Planned for Phase 9A (Competition & Markets)
-  - **Impact:** No competitive pressure
+### Incomplete Systems (pre-pivot list — many now obsolete or resolved)
+- ~~**No save/load functionality**~~ — RESOLVED Phase 7A. Multi-slot save/load, F5/F9 hotkeys, auto-save shipped. *(Schema gets bumped to v3 in new Phase 8 for per-corp partitions; see technical architecture doc.)*
+- ~~**Static product pricing**~~ — RESOLVED Phase 6A (`systems/market_manager.gd`). *(Reframed in pivot as Business-corp-owned spatial demand in new Phase 10.)*
+- ~~**No facility upgrades**~~ — RESOLVED Phase 6B/6C. 40-tech research tree shipped. *(Refactored to two-layer per-corp + shared in new Phase 8.)*
+- **No tutorial/onboarding** — still unresolved; deferred to post-Phase 12 in new roadmap.
+- **No multi-input recipes** — `data/recipes.json` still empty. The lager chain (Malt + Hops + Water) requires this; lands in new Phase 10 with Industrial corp signature work.
+- **No AI competition** — REFRAMED. Pivot is asymmetric **co-op**, not solo-vs-AI. AI failsafe for disconnects (D-16 in design summary) is the only AI-player code planned.
 
 ### Design Decisions
 - **Manual machine connections** - Not adjacency-based automatic connections

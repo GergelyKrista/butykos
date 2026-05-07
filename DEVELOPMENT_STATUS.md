@@ -1,8 +1,20 @@
-# Development Status - Alcohol Empire Tycoon
+# Development Status — Alcohol Empire Tycoon (PRE-PIVOT SNAPSHOT)
 
-**Last Updated:** 2026-01-21
-**Current Phase:** Phase 4F Complete - Node-Based Logistics & Farmhouse Fields ✅
-**Target:** 15-18 months to Early Access
+> **⚠️ ARCHIVED — This file is a snapshot of the pre-pivot single-player tycoon plan.**
+>
+> The project pivoted in May 2026 to **Drinkustry** (4-player asymmetric co-op cyberpunk megacorp tycoon). The roadmap below — Phase 6/7/8 priorities, "more facilities" (vineyard, hop farm), "AI competitors", multiplayer-as-Phase-9 — is **superseded**.
+>
+> For current direction read `design_docs/`:
+> - `2026-04-30_design_summary.html` — strategic pivot
+> - `2026-05-01_gameplay_corps_production.html` — slice-1 lager + four corps
+> - `2026-05-02_per_corp_v1_mechanics.html` — depth-bar rule
+> - `2026-05-07_technical_architecture.html` — engine retrofit + new Phase 8–12 plan
+>
+> This file is preserved as historical reference for **what was built** (still useful as a feature inventory of the pre-pivot codebase). Do not read it as guidance for what to build next.
+
+**Last Updated:** 2026-01-21 (pre-pivot)
+**Phase at pivot:** Phase 4F/4G/4H + 7B Complete
+**Status:** Code foundation; design has since pivoted (see banner above)
 
 ## 🎯 Project Vision
 

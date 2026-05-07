@@ -16,7 +16,13 @@
       "Read(//c/Users/gerge/AppData/Roaming/Godot/app_userdata/Butykos/saves/**)",
       "Bash(ls:*)",
       "Bash(identify:*)",
-      "Bash(file:*)"
+      "Bash(file:*)",
+      "Bash(magick:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(pip --version:*)",
+      "Bash(pip3:*)",
+      "Bash(gh pr create --base main --head dev --title \"Phase 6A: Market System and UI Improvements\" --body \"$\\(cat <<''EOF''\n## Summary\n- **Dynamic Market System**: Prices fluctuate ±30% based on market trends and player sales\n- **Contract System**: Auto-generated delivery contracts with bonus rewards\n- **Market UI Panel**: View prices, trends, and active contracts in-game\n- **Main Menu Redesign**: Background image with clean text-only buttons and hover effects\n- **Camera Fix**: Scrolling in UI panels no longer zooms the map\n\n## Changes\n### New Files\n- `systems/market_manager.gd` - MarketManager singleton for dynamic pricing\n\n### Modified Files\n- `core/save_manager.gd` - Save/load market state\n- `project.godot` - Add MarketManager autoload\n- `systems/production_manager.gd` - Use dynamic prices from MarketManager\n- `scenes/world_map/world_map.gd` - Market panel UI logic\n- `scenes/world_map/world_map.tscn` - Market panel and button nodes\n- `scenes/world_map/camera_controller.gd` - Block zoom over UI panels\n- `scenes/ui/main_menu.tscn` - New background and button styling\n\n### Assets\n- `assets/sprites/generated/Gemini_Generated_Image_menubackground.png` - Menu background\n\n## Test plan\n- [ ] Start new game, open Market Prices panel - verify prices display with trends\n- [ ] Wait 10+ seconds, verify prices update and panel refreshes\n- [ ] Sell products, verify supply pressure affects prices\n- [ ] Wait 60 seconds, verify contract appears in market panel\n- [ ] Scroll in market/production panels - verify map doesn''t zoom\n- [ ] Save and load game - verify market state persists\n- [ ] Check main menu styling with background image\n\n🤖 Generated with [Claude Code]\\(https://claude.ai/code\\)\nEOF\n\\)\")",
+      "Bash(where gh:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,13 +2,28 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **⚠️ DESIGN PIVOT — READ FIRST**
+>
+> The project pivoted in May 2026 from a **single-player alcohol tycoon** to **Drinkustry**: a 4-player asymmetric co-op cyberpunk-megacorp tycoon. The pivot is **additive on top of the existing Phase 7B+ codebase** — no rewrite. The architecture, coordinate system, and code conventions in this file are still accurate. The roadmap, "next priorities", phase numbering, and content scope are **not**.
+>
+> **For forward-looking direction, read `design_docs/` in this order:**
+> 1. `2026-04-30_design_summary.html` — strategic pivot, four corps, shared+per-corp tech, Phase 8–12 roadmap
+> 2. `2026-05-01_gameplay_corps_production.html` — slice-1 lager chain, 11 starting buildings across corps
+> 3. `2026-05-02_per_corp_v1_mechanics.html` — depth-bar rule (brewery interior is the bar)
+> 4. `2026-05-07_technical_architecture.html` — engine retrofit: ownership layer, MP architecture, refactor ordering, Phase 8 entry checklist
+>
+> `DEVELOPMENT_STATUS.md` describes the **pre-pivot** state (Phase 4F/4G/4H + 7B). Treat it as a snapshot of where the code is, not where it's going.
+
 ## Project Overview
 
-**Alcohol Empire Tycoon** - OTTD-inspired business tycoon game built in Godot 4.2
-- **Theme:** Build and manage an alcohol production empire (beer, spirits, wine)
-- **Dual-layer gameplay:** Strategic world map + Tactical factory interiors
-- **Engine:** Godot 4.2 with GDScript
-- **Status:** Phase 7A Complete - Save/Load System fully functional
+**Drinkustry** (working title; codebase still named `butykos`) — Godot 4.2 dual-layer tycoon
+- **Theme:** Cyberpunk-megacorp (reskin of alcohol-production base; mechanics theme-agnostic)
+- **Mode:** 4-player asymmetric co-op (v1). Solo deferred. Networking is the **last** phase, not the first — hot-seat single-machine prototype validates the design first.
+- **Four corps:** Agricultural, Industrial, Logistics, Business/Marketing — each with a signature mechanic that must hit the depth bar set by the existing brewery factory interior.
+- **Slice-1 chain:** Lager beer only (Malt+Hops+Water → Lager). Spirits, packaging, wine deferred to slice-2+.
+- **Dual-layer gameplay:** Strategic isometric world map + tactical orthogonal factory interiors (preserved from pre-pivot codebase).
+- **Engine:** Godot 4.2 with GDScript.
+- **Code status:** Phase 7B complete + Phase 4F/4G/4H (node-based logistics, farmhouse fields, roads) + research tree + market system. Design pivoted; code starts Phase 8 (consolidate + tech-tree refactor) per the technical architecture doc.
 
 ## Running the Project
 
@@ -294,48 +309,68 @@ var world_pos = cart_to_iso(center_grid_pos)
 
 ## Next Development Priorities
 
-Based on `DEVELOPMENT_STATUS.md`:
+> Superseded by the design pivot. The list below is the **current** roadmap; the old `DEVELOPMENT_STATUS.md` plan (vineyard / hop farm / wine / AI competitors) is historical.
 
-**Phase 6A - Market System (HIGH PRIORITY, 2-3 hours):**
-- Dynamic pricing based on supply/demand
-- Price fluctuations over time
-- Market trends and cycles
-- Contract system
+**Phase 8 — Consolidate + tech-tree refactor:**
+- Add `corp_id` ownership field to facility/machine/route/vehicle entities
+- Save schema v3 with per-corp partitions + migration from existing saves
+- `submit_action(corp_id, action_type, payload)` skeleton in `GameManager` — wraps mutations, becomes the network-boundary later
+- Two-layer tech tree: existing 40 nodes migrate to `tier: "corp_internal"` distributed across four corps; add `tier: "shared"` layer for cross-corp research
 
-**Phase 7C - Remaining UI/UX (2-3 hours):**
-- Route management UI (pause, delete, stats)
-- Resource flow visualization (animated particles)
-- Mini-map for world view
+**Phase 9 — Art look-dev (parallel to mechanic work):**
+- Cyberpunk palette + key art for four corps
+- Four second-layer visual modes (Agri overlay, Industrial interior — shipped, Logistics route graph, Business demand/integrity board)
 
-**Phase 8 - More Content (2-4 hours):**
-- More facility types (vineyard, hop farm, water source)
-- More machine types (conveyor belt, aging barrel, quality control)
-- More product chains (wine, premium whiskey, multiple beer types)
+**Phase 10 — Asymmetric corp scaffold (single machine, hot-seat):**
+- Per-corp build menus and permission gating
+- Industrial signature already shipped (brewery interior)
+- Agri irrigation network (extends Logistics graph; new `network_kind`)
+- Logistics OpenTTD-grade route/depot system + catchment radius rule
+- Business demand model (settlement tiers, sales outlets read spatial demand)
+
+**Phase 11 — Cross-corp tension (still hot-seat):**
+- Utilities: water + sewage + power (one `UtilityManager`, three named graphs)
+- Pollution-shrinks-suitable-land overlay
+- Shared credits + multi-source spend on the shared tech tier
+- Narrative event engine (~30 events: shared / corp-exclusive / cross-corp; feeds Business contracts)
+- Espionage/integrity layer for Business
+
+**Phase 12 — Networked MP:**
+- Networking glue on top of the action pipe established in Phase 8
+- Lockstep on tick boundary, host as authority
+
+See `design_docs/2026-05-07_technical_architecture.html` for the full refactor ordering, ownership-layer design, and decision log.
 
 ## Current Game Status
 
-### Content Metrics
-- **Facilities:** 7 (Barley Field, Wheat Farm, Grain Mill, Brewery, Distillery, Packaging Plant, Storage Warehouse)
-- **Products:** 14 (raw materials through finished products with pricing)
+> Snapshot of the **pre-pivot** code. Everything below describes what's *built*, not what slice-1 of Drinkustry actually ships. Several systems will be subtracted or reframed (e.g., distillery + packaging plant are post-slice-1; static auto-sell becomes spatial demand).
+
+### Content Metrics (pre-pivot baseline)
+- **Facilities:** 10+ (incl. farmhouses, fields, roads added Phase 4F-H)
+- **Products:** 14 (raw materials through finished products)
 - **Machines:** 13 (including special IO nodes and Market Outlet)
-- **Production Chains:** 4 complete chains working
+- **Production Chains:** 4 complete (beer / premium beer / spirits foundation / storage-buffered)
+- **Research:** 40-tech tree, 8 branches × 5 tiers
+- **Slice-1 retains:** lager beer chain only. Other chains carried forward as code; gated as post-slice-1 content.
 
-### System Completion
-- Core Architecture: 100% ✅
-- World Map Layer: 100% ✅ (sprites, routes, vehicles, demolish, tooltips)
-- Factory Interior: 98% ✅ (connections, production, sprites, demolish)
-- Logistics: 95% ✅
+### System Completion (pre-pivot)
+- Core Architecture: 100% ✅ — singletons + EventBus pattern, used as foundation for ownership layer
+- World Map Layer: 100% ✅ (sprites, routes, vehicles, demolish, tooltips, fields, roads)
+- Factory Interior: 98% ✅ — **this is the depth bar** other corps must match
+- Logistics: 100% ✅ (node-based network UI, multi-vehicle dispatch) — extended in Phase 10 with catchment radius
 - Production: 95% ✅
-- Economy: 90% ✅
-- UI/UX: 80% ✅ (stats panel, tooltips, mode indicators, demolish, save/load UI)
-- Save/Load: 100% ✅ (multiple slots, persistence, hotkeys)
+- Economy: 95% ✅ (market manager with dynamic pricing exists; reframed as Business-corp-owned in Phase 10)
+- Research: 100% ✅ (single-layer tree; refactored to two-layer in Phase 8)
+- Save/Load: 100% ✅ (single-player schema v2; v3 with per-corp partitions in Phase 8)
 
-### Known Limitations
-- Static pricing (no supply/demand) - Phase 6A
-- No tutorial/onboarding - Phase 7D
-- No multi-input recipes (can add in Phase 5C)
-- Route management UI incomplete (pause, delete routes)
-- No mini-map for navigation
+### Known Gaps vs. New Direction
+- No corp-ownership layer on entities (Phase 8)
+- No utilities (water/power/sewage) — entirely new (Phase 11)
+- No catchment-radius rule — current routes are direct-connect (Phase 10)
+- No spatial demand model — sales auto-sell at flat prices (Phase 10)
+- No narrative event engine, no espionage/integrity (Phase 11)
+- Networking deliberately last (Phase 12)
+- No tutorial/onboarding (post-Phase 12)
 
 ### Recent Improvements (Phase 7A & 7B Complete)
 **Phase 7A - Save/Load System:**
