@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Aging, Storage &amp; Market Speculation (2026-05-07)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --bad: #ff6b6b;
+    --agri: #7ee787;
+    --industrial: #f0883e;
+    --logistics: #4cc2ff;
+    --business: #ff6ec7;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 40px; }
+  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  h3 { font-size: 18px; margin: 32px 0 12px; font-weight: 600; }
+  h4 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 40px; }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout.scratch { border-left-color: var(--accent-2); }
+  .callout.danger { border-left-color: var(--bad); }
+  .callout-title { font-weight: 600; margin-bottom: 6px; color: #fff; }
+
+  .corp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; border-top: 3px solid var(--accent); margin: 20px 0; }
+  .corp-card.agri { border-top-color: var(--agri); }
+  .corp-card.industrial { border-top-color: var(--industrial); }
+  .corp-card.logistics { border-top-color: var(--logistics); }
+  .corp-card.business { border-top-color: var(--business); }
+  .corp-card h3 { margin-top: 0; }
+  .corp-tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: var(--surface-2); color: var(--text-dim); margin-bottom: 8px; }
+  .corp-card.agri .corp-tag { color: var(--agri); }
+  .corp-card.industrial .corp-tag { color: var(--industrial); }
+  .corp-card.logistics .corp-tag { color: var(--logistics); }
+  .corp-card.business .corp-tag { color: var(--business); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+  th { background: var(--surface-2); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .pill { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  .pill.tbd { color: var(--warn); border-color: rgba(240,180,41,0.3); }
+  .pill.seed { color: var(--accent-3); border-color: rgba(126,231,135,0.3); }
+  .pill.q { color: var(--accent-2); border-color: rgba(255,110,199,0.3); }
+  .pill.set { color: var(--accent); border-color: rgba(76,194,255,0.3); }
+  .pill.bad { color: var(--bad); border-color: rgba(255,107,107,0.3); }
+
+  .loop { display: grid; gap: 8px; margin: 16px 0; }
+  .loop-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
+  .loop-stage { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .loop-body { font-size: 14px; }
+  .arrow { color: var(--text-dim); font-family: var(--mono); }
+
+  .qbox { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
+  .qbox-q { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .qbox-note { font-size: 13px; color: var(--text-dim); }
+
+  .principle { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin: 10px 0; }
+  .principle-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+
+  .curve-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 20px 0; }
+  .curve-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .curve-card h4 { margin-top: 0; color: #fff; text-transform: none; letter-spacing: 0; font-size: 15px; }
+  .curve-card.flat { border-left: 3px solid var(--text-dim); }
+  .curve-card.short { border-left: 3px solid var(--accent); }
+  .curve-card.positive { border-left: 3px solid var(--accent-3); }
+  .curve-card.steep { border-left: 3px solid var(--warn); }
+  .curve-card.negative { border-left: 3px solid var(--bad); }
+  .curve-shape { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+
+  .ascii-curve { font-family: var(--mono); font-size: 12px; color: var(--text-dim); white-space: pre; line-height: 1.2; margin: 8px 0; padding: 8px 10px; background: var(--surface-2); border-radius: 4px; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+    .loop-row { grid-template-columns: 1fr; }
+  }
+
+  footer.doc-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Strategic Layer Brainstorm</div>
+    <h1>Aging, Storage &amp; Market Speculation</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      A spinout from the cider doc. As more drinks come online, the question of <em>when</em> to sell becomes as important as <em>what</em> to make. Aging gives the business player a real time-shift mechanic, gives logistics a real capacity question, gives industrial a new building family, and pairs cleanly with the events pillar. This doc is generative — open questions outnumber decisions on purpose.
+    </p>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">2026-05-07</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">Drinkustry / butykos</div></div>
+      <div class="meta-item"><div class="meta-label">Doc Type</div><div class="meta-value">Strategic-layer brainstorm · early</div></div>
+      <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">First pass — open for shaping</div></div>
+      <div class="meta-item"><div class="meta-label">Authors</div><div class="meta-value">Ambrus &amp; Claude</div></div>
+      <div class="meta-item"><div class="meta-label">Predecessors</div><div class="meta-value">2026-05-01 corps · 2026-05-07 cider</div></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#purpose">Purpose &amp; Method</a></li>
+      <li><a href="#real">Real-World Aging — What's Actually True</a></li>
+      <li><a href="#core">The Core Loop — Sell Now, or Hold for the Curve</a></li>
+      <li><a href="#curves">Aging Curves Per Drink Type</a></li>
+      <li><a href="#buildings">Storage Buildings &amp; Spatial Layer</a></li>
+      <li><a href="#corps">What Each Corp Does in the Aging Layer</a></li>
+      <li><a href="#risk">Risk, Spoilage &amp; Event Hooks</a></li>
+      <li><a href="#why">Why This Belongs in v1+ (and What it Unlocks)</a></li>
+      <li><a href="#open">Open Questions</a></li>
+      <li><a href="#scratch">Scratch / Parking Lot</a></li>
+      <li><a href="#references">References</a></li>
+    </ol>
+  </nav>
+
+  <section id="purpose">
+    <h2>1. Purpose &amp; Method</h2>
+    <p>
+      The cider doc flagged aging as a possible variety axis ("timer change") and the wine entry parked aging as "the entire game later." This doc pulls aging out as its own design surface because:
+    </p>
+    <ul>
+      <li>Half the drinks the project will eventually want involve real aging (lagering, barrel-aged stout, traditional cider, wine, all spirits).</li>
+      <li>Aging is the natural source of a <strong>time-shift / speculation</strong> mechanic — the kind of meta-decision a tycoon game lives or dies on.</li>
+      <li>It touches all four corps simultaneously, so it doesn't fit cleanly inside any single chain doc.</li>
+      <li>It pairs naturally with narrative events (fire, regulation, market crash) — multiplying the value of both.</li>
+    </ul>
+
+    <div class="callout">
+      <div class="callout-title">The driving question</div>
+      <em>If the business player can choose to hold a batch instead of selling it, and the value of that held batch changes over time differently for every drink — what does that decision feel like, who else is involved in making it, and what fails if we don't get it right?</em>
+    </div>
+
+    <h3>Working assumption</h3>
+    <p>
+      Aging is <strong>not v1</strong> for the lager slice. It probably arrives somewhere between cider (slice 2) and wine (slice 3+), as the second drink makes "which to ship now / which to hold" a meaningful question. The lager slice should leave hooks for it; this doc is what those hooks should anticipate.
+    </p>
+  </section>
+
+  <section id="real">
+    <h2>2. Real-World Aging — What's Actually True</h2>
+    <p>A reality check before designing on top. Quick reference of which drinks actually benefit from holding.</p>
+
+    <table>
+      <thead><tr><th>Drink</th><th>Aging in real life</th><th>Game implication</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Lager / Pilsner</strong></td>
+          <td>"Lagering" — cold conditioning, weeks to months. Mandatory part of the style.</td>
+          <td>Short, required aging step; not really a speculation lever — built into the chain timer.</td>
+        </tr>
+        <tr>
+          <td><strong>Standard ale / IPA</strong></td>
+          <td>Best fresh. IPA hop aroma actively fades over months.</td>
+          <td>IPA's aging curve is <em>negative</em> — speculative holding punishes the player. Strong asymmetry.</td>
+        </tr>
+        <tr>
+          <td><strong>Porter / Stout</strong></td>
+          <td>Standard versions modest benefit. Imperial stouts age beautifully.</td>
+          <td>Two sub-curves on the same chain — design hook for "regular vs imperial."</td>
+        </tr>
+        <tr>
+          <td><strong>Sour / Lambic</strong></td>
+          <td>Open fermentation, long aging in oak — months to years.</td>
+          <td>Best aging curve in beer. Pairs with the event-driven flag from the cider doc.</td>
+        </tr>
+        <tr>
+          <td><strong>Modern industrial cider</strong></td>
+          <td>Sold fresh, like commodity beer.</td>
+          <td>Flat aging curve. Sell now.</td>
+        </tr>
+        <tr>
+          <td><strong>Traditional / barrel-aged cider</strong></td>
+          <td>Months in barrel or bottle. Ice cider, keeved cider, whisky-barrel cider all real.</td>
+          <td>Strong positive curve. Premium product tier.</td>
+        </tr>
+        <tr>
+          <td><strong>Wine</strong></td>
+          <td>Aging is the entire identity of the product — months to decades.</td>
+          <td>Aging is the chain. Wine should not ship before the aging system does.</td>
+        </tr>
+        <tr>
+          <td><strong>Spirits (whiskey, brandy, calvados)</strong></td>
+          <td>Legally cannot be sold under minimum aging in most categories.</td>
+          <td>Aging is mandatory output gate, not optional speculation.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="callout-title">Three flavors of aging, mechanically</div>
+      Real-world aging maps to three game roles: (1) <strong>required maturation</strong> built into the chain timer (lagering, spirit minimum aging); (2) <strong>optional speculation</strong> on a positive curve (barrel cider, imperial stout, sours); (3) <strong>negative aging</strong> that punishes holding (IPA, fresh ales). All three should exist — the asymmetry is the design.
+    </div>
+  </section>
+
+  <section id="core">
+    <h2>3. The Core Loop — Sell Now, or Hold for the Curve</h2>
+    <p>
+      The base mechanic is small. A finished batch arrives at a junction: it can route to a <strong>sales outlet</strong> (sells now at current market price) or to a <strong>storage building</strong> (sits in capacity until released). Released batches carry a value modifier from their aging curve, which the sales outlet honors.
+    </p>
+
+    <div class="loop">
+      <div class="loop-row"><div class="loop-stage">Step 1 · Industrial</div><div class="loop-body">Batch finishes brewing → arrives at building output bay</div></div>
+      <div class="loop-row"><div class="loop-stage">Step 2 · Logistics</div><div class="loop-body">Truck routes the batch — destination chosen via a <strong>per-batch flag</strong> set by business: <em>sell now</em> or <em>send to storage</em></div></div>
+      <div class="loop-row"><div class="loop-stage">Step 3a · Sell</div><div class="loop-body">Delivered to sales outlet at current price. Done.</div></div>
+      <div class="loop-row"><div class="loop-stage">Step 3b · Hold</div><div class="loop-body">Delivered to <strong>cellar / warehouse / barrel store</strong>. Occupies a slot. Aging timer starts; value modifier rises (or falls, for IPA-style) along the drink's curve.</div></div>
+      <div class="loop-row"><div class="loop-stage">Step 4 · Release</div><div class="loop-body">Business decides when to release. Logistics picks up from storage → sales outlet at the modified price.</div></div>
+    </div>
+
+    <h3>The decision the business player is actually making</h3>
+    <ul>
+      <li><strong>Read the aging curve</strong> for this drink — when does the value plateau? When does it peak?</li>
+      <li><strong>Read the market forecast</strong> — will demand be higher next season? Lower?</li>
+      <li><strong>Read the storage budget</strong> — is the cellar full? Is logistics squeezed by harvest pulses elsewhere?</li>
+      <li><strong>Read the risk</strong> — has the events feed flagged anything that could cost the held inventory?</li>
+    </ul>
+
+    <p style="color: var(--text-dim); font-size: 13px;">
+      <em>This is the first mechanic where the business player has a real, recurring, spatial decision that isn't "place an outlet" — and it's a decision logistics has to honor and industrial has to provision for.</em>
+    </p>
+
+    <div class="callout success">
+      <div class="callout-title">Why this is small and big at the same time</div>
+      Mechanically: one new building family, one new per-batch flag, one curve table. Strategically: it changes how every other system gets played, because now "we made too much" isn't necessarily a problem and "demand is low this season" isn't necessarily a crisis.
+    </div>
+  </section>
+
+  <section id="curves">
+    <h2>4. Aging Curves Per Drink Type</h2>
+    <p>
+      Five curve archetypes. Every drink in the project should slot into one of these, possibly with parameter tweaks. Real curves can be tuned later; the archetypes are the design vocabulary.
+    </p>
+
+    <div class="curve-grid">
+      <div class="curve-card flat">
+        <div class="curve-shape">Flat</div>
+        <h4>Sell Fresh</h4>
+        <div class="ascii-curve">value
+ 1 ──────────
+   │
+ 0 └──────────► time</div>
+        <p style="font-size: 13px; color: var(--text-dim); margin: 0;">Modern cider, standard ale. No reason to hold.</p>
+      </div>
+
+      <div class="curve-card short">
+        <div class="curve-shape">Short required</div>
+        <h4>Mandatory Maturation</h4>
+        <div class="ascii-curve">value
+ 1     ──────
+   │  ╱
+ 0 └─╱────────► time
+   ↑ release gate</div>
+        <p style="font-size: 13px; color: var(--text-dim); margin: 0;">Lager, pilsner, all spirits. Cannot ship before the gate. Built into chain timer, not a player choice.</p>
+      </div>
+
+      <div class="curve-card positive">
+        <div class="curve-shape">Slow positive</div>
+        <h4>Patience Pays</h4>
+        <div class="ascii-curve">value
+ 2     ╭──────
+   │  ╱
+ 1 ──╯
+   │
+ 0 └──────────► time</div>
+        <p style="font-size: 13px; color: var(--text-dim); margin: 0;">Barrel cider, porter, standard stout. Modest premium for holding through the curve. Plateaus.</p>
+      </div>
+
+      <div class="curve-card steep">
+        <div class="curve-shape">Steep positive</div>
+        <h4>Long-Aged Premium</h4>
+        <div class="ascii-curve">value
+ 4         ╭──
+   │      ╱
+ 2     ╭─╯
+   │  ╱
+ 1 ──╯
+ 0 └──────────► time</div>
+        <p style="font-size: 13px; color: var(--text-dim); margin: 0;">Imperial stout, lambic, wine, aged spirits. High ceiling, long horizon. Storage capacity is the real cost.</p>
+      </div>
+
+      <div class="curve-card negative">
+        <div class="curve-shape">Negative</div>
+        <h4>Stale Punishment</h4>
+        <div class="ascii-curve">value
+ 1 ──╮
+   │  ╲
+   │   ╲___
+ 0 └──────────► time</div>
+        <p style="font-size: 13px; color: var(--text-dim); margin: 0;">IPA, fresh ales. Holding loses money. Forces business to actually decide instead of always-hold.</p>
+      </div>
+
+      <div class="curve-card positive">
+        <div class="curve-shape">Peak then decay</div>
+        <h4>Drink-By Window</h4>
+        <div class="ascii-curve">value
+ 2     ╭╮
+   │  ╱  ╲
+ 1 ──╯    ╲___
+ 0 └──────────► time</div>
+        <p style="font-size: 13px; color: var(--text-dim); margin: 0;">Some traditional ciders, certain wines past peak. Hold too long and the gain reverses — strongest skill expression.</p>
+      </div>
+    </div>
+
+    <p style="color: var(--text-dim); font-size: 13px;">
+      <em>Curve archetypes shouldn't be hidden information. The business player should see the curve for any drink they're considering — the skill is reading the market and storage situation against a known curve, not memorising hidden values.</em>
+    </p>
+  </section>
+
+  <section id="buildings">
+    <h2>5. Storage Buildings &amp; Spatial Layer</h2>
+    <p>
+      Aging is spatial — it occupies finite slots in physical buildings on the map. This is what gives logistics a stake (capacity routing) and grounds the speculation in something the players can see.
+    </p>
+
+    <h3>Building family <span class="pill seed">SEED</span></h3>
+    <table>
+      <thead><tr><th>Building</th><th>Capacity</th><th>Curve modifier</th><th>Utility needs</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Cold cellar</strong></td>
+          <td>Medium</td>
+          <td>Suits short-required &amp; flat-positive</td>
+          <td>Power (refrigeration)</td>
+          <td>The lager-conditioning building. Cheap, efficient, low ceiling.</td>
+        </tr>
+        <tr>
+          <td><strong>Barrel store</strong></td>
+          <td>Small per slot, oak barrels</td>
+          <td>Boost steep-positive curves</td>
+          <td>Climate-stable, low power</td>
+          <td>The stout / sour / spirit aging building. Barrels themselves may be a consumable resource <span class="pill q">Q</span>.</td>
+        </tr>
+        <tr>
+          <td><strong>Bottle warehouse</strong></td>
+          <td>Large</td>
+          <td>Flat or slow-positive only</td>
+          <td>Minimal</td>
+          <td>Bulk holding for finished, packaged inventory. The "hold for next season" building.</td>
+        </tr>
+        <tr>
+          <td><strong>Wine cellar (later)</strong></td>
+          <td>Medium</td>
+          <td>Boost peak-then-decay; long timers</td>
+          <td>Climate-stable</td>
+          <td>Wine-doc territory. Listed for completeness.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>What this gives logistics</h3>
+    <ul>
+      <li><strong>Routing decisions per batch</strong> — output bay → sales outlet vs output bay → storage building.</li>
+      <li><strong>Capacity tetris</strong> — storage buildings are finite; full storage means batches back up at the brewery.</li>
+      <li><strong>A reason to expand the network</strong> — multiple storage buildings, dedicated routes between them.</li>
+    </ul>
+
+    <h3>What this gives industrial</h3>
+    <ul>
+      <li>A new building family that isn't a brewery — broadens the corp's spatial vocabulary.</li>
+      <li>Power demand spike (cold cellars, refrigerated warehouses) — couples to logistics' power network.</li>
+      <li>(Later) <strong>barrel production</strong> as its own minor industrial chain — wood input, cooperage building, barrels feed storage. Optional depth knob.</li>
+    </ul>
+
+    <div class="callout">
+      <div class="callout-title">The "barrel as consumable" question</div>
+      Real barrels age out (the wood imparts less character with each fill). Treating barrels as a slowly-degrading consumable creates a nice secondary loop: agri grows wood → industrial cooperage builds barrels → barrels populate barrel stores → barrels eventually deplete and need replacing. <strong>Probably too much for slice 2/3.</strong> Park as a slice-N depth lever once base aging is shipped.
+    </div>
+  </section>
+
+  <section id="corps">
+    <h2>6. What Each Corp Does in the Aging Layer</h2>
+    <p>
+      The reason this doc exists as its own page: every corp does something here. Aging isn't a business-corp feature with logistics overhead; it's a four-corp interaction.
+    </p>
+
+    <div class="corp-card agri">
+      <div class="corp-tag">Corp 01 · Agricultural</div>
+      <h3>Indirect, but felt.</h3>
+      <ul>
+        <li>Held inventory means industrial draws less from the silo this season — agri's offtake becomes lumpy.</li>
+        <li>Specialty inputs (oats, special hops, specific apple cultivars) become more valuable when they feed long-aging premium drinks. Agri's planting plan shifts.</li>
+        <li>(Later) Wood/forest plantations feed cooperage if barrels become consumable.</li>
+      </ul>
+    </div>
+
+    <div class="corp-card industrial">
+      <div class="corp-tag">Corp 02 · Industrial</div>
+      <h3>Builds the storage. Decides what to make for aging.</h3>
+      <ul>
+        <li>Places cellars, barrel stores, warehouses on the strategic map. New building silhouettes.</li>
+        <li>Brewery output schedule no longer "brew → ship" — now "brew → tag for hold or sell."</li>
+        <li>Recipe choices start to interact with aging: brewing imperial stout only makes sense if storage is ready.</li>
+        <li>Power demand grows for refrigerated storage. Couples to logistics' power network.</li>
+      </ul>
+    </div>
+
+    <div class="corp-card logistics">
+      <div class="corp-tag">Corp 03 · Logistics</div>
+      <h3>Routes batches. Manages capacity tetris.</h3>
+      <ul>
+        <li>Per-batch routing to outlet or storage. The route node graph carries an extra flag per cargo.</li>
+        <li>Storage capacity is finite — when full, batches back up. Logistics has to negotiate with industrial about what to age.</li>
+        <li>Surge planning: a held batch released for sale needs trucks <em>now</em>, on top of normal flow.</li>
+      </ul>
+    </div>
+
+    <div class="corp-card business">
+      <div class="corp-tag">Corp 04 · Economic / Marketing</div>
+      <h3>The corp this mechanic was built for.</h3>
+      <ul>
+        <li>Sets the per-batch flag — sell now, or send to storage.</li>
+        <li>Reads the aging curves and the market forecast; decides release timing per held batch.</li>
+        <li>Aged inventory can be marketed as a <strong>premium SKU</strong> at a different sales outlet ("Reserve" / "Cask" / "Aged X"). Direct hook to ad-campaign and brand-building features.</li>
+        <li>Speculation on bulk orders: "Government wants 200 crates of 3-year stout in two seasons" — a contract that requires committing storage <em>now</em>.</li>
+        <li>Inter-player loans take on new meaning: "lend me credits, my warehouse releases in 2 seasons."</li>
+      </ul>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Co-op pressure points this creates</div>
+      <ul style="margin-bottom: 0;">
+        <li><strong>Industrial vs Business:</strong> "stop brewing imperial stout, the warehouse is full" — real disagreement, real conversation.</li>
+        <li><strong>Logistics vs Business:</strong> "every truck I have is hauling held inventory you're releasing" — surge events.</li>
+        <li><strong>Agri vs Business:</strong> "you contracted me to grow specialty oats but you're sitting on the stout" — supply pacing.</li>
+        <li><strong>All vs events:</strong> "the warehouse just caught fire and three years of stout is gone" — collective loss, collective decisions about insurance / redundancy.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="risk">
+    <h2>7. Risk, Spoilage &amp; Event Hooks</h2>
+    <p>
+      Holding inventory must carry risk, or the optimal play is "always hold everything that has a positive curve." Risk is what makes the speculation a real decision.
+    </p>
+
+    <h3>Continuous risk (always present)</h3>
+    <ul>
+      <li><strong>Spoilage</strong> — small ongoing chance a slot loses its batch. Higher in poorly-maintained storage; lower in proper cellars.</li>
+      <li><strong>Opportunity cost</strong> — credits tied up in held inventory aren't earning. The business player feels this implicitly through cashflow.</li>
+      <li><strong>Capacity cost</strong> — every full slot is a slot the next batch can't use.</li>
+    </ul>
+
+    <h3>Event-driven risk (narrative events) <span class="pill seed">SEED</span></h3>
+    <ul>
+      <li><strong>Fire / disaster</strong> — full or partial loss of a storage building. Higher stakes the longer the held curves.</li>
+      <li><strong>Regulatory seizure</strong> — government fault flagging a batch (contamination claim, tax dispute) for a season. Pairs with the regulatory-pressure pillar.</li>
+      <li><strong>Market crash</strong> — demand for premium aged products drops; the curve flattens or inverts mid-hold.</li>
+      <li><strong>Espionage</strong> — rival corp action contaminates or leaks a held batch. Cyberpunk-flavored sabotage hook.</li>
+      <li><strong>Boom</strong> — the inverse: regional event spikes demand for aged stock specifically. Players who held look prescient; players who sold early look unlucky.</li>
+    </ul>
+
+    <div class="callout danger">
+      <div class="callout-title">Risk has to bite, but not too hard</div>
+      If aging is "free with one rare disaster," everyone always ages. If aging is "high disaster rate," nobody ages. The tuning sweet spot is somewhere players feel ~5–15% of held value evaporate to risk over a long campaign — present enough to weigh, not so much it dominates. Numbers are speculative; this needs playtest.
+    </div>
+  </section>
+
+  <section id="why">
+    <h2>8. Why This Belongs in v1+ (and What It Unlocks)</h2>
+    <p>
+      Not v1 (the lager slice doesn't need it). But the project should commit to it as the next-tier strategic layer, because it unlocks several things at once:
+    </p>
+
+    <ul>
+      <li><strong>Business gets a real decision loop.</strong> Without aging, business is "place an outlet, set the income split, watch credits arrive." With aging, business is reading curves, making timing calls, negotiating with logistics — exactly the active spatial role the 2026-04-30 doc said this corp needs.</li>
+      <li><strong>Wine and spirits become possible to build.</strong> Both depend entirely on aging. The infrastructure shipped here is the infrastructure those drinks need.</li>
+      <li><strong>Events become higher-stakes.</strong> A fire that destroys a half-grown barley field is annoying. A fire that destroys 3 years of imperial stout is a campaign moment.</li>
+      <li><strong>Corp sub-types get real anchors.</strong> "Heritage Co-op" agri, "Luxury Brand" business, "Refinery Specialist" industrial — these emergent identities need <em>actual mechanics</em> that reward the specialty. Aging is one of the strongest such mechanics: a player committed to aged premium products plays differently from a mass-market player.</li>
+      <li><strong>The shared tech tree gets weight.</strong> Storage tier upgrades, climate-control tech, barrel quality, market-forecast accuracy — natural shared-tree branches that all four corps care about.</li>
+    </ul>
+
+    <div class="callout success">
+      <div class="callout-title">The bigger frame</div>
+      Aging isn't a feature; it's the strategic layer the project has been pointing at without naming. The 2026-04-30 doc said business needs spatial presence. The 2026-05-02 memo said "menu player risk" for business. The events memo said events need stakes. Aging answers all three at once.
+    </div>
+  </section>
+
+  <section id="open">
+    <h2>9. Open Questions</h2>
+
+    <div class="qbox">
+      <div class="qbox-q">Q1. Per-batch granularity, or per-route default?</div>
+      <div class="qbox-note">Per-batch: business flags every batch individually — high control, high UI cost. Per-route default: brewery output route is "60% to outlet, 40% to cellar" — lower control, lower UI cost. Hybrid is probably the answer (default split + override per batch).</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q2. Are aging curves visible to the player, or hidden?</div>
+      <div class="qbox-note">Lean: visible. The skill is reading the market against a known curve, not memorising hidden numbers. Hidden curves penalize new players and don't reward veterans meaningfully more.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q3. Is storage strictly capacity-limited, or are there diminishing returns?</div>
+      <div class="qbox-note">Strict capacity is honest and simple. Diminishing returns ("a fourth full warehouse provides 70% benefit") could prevent late-game runaway dominance, but it's a softer system to read.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q4. Should aged batches occupy a different SKU at sales outlets?</div>
+      <div class="qbox-note">Mechanically simple: same drink, value modifier. Visually richer: outlet shows "Aged Stout — Reserve" vs "Stout." The richer version directly hooks into ad campaigns and luxury branding. Lean: ship simple first, add SKU split when ad campaigns come online.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q5. Insurance as a business-corp mechanic against storage events?</div>
+      <div class="qbox-note">A natural fit: business pays a premium per slot, gets payout on disaster. Adds a strategic knob, fits the financial-corp identity. Could be a tech-tree unlock.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q6. Can aged batches be traded between players, or only sold via outlets?</div>
+      <div class="qbox-note">In co-op, "all four players already share credits-ish" so this is mostly a UI question. In future competitive mode, aged batches as tradeable commodities is a serious feature.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q7. How visible is the speculation to the other corps?</div>
+      <div class="qbox-note">If business holds 200 crates of stout silently, the other corps just see "industrial output rising, sales income flat" without knowing why. Some transparency UI ("aging dashboard" available to all corps) keeps the table on the same page.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q8. Does aging interact with the pollution map?</div>
+      <div class="qbox-note">Probably no for v1+; let aging be a clean economic layer without entangling the heat-map system. But "nearby pollution accelerates spoilage" is a flavorful seed for later.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q9. Which slice introduces the first real aged drink?</div>
+      <div class="qbox-note">Options: porter (familiar, modest curve), barrel cider (hooks the cider chain into aging immediately), imperial stout (most dramatic curve). Lean: porter first as the gentle introduction; barrel cider second to extend the cider chain; imperial stout once players have learned to read curves.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q10. Barrels — abstract ("storage slot") or concrete (consumable resource produced by cooperage)?</div>
+      <div class="qbox-note">Abstract for v1 of aging; concrete much later as a depth lever. Concrete barrels would unlock real corp sub-type identities (barrel-focused agri-forestry, barrel-quality industrial niche).</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q11. Aging curve tuning — real-time scaled, or based on harvest cycles?</div>
+      <div class="qbox-note">Echoes the orchard maturation question from the cider doc. Same answer is probably correct: scale to harvest cycles, not wall-clock, so a one-hour session can still feel a meaningful aging arc.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q12. UI — where does the business player actually <em>see</em> all this?</div>
+      <div class="qbox-note">Probably a dedicated panel: list of held batches, aging progress, projected release value, current curve position. Inspirations: stock-portfolio screens, but make it feel like a tycoon ledger, not a financial app.</div>
+    </div>
+  </section>
+
+  <section id="scratch">
+    <h2>10. Scratch / Parking Lot</h2>
+    <div class="callout scratch">
+      <div class="callout-title">Half-formed thoughts</div>
+      <ul style="margin-bottom: 0;">
+        <li>Cyberpunk reskin: "cellars" become climate-controlled bunkers; "barrels" become pressurized aging tanks. Same mechanics, sleeker silhouettes.</li>
+        <li>Premium-aged products could feed a separate <strong>luxury sales outlet</strong> tier — different demand region, different clientele, fits "Luxury Brand" business sub-type.</li>
+        <li>Aging-related <strong>achievement / vanity</strong> trigger when a single batch is held longer than X cycles and survives — gives the table a "we did it" beat at release time.</li>
+        <li>The aging mechanic is the cleanest answer to "what does business do for the entire mid-game" — until aging exists, business runs out of decisions after slice 1.</li>
+        <li>Held inventory as <strong>collateral for loans</strong> — business can borrow against the projected release value. Risky but flavorful.</li>
+        <li>Heritage / period varieties: a flag on a batch that says "this was held during [event X]" — the event becomes part of the SKU's marketing story. Pairs with the events memo.</li>
+        <li>Cross-corp signal idea: when business marks a batch for long-aging, that signal could propagate to agri ("your specialty oats fed a 3-year batch") for a small reputation/morale beat. Tiny, but it makes the table feel connected.</li>
+        <li>For competitive mode much later: cellar raids / storage espionage as a real action verb. Park.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="references">
+    <h2>11. References</h2>
+    <ul>
+      <li><strong>2026-05-01 corps doc</strong> — base chain template, business corp scope</li>
+      <li><strong>2026-05-02 per-corp v1 mechanics</strong> — business corp's "menu player" risk; espionage / integrity layer hooks</li>
+      <li><strong>2026-05-07 cider chain</strong> — variety axes, "timer change" as the cheap-expansion lever</li>
+      <li><strong>narrative-events memo</strong> — events absorbing soft external pressure; storage disasters belong here</li>
+      <li><strong>Patrician / Port Royale</strong> — commodity speculation as a tycoon mechanic</li>
+      <li><strong>Anno series</strong> — warehouse capacity as a spatial constraint that shapes layout</li>
+      <li><strong>Wine industry sims</strong> — long aging timers and vintage premium logic (general inspiration)</li>
+    </ul>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / Butykos · Strategic Layer Brainstorm · 2026-05-07 · Working draft — open for shaping
+  </footer>
+
+</div>
+</body>
+</html>
