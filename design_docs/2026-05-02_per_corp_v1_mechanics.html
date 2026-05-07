@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Per-Corp v1 Mechanics: Matching the Depth Bar (2026-05-02)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --agri: #7ee787;
+    --industrial: #f0883e;
+    --logistics: #4cc2ff;
+    --business: #ff6ec7;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 40px; }
+  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  h3 { font-size: 18px; margin: 32px 0 12px; font-weight: 600; }
+  h4 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 40px; }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout.scratch { border-left-color: var(--accent-2); }
+  .callout-title { font-weight: 600; margin-bottom: 6px; color: #fff; }
+
+  .corp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; border-top: 3px solid var(--accent); margin: 20px 0; }
+  .corp-card.agri { border-top-color: var(--agri); }
+  .corp-card.industrial { border-top-color: var(--industrial); }
+  .corp-card.logistics { border-top-color: var(--logistics); }
+  .corp-card.business { border-top-color: var(--business); }
+  .corp-card h3 { margin-top: 0; }
+  .corp-tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: var(--surface-2); color: var(--text-dim); margin-bottom: 8px; }
+  .corp-card.agri .corp-tag { color: var(--agri); }
+  .corp-card.industrial .corp-tag { color: var(--industrial); }
+  .corp-card.logistics .corp-tag { color: var(--logistics); }
+  .corp-card.business .corp-tag { color: var(--business); }
+
+  .pill { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  .pill.tbd { color: var(--warn); border-color: rgba(240,180,41,0.3); }
+  .pill.seed { color: var(--accent-3); border-color: rgba(126,231,135,0.3); }
+  .pill.q { color: var(--accent-2); border-color: rgba(255,110,199,0.3); }
+  .pill.set { color: var(--accent); border-color: rgba(76,194,255,0.3); }
+  .pill.locked { color: var(--industrial); border-color: rgba(240,136,62,0.35); }
+
+  .signature { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin: 14px 0; }
+  .signature-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+  .signature-body { font-size: 15px; color: #fff; font-weight: 600; }
+
+  .qbox { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
+  .qbox-q { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .qbox-note { font-size: 13px; color: var(--text-dim); }
+
+  .principle { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin: 10px 0; }
+  .principle-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+  th { background: var(--surface-2); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .layer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .layer-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; }
+  .layer-card .layer-corp { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+  .layer-card.agri .layer-corp { color: var(--agri); }
+  .layer-card.industrial .layer-corp { color: var(--industrial); }
+  .layer-card.logistics .layer-corp { color: var(--logistics); }
+  .layer-card.business .layer-corp { color: var(--business); }
+  .layer-card .layer-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .layer-card .layer-note { font-size: 13px; color: var(--text-dim); }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+    .layer-grid { grid-template-columns: 1fr; }
+  }
+
+  footer.doc-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Design Brainstorm</div>
+    <h1>Per-Corp v1 Mechanics — Matching the Depth Bar</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      Yesterday's doc settled what each corp <em>builds</em> and the lager-beer slice that proves the four-corp loop. This one zooms in on each corp's <strong>signature interactive mechanic</strong> — the thing that has to make the role feel as engaging to play as Industrial's already-prototyped factory grid. Source: Ambrus's 2026-05-02 brainstorm + follow-up discussion confirming the brewery interior is running end-to-end in Godot.
+    </p>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">2026-05-02</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">Drinkustry / butykos</div></div>
+      <div class="meta-item"><div class="meta-label">Doc Type</div><div class="meta-value">Design brainstorm · rev. 1</div></div>
+      <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">Working notes — for Krista review</div></div>
+      <div class="meta-item"><div class="meta-label">Authors</div><div class="meta-value">Ambrus &amp; Gergely</div></div>
+      <div class="meta-item"><div class="meta-label">Predecessor</div><div class="meta-value">2026-05-01 corps &amp; production</div></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#pivot">The Depth-Bar Pivot</a></li>
+      <li><a href="#industrial">Industrial — Signature Confirmed</a></li>
+      <li><a href="#agri">Agricultural — Irrigation as a Planning System</a></li>
+      <li><a href="#logistics">Logistics — Route Network as the Mechanic</a></li>
+      <li><a href="#business">Economic / Marketing — Two Interleaved Active Systems</a></li>
+      <li><a href="#catchment">Foundational Rule — Catchment Radius</a></li>
+      <li><a href="#crossloop">Cross-Corp Loops — Byproducts &amp; Beyond</a></li>
+      <li><a href="#art">Art-Track Implication — Four Second-Layer Views</a></li>
+      <li><a href="#open">Open Questions</a></li>
+    </ol>
+  </nav>
+
+  <section id="pivot">
+    <h2>1. The Depth-Bar Pivot</h2>
+    <p>
+      As of 2026-05-02 the Industrial signature mechanic — the Sandship-style brewery interior — is <strong>running end-to-end in the Godot project</strong>: place a brewery on the strategic map, step inside, build a machine line, choose a recipe, and watch goods flow out to selling points. That's not a v1 scope question anymore. It's the depth bar.
+    </p>
+    <div class="callout success">
+      <div class="callout-title">Reframe</div>
+      The earlier worry was "is the internal grid in scope for v1?" The actual question is now: <strong>do the other three corps reach this depth?</strong> Each one needs a signature interactive mechanic of comparable richness — not just buildings to place and stats to watch.
+    </div>
+    <p>
+      The risk if any corp falls below the bar: that player feels like a spectator while Industrial designs working factory lines. The next four sections name a candidate signature mechanic per corp and what would have to be true for it to carry the role.
+    </p>
+  </section>
+
+  <section id="industrial">
+    <h2>2. Industrial — Signature Confirmed</h2>
+
+    <div class="corp-card industrial">
+      <div class="corp-tag">Corp 02 · Industrial</div>
+      <h3>Internal grid factories <span class="pill locked">PROTOTYPED</span></h3>
+
+      <div class="signature">
+        <div class="signature-label">Signature mechanic</div>
+        <div class="signature-body">Sandship-style internal grid: place facility on strategic map → enter interior → lay machines → connect inputs/outputs/conveyors → goods flow to selling points.</div>
+      </div>
+
+      <p>
+        Already running for breweries in the current build. Player chooses a recipe, builds the machine line that satisfies it, and the production loop runs. This is the most distinctive mechanic in the project and the reason Drinkustry's tycoon competitors don't feel like the same shape.
+      </p>
+
+      <h4>v1 buildings carrying the mechanic</h4>
+      <ul>
+        <li><strong>Malthouse</strong> — universal recipe-selectable; no internal grid; tech upgrades = yield + parallel recipes. <span class="pill set">SET</span></li>
+        <li><strong>Brewery</strong> — uses internal grid; first chain is lager (per 2026-05-01). <span class="pill set">SET</span></li>
+        <li><strong>Distillery</strong> — uses internal grid; unlocks for hard liquors. <span class="pill seed">SEED</span></li>
+        <li><strong>Fertilizer plant</strong> — consumes biological waste, outputs fertilizer for Agri. Closes the cross-corp loop (see §7). <span class="pill seed">SEED</span></li>
+      </ul>
+
+      <h4>Why this works as the bar</h4>
+      <ul>
+        <li>Two-scale gameplay: strategic placement <em>and</em> interior design — no other corp currently touches both.</li>
+        <li>Recipe choice forces planning before construction; rebuilding a line is real cost.</li>
+        <li>Visible in spectator view: friends watching can read what you're building.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="agri">
+    <h2>3. Agricultural — Irrigation as a Planning System</h2>
+
+    <div class="corp-card agri">
+      <div class="corp-tag">Corp 01 · Agricultural</div>
+      <h3>Plan and route water; tend the land over time</h3>
+
+      <div class="signature">
+        <div class="signature-label">Signature mechanic candidate</div>
+        <div class="signature-body">Irrigation network — branching pipes from main farm building to fields, with throughput / pressure / coverage tradeoffs that turn farm placement into a planning puzzle, not just a heat-map check.</div>
+      </div>
+
+      <p>
+        The 2026-05-01 doc already established Agri's <em>visible</em> layer (main farm, fields, silos, suitability heat map, soil/crop choice). What's missing from that picture is a <strong>system the player builds and tunes</strong> — something that parallels the Industrial player's act of laying out a working machine line.
+      </p>
+      <p>
+        Irrigation is the strongest candidate. From the brainstorm: pipes originate at the main farm, branch out to fields, and feed water on a per-tile basis. That alone gives Agri a network-design problem on the strategic map. Add throughput / pressure / coverage as the dimensions the player tunes, and the corp has its own buildable system at comparable depth to a factory line.
+      </p>
+
+      <h4>The water-knob risk</h4>
+      <p>
+        From the brainstorm: irrigation lines + water tanks + rainwater capture + soil specialization all stacked on Agri at once. That's four water systems on top of fields and silos — too many for v1.
+      </p>
+      <div class="callout warn">
+        <div class="callout-title">Recommendation — pick irrigation as the v1 primary</div>
+        Ship irrigation networks as the visible Agri system in v1. Tanks (buffer storage with efficiency bonus), rainwater capture (weather-dependent), and pressure-tier upgrades land on the per-corp tech tree as <em>depth on top</em>, not parallel systems.
+      </div>
+
+      <h4>Soil specialization &amp; rotation as the temporal layer</h4>
+      <p>
+        Different soils favor different crops; multiple farm-mains let the map develop regional specializations. Over time, fields recover, deplete, or get reshaped by industrial pollution. This gives Agri the slow-time-axis depth that complements the spatial irrigation puzzle.
+      </p>
+
+      <h4>Open shape</h4>
+      <ul>
+        <li>Catchment radius (per §6) determines how loose the silo↔logistics handoff is — same rule for everyone.</li>
+        <li><span class="pill q">Q</span> Is the irrigation network its own visible layer on the strategic map (graph / overlay), or abstracted to a per-farm coverage stat? Leaning toward visible — that's where the planning puzzle lives.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="logistics">
+    <h2>4. Logistics — Route Network as the Mechanic</h2>
+
+    <div class="corp-card logistics">
+      <div class="corp-tag">Corp 03 · Logistics</div>
+      <h3>Design the network, not just the road</h3>
+
+      <div class="signature">
+        <div class="signature-label">Signature mechanic candidate</div>
+        <div class="signature-body">Route / depot / schedule network — OpenTTD-grade prioritization, transfer hubs, contracts, and possibly modular vehicle assembly. The active <em>recurring</em> decision surface, not just one-time placement.</div>
+      </div>
+
+      <p>
+        The brainstorm covers the visible Logistics layer well: roads, water/sewage, power, depots, vehicle progression from trucks through to drones. But truck-to-drone is a <em>tech progression</em>, not a mechanic. By itself it leaves Logistics as the corp that places infrastructure once and watches.
+      </p>
+      <div class="callout warn">
+        <div class="callout-title">Janitor-mode risk</div>
+        If routing auto-resolves and depots are set-and-forget, the most-built corp becomes the most-bored mid-game. Logistics has the largest <em>visible</em> footprint of the four — its <strong>active</strong> decision surface needs to match.
+      </div>
+
+      <h4>What carries the depth</h4>
+      <ul>
+        <li><strong>Route &amp; schedule design</strong> — explicit routes between stations / depots / customer points, with priorities and load rules. OpenTTD is the model.</li>
+        <li><strong>Transfer hubs</strong> — multi-mode handoff points (truck→train→drone), where the routing puzzle gets meaty.</li>
+        <li><strong>Contracts</strong> — accept/decline timed delivery contracts from Economic or NPC clients; reward vs. risk vs. opportunity cost on rolling stock.</li>
+        <li><strong>Modular vehicle assembly <span class="pill seed">SEED</span></strong> — depot where the player specs vehicle types from modules: cargo type, range, speed, cost. Gives Logistics its own "build a thing inside a building" beat parallel to Industrial's grid.</li>
+      </ul>
+
+      <h4>Foundational interactions</h4>
+      <ul>
+        <li>Catchment-radius rule (§6) determines what stations can pick up — Logistics owns priority resolution when multiple stations overlap a producer.</li>
+        <li>Roads carry power by default (per brainstorm) — Logistics keeps a <em>dedicated</em> power-line option for cases where industrial demand splits from road layout. <span class="pill set">SET</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="business">
+    <h2>5. Economic / Marketing — Two Interleaved Active Systems</h2>
+
+    <div class="corp-card business">
+      <div class="corp-tag">Corp 04 · Economic / Marketing</div>
+      <h3>Markets <em>and</em> espionage — both spatial, both active</h3>
+
+      <div class="signature">
+        <div class="signature-label">Signature mechanic candidate</div>
+        <div class="signature-body">Two interleaved active systems: (a) <strong>markets / trade routes / demand</strong> and (b) <strong>espionage / integrity / corruption</strong>. Together they give Economic both shared-map presence and recurring decision depth.</div>
+      </div>
+
+      <p>
+        Ambrus flagged this corp as the most uncertain in the brainstorm — and rightly. Markets, demand, profit margins, loans, and trade-route management are all real mechanics, but described as written they are <em>menus and overviews</em>. In a four-player co-op where Industrial is laying out factory lines and Agri is routing irrigation networks on the shared map, the menu player risks feeling disconnected.
+      </p>
+      <p>
+        The cyberpunk theme is the answer to that disconnection — and it is specifically <strong>this</strong> corp's answer. Espionage / integrity / corruption is not flavor; it's the corp's second active system.
+      </p>
+
+      <h4>System A — Markets / trade routes / demand</h4>
+      <ul>
+        <li><strong>Shops &amp; markets</strong> at outposts, settlements, cities. Larger markets sell more goods types (tech-gated). <span class="pill set">SET</span></li>
+        <li><strong>Demand reading</strong> per location, gets meatier as goods variety grows.</li>
+        <li><strong>Trade depots &amp; routes</strong> — off-map import/export; sometimes forced imports via events / weather.</li>
+        <li><strong>Ad campaigns &amp; orders</strong> — timed quests with elevated rewards.</li>
+        <li><strong>Government negotiation</strong> — narrative-event-driven (ties to the events pillar).</li>
+      </ul>
+
+      <h4>System B — Espionage / integrity / corruption</h4>
+      <ul>
+        <li><strong>Counter-espionage outposts</strong> — placed on the shared map; visible to other players.</li>
+        <li><strong>Internal security</strong> — drones, security infrastructure, deniable shell-company offices.</li>
+        <li><strong>Integrity / corruption meter</strong> — per-region or per-corp; needs active management, not autopilot.</li>
+        <li><strong>Counter-ops</strong> — schedule defensive actions in response to detected threats; narrative-only resolution (no combat, per the project's combat rejection).</li>
+      </ul>
+
+      <div class="callout">
+        <div class="callout-title">Why two systems, not one</div>
+        Either alone is borderline. Markets-only feels passive next to factory grids. Espionage-only divorces Economic from the trade/economy fiction at the heart of the game. Interleaved, they cover both halves of the corp's identity — capitalist on the surface, cyberpunk underneath — and together hit the depth bar.
+      </div>
+
+      <h4>Open shape</h4>
+      <ul>
+        <li><span class="pill q">Q</span> Does the integrity meter live per-building, per-corp, or per-region? Region is most legible to spectators; per-building is most strategic.</li>
+        <li><span class="pill q">Q</span> Do trade routes use Logistics' vehicle pool, or does Economic own a separate fleet for off-map trade?</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="catchment">
+    <h2>6. Foundational Rule — Catchment Radius</h2>
+    <p>
+      The brainstorm proposes OpenTTD-style catchment for Agri silos: stations have a range; producers within range can load; Logistics prioritizes when multiple stations overlap. This is the right call — it scales better than direct-connection as the map fills, and gives Logistics meaningful priority decisions.
+    </p>
+    <div class="callout warn">
+      <div class="callout-title">Pick one rule, apply it everywhere</div>
+      Whatever catchment behavior is chosen — pure overlap, direct-connect, or hybrid — needs to govern <strong>Agri silos, Industrial output bays, and Economic markets identically</strong>. If the rule fragments per corp, the mental model fragments with it and onboarding gets ugly.
+    </div>
+    <h4>Recommendation</h4>
+    <ul>
+      <li>OpenTTD-style overlap with explicit Logistics-owned priority resolution.</li>
+      <li>Range visualized as a tile-tinted overlay when a station / silo / market is selected.</li>
+      <li>Same overlay system the suitability heat map already uses (per 2026-05-01) — one rendering pattern, multiple data sources.</li>
+    </ul>
+  </section>
+
+  <section id="crossloop">
+    <h2>7. Cross-Corp Loops — Byproducts &amp; Beyond</h2>
+    <p>
+      The brainstorm names one cross-corp loop explicitly: <strong>Industrial biological waste → fertilizer plant → Agri uptake</strong>. This is the prototype for the kind of interference / synergy mechanic the four-corp design needs — it's the structural reason corps must <em>talk</em>, not just play parallel.
+    </p>
+    <p>
+      Worth treating that loop as the template, not the only one. Candidates:
+    </p>
+    <ul>
+      <li><strong>Water reuse</strong> — Logistics treatment plant outputs grey water that Industrial can accept for non-potable processes (cheaper than fresh).</li>
+      <li><strong>Demand intel</strong> — Economic's market-demand reads feed into Industrial's recipe-priority decisions; without that feed, Industrial guesses.</li>
+      <li><strong>Counter-espionage coverage</strong> — Economic's security layer protects buildings <em>across all four corps</em>; under-investment exposes everyone.</li>
+      <li><strong>Drought / weather pressure</strong> — narrative events that hit Agri irrigation, force Logistics to import water, force Economic to source from off-map suppliers.</li>
+    </ul>
+    <p>
+      Pattern: every signature mechanic should have at least one cross-corp dependency it pushes <em>and</em> one it pulls. That's what keeps four-player chat lively instead of four solo games on a shared map.
+    </p>
+  </section>
+
+  <section id="art">
+    <h2>8. Art-Track Implication — Four Second-Layer Views</h2>
+    <p>
+      Each corp's signature mechanic now defines a second-layer visual mode the strategic map alone can't carry. Four distinct interior / overlay languages, not just four building palettes.
+    </p>
+
+    <div class="layer-grid">
+      <div class="layer-card agri">
+        <div class="layer-corp">Agri</div>
+        <div class="layer-title">Irrigation / suitability overlay</div>
+        <div class="layer-note">Strategic-map overlay — pipe network, tile-tinted suitability and water coverage, soil layer toggle.</div>
+      </div>
+      <div class="layer-card industrial">
+        <div class="layer-corp">Industrial</div>
+        <div class="layer-title">Factory interior (top-down 20×20)</div>
+        <div class="layer-note">Already shipped. Machines, conveyors, I/O nodes. The visual reference the other three corps now answer to.</div>
+      </div>
+      <div class="layer-card logistics">
+        <div class="layer-corp">Logistics</div>
+        <div class="layer-title">Route / network overlay</div>
+        <div class="layer-note">Graph view: depots, routes, vehicles, contracts. Possibly a depot interior for modular vehicle assembly.</div>
+      </div>
+      <div class="layer-card business">
+        <div class="layer-corp">Economic</div>
+        <div class="layer-title">Espionage / corruption board</div>
+        <div class="layer-note">Region-level integrity overlay on the strategic map plus a dedicated ops-board view for active counter-ops and intel.</div>
+      </div>
+    </div>
+
+    <p>
+      Per the 2026-05-01 art-track decision, concrete asset production is gated on mechanic lock — but <em>look-dev for these four second-layer modes</em> is exactly the kind of low-fi mood-sketching that informs the design conversation. Worth queuing as Tier-1 art work alongside the existing cyberpunk look-dev.
+    </p>
+  </section>
+
+  <section id="open">
+    <h2>9. Open Questions</h2>
+
+    <div class="qbox">
+      <div class="qbox-q">Q1 — Irrigation as visible network or abstracted stat?</div>
+      <div class="qbox-note">Visible gives Agri its planning-puzzle depth. Abstracted is cheaper to build and easier to read. Leaning visible — but worth Krista's input on engine cost.</div>
+    </div>
+    <div class="qbox">
+      <div class="qbox-q">Q2 — How manual is the Logistics route system?</div>
+      <div class="qbox-note">Auto-routing kills active decision depth; full-manual scheduling is OpenTTD-grade and might be too much for new players. Probably needs a tier model: defaults that work, with optional manual override depth.</div>
+    </div>
+    <div class="qbox">
+      <div class="qbox-q">Q3 — Integrity meter granularity for Economic?</div>
+      <div class="qbox-note">Per-building (strategic, fiddly), per-corp (simple, low-agency), per-region (legible, decision-rich). Region looks like the strongest default.</div>
+    </div>
+    <div class="qbox">
+      <div class="qbox-q">Q4 — Trade-route vehicles: Logistics or Economic owned?</div>
+      <div class="qbox-note">Logistics-owned reinforces cross-corp dependency. Economic-owned simplifies the trade-route flow but reduces interference. Leaning Logistics-owned — strengthens the four-corp loop.</div>
+    </div>
+    <div class="qbox">
+      <div class="qbox-q">Q5 — Catchment-radius rule confirmed?</div>
+      <div class="qbox-note">OpenTTD-style overlap with Logistics priority is the recommendation. Needs Krista's call before Agri / Industrial / Economic hand-offs are coded.</div>
+    </div>
+    <div class="qbox">
+      <div class="qbox-q">Q6 — How many of these signature mechanics are v1?</div>
+      <div class="qbox-note">Industrial's grid is shipped. Realistic v1 might be irrigation (Agri) + route-and-schedule (Logistics, simplified) + markets-only (Economic), with espionage / vehicle-assembly / advanced contracts as v1.5. Worth a deliberate phasing call rather than letting scope drift.</div>
+    </div>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / butykos · per-corp v1 mechanics · 2026-05-02 · pairs with <a href="2026-05-01_gameplay_corps_production.html">2026-05-01 corps &amp; production</a>
+  </footer>
+
+</div>
+</body>
+</html>
