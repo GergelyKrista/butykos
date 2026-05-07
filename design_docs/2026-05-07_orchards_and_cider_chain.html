@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Orchards &amp; the Cider Chain (2026-05-07)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --agri: #7ee787;
+    --industrial: #f0883e;
+    --logistics: #4cc2ff;
+    --business: #ff6ec7;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 40px; }
+  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  h3 { font-size: 18px; margin: 32px 0 12px; font-weight: 600; }
+  h4 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 40px; }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout.scratch { border-left-color: var(--accent-2); }
+  .callout-title { font-weight: 600; margin-bottom: 6px; color: #fff; }
+
+  .corp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; border-top: 3px solid var(--accent); margin: 20px 0; }
+  .corp-card.agri { border-top-color: var(--agri); }
+  .corp-card.industrial { border-top-color: var(--industrial); }
+  .corp-card.logistics { border-top-color: var(--logistics); }
+  .corp-card.business { border-top-color: var(--business); }
+  .corp-card h3 { margin-top: 0; }
+  .corp-tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: var(--surface-2); color: var(--text-dim); margin-bottom: 8px; }
+  .corp-card.agri .corp-tag { color: var(--agri); }
+  .corp-card.industrial .corp-tag { color: var(--industrial); }
+  .corp-card.logistics .corp-tag { color: var(--logistics); }
+  .corp-card.business .corp-tag { color: var(--business); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+  th { background: var(--surface-2); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .pill { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  .pill.tbd { color: var(--warn); border-color: rgba(240,180,41,0.3); }
+  .pill.seed { color: var(--accent-3); border-color: rgba(126,231,135,0.3); }
+  .pill.q { color: var(--accent-2); border-color: rgba(255,110,199,0.3); }
+  .pill.set { color: var(--accent); border-color: rgba(76,194,255,0.3); }
+
+  .chain { display: grid; gap: 8px; margin: 16px 0; }
+  .chain-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
+  .chain-stage { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .chain-body { font-size: 14px; }
+  .arrow { color: var(--text-dim); font-family: var(--mono); }
+
+  .recipe { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin: 16px 0; font-family: var(--mono); font-size: 14px; }
+  .recipe .out { color: var(--accent-3); font-weight: 700; }
+  .recipe .ing { color: var(--accent); }
+  .recipe .src { color: var(--text-dim); }
+  .recipe .indent { padding-left: 20px; }
+
+  .qbox { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent-2); border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
+  .qbox-q { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .qbox-note { font-size: 13px; color: var(--text-dim); }
+
+  .principle { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin: 10px 0; }
+  .principle-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .compare-col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+  .compare-col h4 { margin-top: 0; }
+  .compare-col.left { border-top: 3px solid var(--agri); }
+  .compare-col.right { border-top: 3px solid var(--accent-3); }
+
+  .variety-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; border-left: 3px solid var(--industrial); }
+  .variety-card h4 { margin-top: 0; color: #fff; text-transform: none; letter-spacing: 0; font-size: 16px; }
+  .variety-axis { font-family: var(--mono); font-size: 11px; color: var(--industrial); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+    .chain-row { grid-template-columns: 1fr; }
+    .compare { grid-template-columns: 1fr; }
+  }
+
+  footer.doc-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Production Chain Brainstorm</div>
+    <h1>Orchards &amp; the Cider Chain</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      Second production chain after lager. Introduces orchards as agri's first long-cycle commitment and proves the chain template generalises beyond grain-malt-brew. Includes inspiration sketches for beer-variety depth as cheap recipe expansions of the lager pipeline.
+    </p>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">2026-05-07</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">Drinkustry / butykos</div></div>
+      <div class="meta-item"><div class="meta-label">Doc Type</div><div class="meta-value">Production-chain scratchpad</div></div>
+      <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">First pass — ready for Gergely review</div></div>
+      <div class="meta-item"><div class="meta-label">Authors</div><div class="meta-value">Ambrus &amp; Claude</div></div>
+      <div class="meta-item"><div class="meta-label">Predecessors</div><div class="meta-value">2026-05-01 corps doc · 2026-05-02 per-corp v1</div></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#purpose">Purpose &amp; Method</a></li>
+      <li><a href="#orchards">Orchards vs. Crop Fields</a></li>
+      <li><a href="#cider">The Cider Chain — Same Template, Swapped Stages</a></li>
+      <li><a href="#variety">Beer Varieties as Cheap Recipe Expansions</a></li>
+      <li><a href="#buildings">New / Modified Buildings &amp; Art Surface</a></li>
+      <li><a href="#teaches">What This Slice Teaches Each Corp</a></li>
+      <li><a href="#open">Open Questions</a></li>
+      <li><a href="#scratch">Scratch / Parking Lot</a></li>
+      <li><a href="#references">References</a></li>
+    </ol>
+  </nav>
+
+  <section id="purpose">
+    <h2>1. Purpose &amp; Method</h2>
+    <p>
+      The 2026-05-01 doc nailed the lager chain end-to-end. This doc adds the second chain — cider — and the agri building it requires: orchards. The point isn't to invent new mechanics. It's to prove the chain template <em>generalises</em>, and to introduce a long-cycle commitment to the agri player without changing the existing systems (heat map, water, pollution, manual tending).
+    </p>
+    <div class="callout">
+      <div class="callout-title">The driving question</div>
+      <em>What is the smallest set of additions on top of the lager slice that gives the four corps a second drink to make, with a different rhythm — and what does that teach each player about the system?</em>
+    </div>
+    <h3>Working assumptions carried forward</h3>
+    <ul>
+      <li>Existing system principles from 2026-05-01 (water + power, agri-input-per-recipe, biological + sewage waste, pollution heat map, two-layer tech, machine reuse where chemistry overlaps) all apply unchanged.</li>
+      <li>Per-chain industrial buildings rather than hot-swap (Q5 lean from 2026-05-01) — cider gets its own brewery building.</li>
+      <li>Silo catchment-radius pickup model (per 2026-05-02 per-corp v1) applies to fruit silos identically.</li>
+    </ul>
+    <h3>Tag legend</h3>
+    <ul>
+      <li><span class="pill set">SET</span> — design call made; carried into the slice unless re-opened.</li>
+      <li><span class="pill seed">SEED</span> — starting idea worth challenging.</li>
+      <li><span class="pill tbd">TBD</span> — explicitly empty; needs a call.</li>
+      <li><span class="pill q">Q</span> — open question for the next session.</li>
+    </ul>
+  </section>
+
+  <section id="orchards">
+    <h2>2. Orchards vs. Crop Fields — the Asymmetry</h2>
+    <p>
+      Orchards reuse every existing system (suitability, water, pollution, manual tending) but on a different timescale and with a different commitment shape. The point of orchards is not new mechanics — it's that the same mechanics produce a fundamentally different feel for the agri player.
+    </p>
+
+    <div class="compare">
+      <div class="compare-col left">
+        <h4>Crop fields (existing)</h4>
+        <ul>
+          <li><strong>1×1 footprint</strong>, generic farmland tile</li>
+          <li><strong>Annual cycle</strong> — replant each season</li>
+          <li><strong>Crop swap</strong> = free between cycles</li>
+          <li>Tending pressure: <strong>continuous</strong> (water, nutrients, pH every cycle)</li>
+          <li>Yield: <strong>steady trickle</strong> per cycle</li>
+          <li>Pollution loss: <strong>one cycle's harvest</strong> — replant elsewhere</li>
+          <li>Investment payback: <strong>fast</strong></li>
+        </ul>
+      </div>
+      <div class="compare-col right">
+        <h4>Orchards (new)</h4>
+        <ul>
+          <li><strong>2×2 (or larger) footprint</strong> — readable from above</li>
+          <li><strong>Multi-cycle perennial</strong> — sapling → maturing → bearing → declining</li>
+          <li><strong>Fruit swap</strong> = uproot &amp; restart maturation (real cost)</li>
+          <li>Tending pressure: <strong>establishment-heavy then low</strong></li>
+          <li>Yield: <strong>seasonal pulses</strong> once mature</li>
+          <li>Pollution loss: <strong>full maturation investment</strong> — re-establishing eats the timer again</li>
+          <li>Investment payback: <strong>slow but compounding</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Lifecycle stages <span class="pill set">SET</span></h3>
+    <p>Three (or four) visible sprite states — cheap to make, tells the whole story at a glance:</p>
+    <ol>
+      <li><strong>Sapling</strong> — placed; high water demand; no yield. Tile is committed.</li>
+      <li><strong>Maturing</strong> — visibly larger trees; still no yield. Maturation timer runs over multiple harvest cycles.</li>
+      <li><strong>Bearing</strong> — fruit visible in season; yield pulses into silos at harvest windows.</li>
+      <li><strong>Declining</strong> <span class="pill seed">SEED</span> — older trees, lower yield. Optional fourth stage; could be a quiet pressure to replant or just a passive decay.</li>
+    </ol>
+
+    <h3>Mechanic differentiators <span class="pill set">SET</span></h3>
+    <ul>
+      <li><strong>Tile lock.</strong> Orchard tile is committed to "tree" until uprooted. No re-cropping each season. This is the core feel difference — orchards are a <em>bet on the map</em>.</li>
+      <li><strong>Maturation delay.</strong> Several harvest cycles before any yield. Real-time order of magnitude TBD (tuning question), but the player feels the wait.</li>
+      <li><strong>Pulse harvest.</strong> Output arrives in seasonal bursts, not a continuous flow. Logistics has to surge during harvest windows — natural co-op pressure point.</li>
+      <li><strong>Different suitability profile.</strong> Heat map shape changes when toggled to "apples" vs "barley" — different water, soil, slope tolerances. Reuses the existing overlay infrastructure (Tropico-style).</li>
+      <li><strong>Pollution amplifier.</strong> Pollution killing a mature orchard is a much harder loss than losing a barley field — re-establishing means eating the maturation delay again. This makes industrial's siting decisions hit agri harder than fields do — exactly the interference tension the project wants.</li>
+      <li><strong>Lower steady-state tending.</strong> Once mature, manual-tending cadence is lower than fields. Frees agri's attention for expansion or new orchards.</li>
+      <li><strong>Generic-orchard, recipe-by-fruit.</strong> Mirrors the malthouse pattern — one orchard building, fruit picked at placement (apple at first; pear, cherry, grape later as cheap variety adds). Switching fruit = uprooting.</li>
+    </ul>
+
+    <div class="callout">
+      <div class="callout-title">Why this works without new systems</div>
+      Every bullet above is a parameter on existing systems: a longer growth timer, a different heat-map profile, a larger footprint, a different yield curve. The agri player doesn't learn new verbs; they learn that the verbs they already have play out very differently when the thing they're growing is a tree.
+    </div>
+
+    <h3>Optional event hook <span class="pill seed">SEED</span></h3>
+    <p>
+      Pest / blight events can disproportionately hit orchards (long-investment loss) — fits the "narrative events absorb soft external pressure" pillar from the events memo. Not v1; flag for the events doc when it's drafted.
+    </p>
+  </section>
+
+  <section id="cider">
+    <h2>3. The Cider Chain — Same Template, Swapped Stages</h2>
+    <p>
+      Cider follows the same seven-stage shape as the lager chain. Stage 1 swaps a field for an orchard. Stage 3 (malting) is skipped entirely — cider has no malt step. Stage 5 (brewery) becomes a cider-specific brewery building with a different machine line. Logistics, sales, and credit flow are unchanged.
+    </p>
+
+    <h3>Recipe <span class="pill set">SET</span></h3>
+    <div class="recipe">
+      <div><span class="out">Cider</span> <span class="src">←</span></div>
+      <div class="indent">+ <span class="ing">Apples</span> <span class="src">(Orchard, Agri)</span></div>
+      <div class="indent">+ <span class="ing">Water</span> <span class="src">(main, Logistics)</span></div>
+    </div>
+    <p style="color: var(--text-dim); font-size: 13px;">
+      <em>Cleaner recipe than lager — only one agri input, no malting step. The simplicity is the point: it proves that not every drink walks through every industrial building.</em>
+    </p>
+
+    <h3>Stages on the map</h3>
+    <div class="chain">
+      <div class="chain-row"><div class="chain-stage">Stage 1 · Agri</div><div class="chain-body"><strong>Apple orchard</strong> on suitable tiles → fruit silo (pulse harvest in season)</div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 2 · Logistics</div><div class="chain-body">Truck pickup at fruit silo <span class="arrow">→</span> deliver apples directly to <strong>cider brewery</strong> <em>(no malthouse stop)</em></div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 3 · Industrial</div><div class="chain-body"><strong>Cider brewery</strong> (water + power-fed): apples + water <span class="arrow">→</span> press <span class="arrow">→</span> ferment <span class="arrow">→</span> cider; biological waste (pomace) branches off; sewage piped out</div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 4 · Logistics</div><div class="chain-body">Truck pickup at cider brewery <span class="arrow">→</span> deliver cider to <strong>sales outlet</strong> or <strong>trading depot</strong></div></div>
+      <div class="chain-row"><div class="chain-stage">Stage 5 · Business</div><div class="chain-body"><strong>Sales outlet</strong> sells locally; <strong>trading depot</strong> routes to demand regions where cider sells better than beer (<em>demand model from slice 2 onward</em>)</div></div>
+    </div>
+
+    <h3>Inside the cider brewery — the 12-step production grid <span class="pill seed">SEED</span></h3>
+    <p>
+      Real-world cider production is up to twelve distinct steps. Each one maps to a machine slot or sub-area on the brewery's interior grid — exactly the "Sandship-style internal grid" depth bar from the per-corp v1 memo. <strong>This is what gives the industrial player a genuine "building production" feel</strong>: not "place a brewery and watch it fill," but "lay out the line, pick the sub-recipe at each branching step, run a real cidery."
+    </p>
+
+    <div class="callout">
+      <div class="callout-title">Source</div>
+      Twelve-step process per <em>Cider Making — From Traditional to Modern</em> (Popa &amp; Harte, Dept. of FSHN / MSU Product Center, Michigan Apple Committee). Real-world steps simplified here into machine-slot vocabulary; the count and ordering are honest to the source. PDF on Ambrus's desktop.
+    </div>
+
+    <div class="chain">
+      <div class="chain-row"><div class="chain-stage">Step 1 · Harvest</div><div class="chain-body">Outside the brewery (agri side). Apples arrive at the input bay with variety tags — <em>sweet / sharp / bittersweet / bittersharp</em> — that affect downstream blending choices.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 2 · Sweating</div><div class="chain-body">Apples rest 7–10 days on a wooden/concrete platform until soft. <strong>Variety-dependent:</strong> Jonathan, Newtown, Rome Beauty skip this and press fresh. A storage sub-room, not a machine — and skippable based on what agri delivers. Cross-corp coupling for free.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 3 · Washing</div><div class="chain-body">Water-fed station; removes leaves, twigs, residue, surface bacteria. Couples to the logistics water main with a real demand spike at this stage.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 4 · Grinding</div><div class="chain-body">Grater mill turns fruit into fine pulp. <strong>Throughput/quality knob:</strong> finer pulp = more juice yield per apple but longer cycle.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 5 · Pressing</div><div class="chain-body">Plate press extracts the juice (now called "must"). <strong>Pomace</strong> (~3% of pulp + skins/seeds) branches off as biological waste — feeds directly into the existing fertilizer loop with agri.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 6 · Blending</div><div class="chain-body"><strong>Three valid placements:</strong> pre-grind, post-press, or post-fermentation. Later blending = more control over final quality but more buffer-tank storage required. Pure player decision point.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 7 · Testing</div><div class="chain-body">Sugar (Brix), acid, and pH check. In-game: a quality gate that flags off-spec batches and feeds back into recipe tuning. A QA station, not a transformation.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 8 · Fermentation</div><div class="chain-body">Fermenter machine — <em>shared with the lager brewery</em>. <strong>Sub-recipe choice:</strong> SO<sub>2</sub>-sterilized + cultured yeast (modern industrial path, predictable), or natural indigenous yeast (traditional path, slower and chancier but distinctive flavor). Temperature affects throughput.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 9 · Racking off</div><div class="chain-body">Drain to a second vessel, leaving sediment behind. Quiet step, but it claims a buffer tank slot for the duration.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 10 · Filter / fining</div><div class="chain-body"><strong>Two valid paths:</strong> closed-filter machine (fast, dry) or fining-additive station (gelatin / bentonite / pectic enzyme — slower, traditional). Both reach "clear cider"; the choice is part of the player's identity for this run.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 11 · Bottling</div><div class="chain-body">Sterile bottling line. <strong>Optional sub-steps:</strong> in-bottle sugar dose for natural carbonation, pasteurization to halt further fermentation. Forced CO<sub>2</sub> injection is an alternative carbonation path here.</div></div>
+      <div class="chain-row"><div class="chain-stage">Step 12 · Storage</div><div class="chain-body">Required short maturation in cool, dark storage before shipping. <strong>This is the bridge to the aging doc</strong> — speculative long-aging hooks in here for premium cider variants.</div></div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Where the player actually decides — the control surface of the minigame</div>
+      Most of the twelve steps are placement-and-connect. A handful are real <em>recipe choices</em> the player makes per cidery, per batch, or per recipe:
+      <ul style="margin-bottom: 0; margin-top: 8px;">
+        <li><strong>Sweating yes / no</strong> — gated by which apple variety agri delivers</li>
+        <li><strong>Blending stage</strong> — pre-grind / post-press / post-ferment</li>
+        <li><strong>Fermentation method</strong> — SO<sub>2</sub> + cultured yeast vs. natural indigenous yeast</li>
+        <li><strong>Filter vs. fining</strong> — equipment path</li>
+        <li><strong>Carbonation</strong> — natural in-bottle vs. forced CO<sub>2</sub></li>
+        <li><strong>Pasteurize yes / no</strong> — interacts with aging; pasteurized batches lock the curve, unpasteurized continue evolving in storage</li>
+      </ul>
+      Six small forks on a stable layout. That's the game inside the building.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Bespoke first, copy-paste after — the chore problem solved</div>
+      Twelve steps and six recipe forks would be brutal if the player had to lay it out from scratch every time. <strong>The brewery interior should support saving a working layout as a template / blueprint</strong>, then stamping it into the next cidery building. First run is the puzzle; second cidery onward is one click. Bespoke when you want it, copy-paste when you don't.
+      <span class="pill seed">SEED</span> — proper UX for save / load / share blueprints belongs in a separate doc once the interior grid mechanics shake out.
+    </div>
+
+    <p style="color: var(--text-dim); font-size: 13px;">
+      <em>The 12-step grid is the design vocabulary, not a v1 mandate. Many steps can ship auto-resolved (washing, racking, testing as silent QA) and only become player-placeable as tech-tree unlocks expose them. The full grid is the long-run depth ceiling, not the slice-2 floor.</em>
+    </p>
+
+    <div class="callout success">
+      <div class="callout-title">What's new vs. lager — the honest scope</div>
+      <ul style="margin-bottom: 0;">
+        <li><strong>Agri:</strong> orchard building + apple recipe + maturation timer + variety tagging (sweet / sharp / bittersweet / bittersharp).</li>
+        <li><strong>Industrial:</strong> cider brewery building + a <em>set</em> of 6–8 new interior machine types (sweating room, washer, grater mill, plate press, racking vessel, filter / fining station, bottling line, in-bottle carbonator). Fermenter shared with lager.</li>
+        <li><strong>Logistics:</strong> nothing new structurally — pomace handoff reuses the existing biological-waste channel.</li>
+        <li><strong>Business:</strong> nothing new structurally — sells a second product. Sub-recipe forks may surface as SKU variants later.</li>
+      </ul>
+      Bigger scope than the original "one new machine" framing — but Ambrus explicitly chose this depth, and almost every interior machine reuses cleanly into wine, perry, cherry cider, calvados, and the rest of the fruit-alcohol family. The art and code spend pays off across the whole side of the drink tree.
+    </div>
+
+    <h3>Variety expansion (later, no new logic)</h3>
+    <ul>
+      <li><strong>Pear</strong> → perry. Same orchard building, different fruit recipe. Same brewery line.</li>
+      <li><strong>Cherry</strong> → cherry cider. Same shape.</li>
+      <li><strong>Grape</strong> → wine. Reuses press + fermenter; <em>adds aging</em> as a real new mechanic — flag for a dedicated wine doc, since aging changes the timing model.</li>
+    </ul>
+  </section>
+
+  <section id="variety">
+    <h2>4. Beer Varieties as Cheap Recipe Expansions</h2>
+    <p>
+      Inspirations only — not v1 scope. The pattern across these is that almost every beer style is a <strong>recipe-level variant</strong> of the lager pipeline, not a new pipeline. Expansions tend to add exactly one of three things:
+    </p>
+    <ol>
+      <li><strong>One new agri input</strong> (a new grain, a new hop variety)</li>
+      <li><strong>One new machine step</strong> (roasting, dry-hopping)</li>
+      <li><strong>A timer change</strong> (cold conditioning, longer aging, open fermentation)</li>
+    </ol>
+    <p>Picking one of those three axes per variety keeps the expansion cheap and the simulation deeper without rewriting any system.</p>
+
+    <div class="variety-card">
+      <div class="variety-axis">Axis: timer change · machines unchanged</div>
+      <h4>Pilsner</h4>
+      <p>A lager sub-recipe. Same machines as lager; specific noble-hop input plus a longer cold-conditioning timer. Adds nothing structurally — purely a numbers tune. Good first "variety" to ship because it costs almost nothing.</p>
+    </div>
+
+    <div class="variety-card">
+      <div class="variety-axis">Axis: new machine step at the malthouse</div>
+      <h4>Porter</h4>
+      <p>Adds a <strong>malt-roasting</strong> recipe slot at the malthouse — produces "roasted malt" which feeds the brewery as an alternative to standard malt. Reuses the malthouse upgrade pattern that's already in the design ("upgradeable to handle multiple recipes simultaneously").</p>
+    </div>
+
+    <div class="variety-card">
+      <div class="variety-axis">Axis: new machine step + extended grain inputs</div>
+      <h4>Stout</h4>
+      <p>Extends Porter with an additional unmalted grain input — typically roasted barley, sometimes oats. From an architecture standpoint: the <em>second roasted-malt recipe</em> at the malthouse plus an alternate agri crop (oats). Strong adjacency to porter — they share most of the chain.</p>
+    </div>
+
+    <div class="variety-card">
+      <div class="variety-axis">Axis: new machine step at the brewery</div>
+      <h4>IPA</h4>
+      <p>Adds a <strong>dry-hop</strong> machine slot post-fermentation. Heavy hop input demand — a single IPA brewery can pressure agri's hop fields multiple times harder than a lager brewery. This is a great teaching moment for the cross-corp interference layer: agri suddenly has to specialise.</p>
+    </div>
+
+    <div class="variety-card">
+      <div class="variety-axis">Axis: new agri input · brewery unchanged</div>
+      <h4>Wheat beer (Hefeweizen)</h4>
+      <p>Cheapest possible variety for agri to ship: alternate grain crop (wheat field) with its own suitability profile. Brewery line is unchanged — the malthouse handles wheat malting via a recipe variant. Pure "new field type" variety expansion.</p>
+    </div>
+
+    <div class="variety-card">
+      <div class="variety-axis">Axis: timer change + event-coupled</div>
+      <h4>Sour / Lambic</h4>
+      <p>Open fermentation with very long aging. Best fit as an <strong>event-driven</strong> variety rather than a clean recipe — contamination risk, terroir, narrative hooks. Fits the events pillar from the narrative events memo. Saved for after the events system has shape.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">The pattern that matters</div>
+      Every variety above sits on one of three axes (input / machine / timer). If a future beer doesn't fit any of those three axes, that's the signal it's actually a <em>different chain</em>, not a variety — and it deserves its own doc.
+    </div>
+  </section>
+
+  <section id="buildings">
+    <h2>5. New / Modified Buildings &amp; Art Surface</h2>
+    <p>The realistic art workload to ship the cider chain. Smaller than the lager slice because so much infrastructure is shared.</p>
+
+    <table>
+      <thead><tr><th>Corp</th><th>Building / Asset</th><th>Type</th><th>Sprite Status</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Agri</td><td>Orchard tile (apple)</td><td>New</td><td><span class="pill tbd">TBD</span></td><td>4 lifecycle states (sapling / maturing / bearing / declining); 2×2 footprint</td></tr>
+        <tr><td>Agri</td><td>Fruit silo</td><td>New <em>or</em> reskin</td><td><span class="pill tbd">TBD</span></td><td>Mechanically identical to grain silo; sprite distinction is optional but readable</td></tr>
+        <tr><td>Industrial</td><td>Cider brewery (exterior)</td><td>New</td><td><span class="pill tbd">TBD</span></td><td>Distinct silhouette from lager brewery for map readability</td></tr>
+        <tr><td>Industrial</td><td>Cider interior machine set</td><td>New</td><td><span class="pill tbd">TBD</span></td><td>6–8 new sprites for the 12-step grid: sweating room, washer, grater mill, plate press, racking vessel, filter / fining station, bottling line, in-bottle carbonator. See §3 for the grid.</td></tr>
+        <tr><td>Industrial</td><td>Fermenter (interior)</td><td>Reuse</td><td><span class="pill set">in repo</span></td><td>Same fermenter sprite/machine as lager brewery — the one piece of the line that doesn't need new art.</td></tr>
+        <tr><td>Logistics</td><td>—</td><td>None</td><td>—</td><td>No new assets needed</td></tr>
+        <tr><td>Business</td><td>—</td><td>None</td><td>—</td><td>Existing sales outlet handles cider; trading depot stays optional / slice-2</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="callout-title">Art-track reality check</div>
+      Two new exterior buildings (orchard tile, cider brewery), four orchard lifecycle states, and a <strong>set of 6–8 new interior machine sprites</strong> for the 12-step grid. The interior set is a real art surface — but each sprite is small (interior grid scale) and reuses cleanly across the full fruit-alcohol family (perry, cherry cider, wine, calvados). Cost is amortised across many future drinks. The orchard lifecycle work is iteration on one tree silhouette through growth states — a clean reference for tuning the perennial visual language.
+    </div>
+  </section>
+
+  <section id="teaches">
+    <h2>6. What This Slice Teaches Each Corp</h2>
+    <p>What playing through the cider chain — on top of the lager chain — adds to each player's mental model of the system.</p>
+
+    <table>
+      <thead><tr><th>Corp</th><th>What cider teaches them</th><th>What it deliberately doesn't</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Agri</td>
+          <td>Long-cycle commitment, fruit suitability heat map, pulse-harvest rhythm, real cost of pollution near a long investment</td>
+          <td>Aging-based crops (wine grapes), multi-fruit orchards on one tile, automated harvest</td>
+        </tr>
+        <tr>
+          <td>Industrial</td>
+          <td>The first <strong>real interior minigame</strong>: a 12-step grid with six recipe forks. Layout placement, sub-recipe choices, and blueprint-stamp reuse for second-cidery onward. The chain template generalises — not every drink needs a malthouse</td>
+          <td>Aging timers, distillation, multi-recipe breweries (still per-chain in this slice)</td>
+        </tr>
+        <tr>
+          <td>Logistics</td>
+          <td>Bursty supply rather than continuous flow. Capacity planning around harvest windows. Same network, different cargo</td>
+          <td>Refrigerated transport, multi-modal fruit handling</td>
+        </tr>
+        <tr>
+          <td>Business</td>
+          <td>Two products in the catalogue — first taste of choosing where to send what. Demand-by-region as a live concern, not a TBD</td>
+          <td>Loans, ad campaigns, futures contracts, dynamic pricing</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <div class="callout-title">Cross-corp consistency check</div>
+      The cider chain only adds value if the four corps can run lager <em>and</em> cider concurrently without one chain starving the other. The shared scarcities — water, road capacity, sales-outlet throughput — are exactly what should start to feel tight when the second chain comes online. If they don't, the slice is too generous; if they're crushing, the slice is too lean. Tune water budgets and truck capacity here, not in the lager slice.
+    </div>
+  </section>
+
+  <section id="open">
+    <h2>7. Open Questions</h2>
+
+    <div class="qbox">
+      <div class="qbox-q">Q1. How long is the orchard maturation delay in real-time?</div>
+      <div class="qbox-note">Has to feel meaningful (otherwise orchards are just "slow fields") but not punishing in a session that may only run an hour. Probably tied to harvest-cycle counts rather than wall-clock time. Tuning question.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q2. Does declining ship in v1, or do orchards bear forever?</div>
+      <div class="qbox-note">Declining adds replanting pressure but also a quiet decay system the agri player has to monitor. Could ship without it and add later as a tech-tree-gated realism toggle.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q3. Is the orchard footprint 2×2 fixed, or scalable (3×3, 4×4 = small / medium / large orchard)?</div>
+      <div class="qbox-note">Scalable orchards give agri an expansion knob without infinite tile-by-tile placement. Fixed-size is simpler for v1.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q4. Does cider share a sales outlet sprite with beer, or get a "cidery" outlet variant?</div>
+      <div class="qbox-note">Mechanically the outlet doesn't care what it sells. Visually, distinct outlet variants would help business players read the map at a glance. Cheap to do later as a reskin.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q5. Pomace (apple pulp) — straight to the fertilizer loop, or a separate animal-feed branch?</div>
+      <div class="qbox-note">Real-world pomace is animal feed. In-game, simplest is "treat as biological waste, route to fertilizer." A separate feed branch would only matter if livestock enters the design.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q6. Can the lager brewery be expanded to handle cider as a second recipe later, or is per-chain locked-in?</div>
+      <div class="qbox-note">Echoes 2026-05-01 Q5. Per-chain wins on map readability and machine layout stability; a "multi-product brewery" tech upgrade much later in the run could combine the two for veteran players. Not a v1 call.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q7. Order of slices: cider before beer-variety, or beer-variety before cider?</div>
+      <div class="qbox-note">Cider first introduces the orchard system (a real new building). Beer-variety first reuses everything (cheaper to ship, deepens the existing chain). Lean is cider first because the orchard is more memorable for early playtesters; beer-variety can dribble in afterward.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q8. Does the heat map need a different visual style for orchards (perennial) vs fields (annual)?</div>
+      <div class="qbox-note">Same overlay infrastructure can probably handle both with just a different color ramp per crop. Worth a quick visual test before committing.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q9. How many of the 12 steps are exposed to the player at slice 2, vs auto-resolved or hidden behind tech-tree unlocks?</div>
+      <div class="qbox-note">Lean: ship slice 2 with the visible spine — grinding, pressing, fermentation, bottling — and let washing, racking, testing run as silent QA inside the line. Sweating, blending, filter/fining, and carbonation surface as tech-tree unlocks that progressively reveal the recipe forks. Avoids overwhelming a first-time industrial player while leaving the depth ceiling intact.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q10. Sub-recipe forks (SO<sub>2</sub> vs natural, filter vs fining, etc.) — chosen per-batch, per-building, or per-recipe?</div>
+      <div class="qbox-note">Per-batch is most flexible but heaviest UI. Per-building is simplest but loses the "two cideries running different styles" use case. Per-recipe is the middle path — the player saves a recipe with its forks baked in, then chooses which recipe to run per batch. Probably the right answer.</div>
+    </div>
+
+    <div class="qbox">
+      <div class="qbox-q">Q11. Blueprint / template system — minimum viable scope?</div>
+      <div class="qbox-note">At a minimum: save layout to a slot, stamp slot into a new building. Stretch goals: share blueprints between players in co-op, version blueprints, mark recipe parameters as "locked" or "edit per use." Worth its own UX pass before building.</div>
+    </div>
+  </section>
+
+  <section id="scratch">
+    <h2>8. Scratch / Parking Lot</h2>
+    <div class="callout scratch">
+      <div class="callout-title">Half-formed thoughts</div>
+      <ul style="margin-bottom: 0;">
+        <li>If wine grapes ship later, the orchard building probably becomes a "perennial crop" parent class — orchard, vineyard, hop-yard (hops are technically perennial too — interesting reframe).</li>
+        <li>The orchard's pollution sensitivity could be the prompt that pushes agri toward biotech sub-types in the corp tech tree (pollution-resistant cultivars).</li>
+        <li>Pulse harvest as a UI moment — when the orchard yields, a small "harvest ready" indicator pings the agri player. Could be the first system that gives agri a bursty interaction (vs the steady-trickle of fields).</li>
+        <li>Cyberpunk reskin path: vat-grown synth-apples replace the orchard sprite at a tech tier. Same lifecycle stages, cleaner aesthetic.</li>
+        <li>If the press machine is shared across cider, perry, cherry-cider, and wine, that's a strong candidate for the first <em>"machine that shows up in many recipes"</em> teaching moment for the industrial player.</li>
+        <li>Beer-variety axes (input / machine / timer) might be a more general design tool — apply it to spirits, wine, soft drinks. If it survives that test, it's a real principle.</li>
+        <li>Trading depot becomes much more interesting once there are two products: now there's a real "ship which to where" decision for the business player.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="references">
+    <h2>9. References</h2>
+    <ul>
+      <li><strong>2026-05-01 corps doc</strong> — chain template, lager slice, system principles</li>
+      <li><strong>2026-05-02 per-corp v1 mechanics</strong> — silo catchment model, malthouse multi-recipe pattern, cross-corp interference</li>
+      <li><strong>Tropico</strong> — suitability heat map, per-crop tile tinting (carried)</li>
+      <li><strong>Banished / Farthest Frontier</strong> — orchard lifecycle and maturation as a real-time investment</li>
+      <li><strong>Anno series</strong> — orchard footprints and seasonal pulse harvest visual language</li>
+      <li><strong>Drinkustry Miro page</strong> — beer brewing reference; cider/fruit-alcohol pass still TBD</li>
+    </ul>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / Butykos · Production Chain Brainstorm · 2026-05-07 · Working draft — to be edited together
+  </footer>
+
+</div>
+</body>
+</html>
