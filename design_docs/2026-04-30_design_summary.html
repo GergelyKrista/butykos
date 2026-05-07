@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Design Brainstorm Summary (2026-04-30)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --agri: #7ee787;
+    --industrial: #f0883e;
+    --logistics: #4cc2ff;
+    --business: #ff6ec7;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    padding: 0;
+  }
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+  header.doc-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 36px;
+    line-height: 1.2;
+    margin: 0 0 12px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  h2 {
+    font-size: 24px;
+    margin: 56px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-size: 18px;
+    margin: 32px 0 12px;
+    font-weight: 600;
+  }
+  h4 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 20px 0 8px;
+    font-weight: 600;
+  }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code {
+    font-family: var(--mono);
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.92em;
+    color: var(--accent);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .meta-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+  }
+  .meta-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .meta-value {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin-bottom: 40px;
+  }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #fff;
+  }
+
+  .corp-grid {
+    display: grid;
+    gap: 20px;
+    margin: 24px 0 8px;
+  }
+  .corp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    border-top: 3px solid var(--accent);
+  }
+  .corp-card.agri { border-top-color: var(--agri); }
+  .corp-card.industrial { border-top-color: var(--industrial); }
+  .corp-card.logistics { border-top-color: var(--logistics); }
+  .corp-card.business { border-top-color: var(--business); }
+  .corp-card h3 { margin-top: 0; }
+  .corp-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .corp-card.agri .corp-tag { color: var(--agri); }
+  .corp-card.industrial .corp-tag { color: var(--industrial); }
+  .corp-card.logistics .corp-tag { color: var(--logistics); }
+  .corp-card.business .corp-tag { color: var(--business); }
+
+  .twocol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 720px) {
+    .twocol { grid-template-columns: 1fr; }
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 14px;
+  }
+  th {
+    background: var(--surface-2);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .pill.now { color: var(--accent-3); border-color: rgba(126,231,135,0.3); }
+  .pill.next { color: var(--accent); border-color: rgba(76,194,255,0.3); }
+  .pill.later { color: var(--accent-2); border-color: rgba(255,110,199,0.3); }
+  .pill.parking { color: var(--text-dim); }
+
+  .roadmap {
+    display: grid;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .phase-tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .phase-body h4 { margin-top: 0; }
+
+  .decision {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .decision-title {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .decision-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    margin-bottom: 8px;
+  }
+
+  footer.doc-footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Design Brainstorm</div>
+    <h1>Strategic Direction &amp; Asymmetric Co-op MP Design</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      A working summary of the design conversation — current state, proposed direction, and the open questions for the next planning session with Gergely.
+    </p>
+    <div class="meta">
+      <div class="meta-item">
+        <div class="meta-label">Date</div>
+        <div class="meta-value">2026-04-30</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Project</div>
+        <div class="meta-value">Drinkustry / butykos</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Engine</div>
+        <div class="meta-value">Godot 4.2</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Build Status</div>
+        <div class="meta-value">Phase 7B complete</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Authors</div>
+        <div class="meta-value">Ambrus &amp; Gergely</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Doc Type</div>
+        <div class="meta-value">Working brief · rev. + Anno/Sierra comparative pass</div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#summary">Executive Summary</a></li>
+      <li><a href="#status">Where We Are Now</a></li>
+      <li><a href="#direction">Strategic Direction</a></li>
+      <li><a href="#corps">The Four Corps — Player Roles</a></li>
+      <li><a href="#tension">Cross-Corp Tension Mechanics</a></li>
+      <li><a href="#failure">Co-op Failure Modes &amp; Mitigations</a></li>
+      <li><a href="#branches">Additional Design Branches Discussed</a></li>
+      <li><a href="#decisions">Decisions Needed for the Next Meeting</a></li>
+      <li><a href="#roadmap">Proposed Phasing &amp; Roadmap</a></li>
+      <li><a href="#art">Art Track — Parallel Workstream</a></li>
+      <li><a href="#comparative">Comparative Reference — Anno &amp; Sierra City Builders</a></li>
+      <li><a href="#references">References &amp; Inspiration</a></li>
+    </ol>
+  </nav>
+
+  <section id="summary">
+    <h2>1. Executive Summary</h2>
+    <p>
+      Drinkustry is in good shape. <strong>Phase 7B</strong> is complete in Godot 4.2 with a working tycoon loop, a dual-layer map, save/load, and — in the latest build — a first pass at a tech tree (currently <em>profit gates new buildings</em>). That tech tree is a perfect substrate to grow into the design described below.
+    </p>
+    <p>
+      We are converging on a clear directional shift:
+    </p>
+    <ul>
+      <li><strong>Theme:</strong> cyberpunk reskin (no code rewrite — the systems are theme-agnostic).</li>
+      <li><strong>Differentiator:</strong> mega-corp factionalism, with each corp playable as a distinct vertical slice of the game.</li>
+      <li><strong>Mode:</strong> four-corp asymmetric co-op is the design we're committing to and prototyping. <em>Solo playability is deliberately left open</em> — likely co-op-only, but to be revisited as the design matures. Competitive mode remains a possible v2 bonus.</li>
+      <li><strong>Tension:</strong> two coupled mechanics — short-term <em>interference</em> (pollution, waste, water scarcity) and long-term <em>shared tech tree + shared credits</em> — force genuine cooperation rather than parallel solitaire.</li>
+    </ul>
+    <p>
+      Crucially, this is <strong>additive to existing systems</strong>, not a rewrite. With the four-corp direction now agreed, the next meeting should focus on the smallest first slice we can prototype and on which design questions can safely wait.
+    </p>
+  </section>
+
+  <section id="status">
+    <h2>2. Where We Are Now</h2>
+    <h3>Current build (per <code>DEVELOPMENT_STATUS.md</code> / <code>CLAUDE.md</code>)</h3>
+    <ul>
+      <li>Phase 7B complete — save/load, statistics panels, tooltips, demolish mode.</li>
+      <li>~93 commits in the butykos repo (<code>github.com/GergelyKrista/butykos</code>).</li>
+      <li>7 facilities, 13 machines, 14 products, 4 working production chains.</li>
+      <li>Dual-layer gameplay: <strong>50×50 isometric strategic map</strong> + <strong>20×20 top-down factory interiors</strong>.</li>
+      <li>Architecture: singleton managers (<code>WorldManager</code>, <code>ProductionManager</code>, <code>LogisticsManager</code>, <code>EconomyManager</code>, etc.) communicating via an <code>EventBus</code> signal system.</li>
+      <li>Asset pipeline documented (<code>ASSET_NAMING_CONVENTION.md</code>): pixel-art isometric world, top-down interiors, hot-reload + colored-shape fallback.</li>
+    </ul>
+    <h3>Latest addition — first tech tree</h3>
+    <p>
+      Gergely shipped a basic tech tree where <strong>generated profit unlocks the ability to buy new buildings</strong>. It's not elaborate yet, but it's the right shape: a single resource gating progression. Everything described in section 5 (<em>shared credits + shared tech tree</em>) builds directly on this. We should treat the existing tech tree as <strong>the foundation</strong>, not something to throw away.
+    </p>
+    <div class="callout success">
+      <div class="callout-title">What's working in our favor</div>
+      The Phase 7B codebase is an asset, not a liability. The proposed direction is mostly <em>reskin + data-driven gating + an additive ownership/permission layer</em>. No singleton needs to be rewritten from scratch.
+    </div>
+  </section>
+
+  <section id="direction">
+    <h2>3. Strategic Direction</h2>
+
+    <h3>Theme: cyberpunk pivot</h3>
+    <p>
+      The original brewery/distillery framing stays mechanically intact, but the visual language and naming move toward near-future / cyberpunk megacorp. <em>Mindustry</em> is the closest tonal reference we already have. The code does not care about theme; this is a pure art and naming pass.
+    </p>
+
+    <h3>Differentiator: corporate factionalism</h3>
+    <p>
+      Rather than "the player runs a generic tycoon empire," each player <strong>becomes a corporation</strong> with a tightly scoped role. This frames every other decision in the project (UI, tech tree, art language, MP architecture).
+    </p>
+
+    <h3>Mode: four-corp co-op as the design centre</h3>
+    <p>
+      Co-op is the v1 target. Competitive mode is acknowledged as desirable but explicitly deferred — it can ship later as a reskin of the same systems with conflicting goals. <strong>Designing for co-op first dodges the hardest balance problems</strong> (PvP demands symmetric tuning; co-op tolerates asymmetric tuning), and matches what the four-corp design naturally wants to be.
+    </p>
+
+    <h3>The SP-vs-MP discussion — and where we landed</h3>
+    <p>
+      We circled this for a while. The core tension we identified:
+    </p>
+    <ul>
+      <li><strong>"If the game is playable solo, why would players play it together?"</strong> — In Satisfactory, Mindustry, Factorio, and Age of Empires, multiplayer doesn't change the mechanics. Those games <em>are</em> solo games with multiplayer netcode bolted on. They're not co-op games in essence.</li>
+      <li><strong>Deep Rock Galactic</strong> sits in a middle position: difficulty scales with players, the experience changes with company, but the missions are still solo-doable. It's co-op-leaning, not co-op-essential.</li>
+      <li><strong>The four-corp design is structurally co-op-essential.</strong> The asymmetric roles, the negotiation around the shared tech tree, the "guys, can we deliver this order?" moments — these mechanics <em>require</em> multiple agents. Trying to retrofit a real solo mode means either (a) one player runs all four corps with role-switching (which collapses the differentiation back into a generic tycoon) or (b) AI plays the other three corps (which is a massive engineering effort, and AI corps can't replicate the negotiation that <em>is</em> the game).</li>
+    </ul>
+
+    <h3>Gergely's marketing concern, and the counter</h3>
+    <p>
+      Gergely's main objection: a co-op-only game is harder to market than one that's also playable solo. That is a real concern — it does close off the "buy on impulse, play alone" segment of the market, which is the largest segment for tycoon and factory games.
+    </p>
+    <p>
+      The counter, which we're leaning into: a four-corp asymmetric co-op tycoon is something we haven't really seen on the market. The tycoon-solo space is brutally saturated (Factorio, Satisfactory, Mindustry, Anno, Captain of Industry, dozens more). The <em>true</em> asymmetric co-op tycoon space is essentially empty. Releasing a co-op-only design isn't a constraint — it's a market position. Indie successes like <em>It Takes Two</em>, <em>Overcooked</em>, <em>Lovers in a Dangerous Spacetime</em>, and <em>We Were Here</em> show the pattern: when the design genuinely requires co-op, "you must play with friends" becomes the marketing hook, not the obstacle. Group purchases, streaming visibility, and word-of-mouth from gaming groups become the unit economics.
+    </p>
+
+    <h3>Where we landed (provisional)</h3>
+    <p>
+      <strong>We're committing to the four-corp co-op design as the prototype direction.</strong> Whether and how to add solo playability is a question we're explicitly deferring — to be revisited once the design has been validated in playtest. The lean is toward co-op-only as a deliberate market position, but we're not closing the door on solo-friendly options if the design naturally allows them.
+    </p>
+
+    <div class="callout">
+      <div class="callout-title">A possible middle ground worth keeping in mind</div>
+      Even if the shipping mode is co-op-only, a <strong>solo training / tutorial mode</strong> — where you play one corp solo against scripted scenarios with the other three as scripted partners — could serve four purposes without compromising the co-op design: (1) onboarding new players before they join a real session, (2) offering something to single-player buyers, (3) showcasing the game on streams or YouTube without needing a four-streamer collab, (4) practising your role before a friend's session. This is <em>not</em> a real SP game; it's a solo training mode. Different design intent, much smaller scope. Worth parking for now, returning to once we know what each corp's solo-playable kernel looks like.
+    </div>
+  </section>
+
+  <section id="corps">
+    <h2>4. The Four Corps — Player Roles</h2>
+    <p>
+      Each corp owns a vertical slice of the game and depends on the others. No corp can win alone; every corp has agency, identity, and meaningful decisions.
+    </p>
+
+    <div class="corp-grid">
+
+      <div class="corp-card agri">
+        <div class="corp-tag">Corp 01 · Agricultural</div>
+        <h3>The grower. Inputs to the chain.</h3>
+        <p>
+          Builds and operates everything that turns land into raw biological output. Farms, orchards, silos, irrigation systems. The agri player optimises <strong>yield</strong> against a multi-variable land-management puzzle.
+        </p>
+        <h4>What the player builds</h4>
+        <ul>
+          <li>Crop fields, orchards, livestock pastures (TBD scope)</li>
+          <li>Silos and on-site storage</li>
+          <li>Irrigation systems (depend on logistics-supplied water mains)</li>
+        </ul>
+        <h4>What the player manages</h4>
+        <ul>
+          <li><strong>Soil chemistry:</strong> pH, nitrogen levels per tile</li>
+          <li><strong>Water:</strong> field-level water levels; <em>water is a globally scarce resource the whole table competes for</em></li>
+          <li><strong>Suitable land:</strong> different crops and orchards demand different soil types — siting decisions matter</li>
+          <li>Yield maximisation across all of the above</li>
+        </ul>
+        <h4>Key dependencies (this is where co-op pressure lives)</h4>
+        <ul>
+          <li>Receives <strong>water mains</strong> from the logistics corp</li>
+          <li>Suffers from <strong>pollution</strong> caused by industrial / logistics / business activity</li>
+          <li>Sends raw produce out via the logistics corp to industrial processing</li>
+        </ul>
+      </div>
+
+      <div class="corp-card industrial">
+        <div class="corp-tag">Corp 02 · Industrial</div>
+        <h3>The processor. Recipes and machinery.</h3>
+        <p>
+          Builds the production buildings on the strategic map and <strong>steps inside them</strong> to design the machinery chain — <em>Mindustry / Modulus Factory Automation</em> style. The industrial player owns recipes, throughput, and byproducts.
+        </p>
+        <h4>What the player builds</h4>
+        <ul>
+          <li>Production buildings on the strategic map (e.g., breweries, distilleries, refineries)</li>
+          <li><strong>Inside each building:</strong> the actual production line — machines, conveyors, intermediate steps</li>
+          <li>Example: a "Beer Brewery" main building exists, but <em>which beer</em> it produces and <em>which machine chain</em> makes it is up to the industrial player</li>
+        </ul>
+        <h4>What the player manages</h4>
+        <ul>
+          <li>Recipes and product variants</li>
+          <li>Input resource pacing (matched to what logistics can deliver)</li>
+          <li>Output product pacing (matched to what business can sell)</li>
+          <li>Byproducts — sewage, slag, emissions — that have to go somewhere</li>
+        </ul>
+        <h4>Key dependencies</h4>
+        <ul>
+          <li>Inputs arrive via <strong>logistics</strong>; if logistics can't keep up, factories starve</li>
+          <li>Outputs leave via <strong>logistics</strong> to selling points run by <strong>business</strong></li>
+          <li>Byproducts cause <strong>pollution / waste interference</strong> on agri tiles unless properly handled</li>
+          <li>Power and water consumption depend on logistics-built grids</li>
+        </ul>
+      </div>
+
+      <div class="corp-card logistics">
+        <div class="corp-tag">Corp 03 · Logistics</div>
+        <h3>The connector. Everything between A and B.</h3>
+        <p>
+          Builds and operates the infrastructure that ties the world together. Without logistics, the other corps cannot interact — which is exactly why this player has so much leverage.
+        </p>
+        <h4>What the player builds</h4>
+        <ul>
+          <li>Roads, rails, vehicles, vehicle depots</li>
+          <li>Water mains and sewage pipes</li>
+          <li>Electricity lines and substations</li>
+        </ul>
+        <h4>What the player manages</h4>
+        <ul>
+          <li>Throughput across the network — bottlenecks become other corps' problems instantly</li>
+          <li>Vehicle fleets, routing, depot capacity</li>
+          <li>Maintenance / breakdowns (TBD scope)</li>
+          <li>Network expansion priorities under shared-tech budget pressure</li>
+        </ul>
+        <h4>Key dependencies</h4>
+        <ul>
+          <li>All other corps need logistics to do anything; this is the natural <em>negotiation hub</em> of the table</li>
+          <li>Funded — like everyone — through the shared credit pool managed (operationally) by business</li>
+        </ul>
+      </div>
+
+      <div class="corp-card business">
+        <div class="corp-tag">Corp 04 · Business &amp; Marketing</div>
+        <h3>The dealmaker. Money, market, and reputation.</h3>
+        <p>
+          Handles the abstract layer — capital, contracts, sales, reputation. Less hands-on building, more strategy and external-facing decisions. Reference points: <em>RollerCoaster Tycoon</em> ad campaigns and <em>Transport Tycoon</em> contract logic.
+        </p>
+        <h4>What the player builds</h4>
+        <ul>
+          <li>Selling points / trading posts (where end products actually leave the system for money)</li>
+          <li>Branded outlets — set up product mix per outlet</li>
+        </ul>
+        <h4>What the player manages</h4>
+        <ul>
+          <li><strong>Money &amp; loans:</strong> can take loans, can extend internal loans to other corps when needed (creates a real interpersonal mechanic)</li>
+          <li><strong>NPC trading:</strong> third-party buyers and sellers, market dynamics, prices that drift over time</li>
+          <li><strong>Sales pricing:</strong> per-product, per-outlet</li>
+          <li><strong>Orders / contracts:</strong> NPC orders for X units of product Y by date Z — <em>this is the canonical "guys, can we do this?" moment</em> that drives table conversation</li>
+          <li><strong>Marketing:</strong> ad campaigns, government bribes, sales / discount events — i.e. the RCT/TT toolkit</li>
+        </ul>
+        <h4>Key dependencies</h4>
+        <ul>
+          <li>Cannot sell without industrial producing and logistics delivering</li>
+          <li>Owns the revenue side of the shared credit pool — the rest of the table feels their decisions immediately</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Player count target</div>
+      The 4-corp design implies a <strong>4-player co-op target</strong>. Worth deciding explicitly: do we ship 4-player or do we collapse two corps (e.g., <em>logistics + business</em> as one role) for a 3-player ship and split later? See <a href="#decisions">decision D-04</a>.
+    </div>
+  </section>
+
+  <section id="tension">
+    <h2>5. Cross-Corp Tension Mechanics</h2>
+    <p>
+      Without explicit tension mechanics, asymmetric co-op tends to drift into <em>parallel solitaire</em> — three or four players doing their own thing and waving at each other across the map. We design <strong>two coupled mechanics on different timescales</strong> to prevent this.
+    </p>
+
+    <div class="twocol">
+
+      <div class="callout">
+        <div class="callout-title">Short-term: interference</div>
+        Each corp's actions create externalities for the others — sometimes negative — that have to be managed in real time.
+        <ul style="margin-top:10px;">
+          <li>Industrial waste / emissions reduce agri yield on nearby tiles</li>
+          <li>Agri runoff and land use constrain where industrial can build cleanly</li>
+          <li>Logistics bottlenecks throttle <em>everyone's</em> throughput</li>
+          <li>Business pricing or marketing decisions can swing demand mid-run, leaving the others scrambling</li>
+          <li><strong>Water</strong> is the cleanest shared-scarcity lever — agri irrigation and industrial process water both pull from the same pool, mediated by logistics-built mains</li>
+        </ul>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">Long-term: shared tech tree + shared credits</div>
+        Building directly on Gergely's existing profit-gated tech tree, all players research from <strong>one tree using one shared budget</strong>.
+        <ul style="margin-top:10px;">
+          <li>Every research decision becomes a group negotiation</li>
+          <li>"Do we unlock industrial tier 2 or agri's drought-resistant crops first?"</li>
+          <li>Forces <em>strategic conversation about pacing</em>, not just spatial coordination</li>
+          <li>Naturally throttles the runaway-leader problem</li>
+          <li>Credits also fund infrastructure spend, so the same pool services research <em>and</em> capital expansion — opportunity cost everywhere</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <p>
+      The two mechanics are deliberately on <strong>different timescales</strong>. Interference is the moment-to-moment "your factory is poisoning my farm <em>right now</em>" pressure; shared tech is the strategic "we agreed last round you'd get the next unlock, but the bottleneck has shifted" pressure. Together they create a multi-timescale dialogue that gives co-op real texture.
+    </p>
+
+    <h3>Optional refinement: per-corp private R&amp;D</h3>
+    <p>
+      To preserve corp identity and avoid the "shared pool eats everything" failure (see section 6), each corp could also have a <strong>small private R&amp;D budget</strong> — generated by their own internal performance — usable only on that corp's intra-corp tech. The shared pool is for <em>cross-corp infrastructure and major unlocks</em>; the private budget is for <em>your own corp's internal flavor</em>. To discuss.
+    </p>
+  </section>
+
+  <section id="failure">
+    <h2>6. Co-op Failure Modes &amp; Mitigations</h2>
+    <p>
+      Co-op design has a small, well-known set of failure patterns. Naming them up front so we can design against them — and watch for them in playtest.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">Failure mode</th>
+          <th style="width: 38%;">What it looks like</th>
+          <th>Mitigation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Alpha player problem</strong></td>
+          <td>One experienced player ends up directing everyone else's research and routing. Other players become spectators.</td>
+          <td>Per-corp private R&amp;D budgets; veto power on research that primarily benefits another corp; mechanics that genuinely require local knowledge each player has but others don't.</td>
+        </tr>
+        <tr>
+          <td><strong>Decision deadlock</strong></td>
+          <td>Three or four players argue forever about which tech to research; the game stalls.</td>
+          <td>Proposal + countdown + auto-pass-if-no-objection rhythm; explicit vote only when someone objects.</td>
+        </tr>
+        <tr>
+          <td><strong>Left-behind corp</strong></td>
+          <td>One corp's tech branch never gets credits because it isn't the current bottleneck. That player watches their tree starve.</td>
+          <td>Per-session credit-allocation tracking visible in UI; soft floor on per-corp progression; private R&amp;D safety net.</td>
+        </tr>
+        <tr>
+          <td><strong>Parallel solitaire</strong></td>
+          <td>Players each tend their own corner; co-op feels like four single-player games sharing a screen.</td>
+          <td>The interference + shared-tech combo is the structural answer; <em>orders / contracts</em> from business are the social trigger that pulls everyone into one conversation.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="branches">
+    <h2>7. Additional Design Branches Discussed</h2>
+    <p>
+      Three further proposals came up in conversation. Each represents a design choice that genuinely affects the shape of v1, and each is worth recording explicitly so the next meeting can either ratify or push back.
+    </p>
+
+    <h3>7.1 More corps to choose from <span style="color: var(--text-dim); font-weight: 400; font-size: 14px;">(Gergely's idea)</span></h3>
+    <p>
+      Gergely raised whether to expand beyond four corps for replayability. The instinct: more options = more variety per session.
+    </p>
+    <p>
+      The objection (Ambrus): the four-corp design is built around a <strong>complete partition</strong> of the game into essential roles. Adding more corps as new <em>roles</em> either sub-divides existing ones into anemic pieces, or invents overlap that creates ownership ambiguity. Both weaken the core design.
+    </p>
+    <div class="callout success">
+      <div class="callout-title">Where we landed — sub-types <em>emerge</em> from play, not picked at session start</div>
+      <p>Rather than picking a faction at the start (Civilization-style), each corp starts from the same baseline and <strong>develops into a sub-type through play</strong>. The two drivers:</p>
+      <ul>
+        <li><strong>Corp-exclusive tech tree / upgrade branches</strong> — the choices a player makes inside their own tech tree shape their corp's identity over the run. An Agri player who keeps investing in greenhouse and biotech research becomes a "BioCorp" run; one who invests in heritage seed lines and slow-cycle resilience becomes a "Heritage" run. Same starting position, different stories.</li>
+        <li><strong>Narrative event decisions (see 7.3)</strong> — corp-exclusive event choices nudge the corp's identity further, sometimes opening or locking branches that wouldn't otherwise be available.</li>
+      </ul>
+      <p>Sketch identities the system should be capable of producing (not as picked options, but as <em>emergent run flavors</em>):</p>
+      <ul>
+        <li><strong>Agri:</strong> BioCorp · Heritage Co-op · Vertical Towers</li>
+        <li><strong>Industrial:</strong> Refinery Specialist · Modular Manufacturing · Heavy Machinery</li>
+        <li><strong>Logistics:</strong> Ground Network · Rail Specialist · Pipeline &amp; Utility</li>
+        <li><strong>Business:</strong> Mass Market · Luxury Brand · Black Market / Gray Economy</li>
+      </ul>
+      <p>Why emergent &gt; picked for this design:</p>
+      <ul>
+        <li>No faction-select screen friction or analysis paralysis at session start</li>
+        <li>Same player picking the same role twice still gets meaningfully different runs</li>
+        <li>Every choice in the corp-exclusive tech tree becomes <em>identity-defining</em>, not just optimal-or-not</li>
+        <li>Events can <em>alter</em> a corp's trajectory mid-run — your story can pivot</li>
+        <li>Smaller art surface area: no need for 12 distinct visual identities — four corp baselines with modular modifier accents (logos, palettes, building skins) earned through play</li>
+      </ul>
+    </div>
+    <p><strong>Recommendation:</strong> yes to more variety, no to more roles. Replayability lives in the <em>shared tech tree + corp-exclusive tech tree + narrative events</em> trio — each session writes its own corp identity through play, rather than picking one from a menu.</p>
+    <p><em>Caveat to design carefully:</em> the corp-exclusive tech tree now has to be <strong>deep and branching enough</strong> to deliver on this. If the corp tree only has a handful of nodes, every Agri run looks the same. Worth scoping the tree size with sub-type emergence as the explicit design target — probably 3–4 meaningful branching points per corp at v1.</p>
+
+    <h3>7.2 Combat mechanic <span style="color: var(--text-dim); font-weight: 400; font-size: 14px;">(Gergely's idea, with pushback)</span></h3>
+    <p>
+      Gergely floated adding combat. Ambrus pushed back: this would change the core genre into tower defense or RTS like AoE2. That instinct is correct.
+    </p>
+    <p>
+      Adding combat to a four-corp co-op tycoon either:
+    </p>
+    <ul>
+      <li>Overloads one corp — industrial would become "factory + military," diluting both</li>
+      <li>Requires a fifth role — breaks the four-corp partition</li>
+      <li>Distributes combat across all four — dilutes every role's core mechanic</li>
+    </ul>
+    <p>
+      Reference points: <em>Factorio</em> uses combat as backdrop pressure that taxes expansion (still a factory game in essence). <em>Mindustry</em> is a tower defense first, factory second. <em>Anno</em> keeps combat optional. <em>Captain of Industry</em> has none. The cleanest factory tycoons treat combat as deliberately minimal or absent.
+    </p>
+    <div class="callout">
+      <div class="callout-title">Soft alternatives that capture "external threat" without becoming an RTS</div>
+      <table>
+        <thead>
+          <tr><th style="width:24%;">Mechanic</th><th style="width:48%;">What it adds</th><th>Genre fit</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Corporate espionage</strong></td><td>NPC corps plant moles, leak recipes, sabotage supply; counter with counterintel spend</td><td>Civ-style; very cyberpunk</td></tr>
+          <tr><td><strong>Hostile takeovers</strong></td><td>NPC corps buy out underperforming players' assets; business defends</td><td>Tycoon-native</td></tr>
+          <tr><td><strong>Regulatory pressure</strong></td><td>Government enforcement, environmental fines, labor strikes</td><td>Event-driven, no combat</td></tr>
+          <tr><td><strong>Market warfare</strong></td><td>NPC price wars, predatory pricing, dumping campaigns</td><td>Pure economic conflict</td></tr>
+          <tr><td><strong>Disasters &amp; events</strong></td><td>Power outages, pipeline failures, weather, agri disease</td><td>"System under attack" feel without combat units</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px; margin-bottom:0;">These give the kinetic-energy feel without changing the genre. Several pair naturally with the narrative event system in 7.3 — espionage, regulatory pressure, and takeovers can all be modeled as event chains.</p>
+    </div>
+    <p><strong>Recommendation:</strong> no to literal combat. Worth picking 1–2 of the soft alternatives above as v1 external-pressure mechanics. The cyberpunk theme makes <em>corporate espionage</em> and <em>regulatory/political pressure</em> particularly on-brand.</p>
+
+    <h3>7.3 Narrative event system <span style="color: var(--text-dim); font-weight: 400; font-size: 14px;">(Ambrus's proposal)</span></h3>
+    <p>
+      Ambrus proposed adding narrative decisions in the style of <em>Humankind</em> or <em>Endless Space 2</em>: branching event chains, some shared and group-decided, some corp-exclusive. This is a strong addition that earns its own design pillar.
+    </p>
+
+    <h4>How the three event types work</h4>
+    <ul>
+      <li><strong>Shared events</strong> — group-decision moments. <em>"The local government is offering tax breaks if we host a regional trade fair — costs us 30 days of warehouse capacity. Yes / no?"</em> Exactly the kind of conversation that makes co-op feel alive.</li>
+      <li><strong>Corp-exclusive events</strong> — private agency moments and mini-arcs. <em>"As the agri corp, you've been offered an exclusive deal with a heritage seed bank — take it and your future yields shift toward diversity over volume."</em> Reinforces corp identity and feeds emergent sub-type formation (7.1).</li>
+      <li><strong>Cross-corp events</strong> (affecting two of four) — deepen pairwise dynamics. <em>"Industrial expansion has triggered water-shortage rumors; business can issue a press denial ($$$) or admit and propose remediation."</em></li>
+    </ul>
+
+    <div class="callout success">
+      <div class="callout-title">Architectural insight — events feed the business corp's order/contract system</div>
+      <p>A key synthesis: events shouldn't be a parallel system to the business corp's <em>orders &amp; contracts</em> mechanic — they should <strong>generate</strong> orders. Many events naturally take the form of an external party offering or demanding a production deliverable:</p>
+      <ul>
+        <li><em>"A new mega-mall in the next district has placed an order for 5,000 units of premium beer in 45 days — accept?"</em> &nbsp;→ business takes the contract; industrial scrambles to retool; agri ramps barley; logistics reshapes routes</li>
+        <li><em>"Government wants 2,000 units of agri-grade emergency rations for a regional crisis — discounted price but reputation-positive"</em></li>
+        <li><em>"Black-market broker wants 500 units of an unlicensed product — high pay, regulatory risk"</em></li>
+      </ul>
+      <p>This means D-11 (external pressure), D-12 (events), and the business corp's existing order-handling are <strong>one coupled system</strong>, not three. The "guys, can we do this?" moment becomes a single design surface, with events as one of the order sources alongside ordinary NPC market demand.</p>
+      <p><em>Design note:</em> events that turn into contract obligations need a clear <em>negotiation step</em> — business shouldn't be able to unilaterally accept an order that the production corps can't deliver. The right shape is "business proposes, the table agrees, then the contract is signed" — same rhythm as a research vote on the shared tech tree.</p>
+    </div>
+
+    <h4>Why this fits the project</h4>
+    <ul>
+      <li>Adds personality and story without authored campaign content</li>
+      <li>Gives players a reason to care about the world beyond pure optimization</li>
+      <li>Creates memorable session moments — the "remember when..." stories that make a game live in players' heads after the session ends</li>
+      <li>Pairs perfectly with cyberpunk theme — corporate scandals, government negotiations, hostile media, whistleblowers</li>
+      <li>Architecturally light: each event is <code>trigger</code> + <code>presentation</code> + <code>effect</code>. Data-driven content. Ship a basic system, grow the event library over time</li>
+      <li><strong>Naturally absorbs the soft external-threat mechanics from 7.2</strong> — espionage, regulatory pressure, takeovers can all be implemented as event chains rather than dedicated systems</li>
+      <li>Fits cleanly with corp sub-types from 7.1 — each sub-type can carry its own private event arcs, multiplying replayability further</li>
+    </ul>
+
+    <h4>Design considerations</h4>
+    <ul>
+      <li>Events queue and fire at <strong>safe moments</strong> (between orders, between days) to avoid mid-crunch interruption</li>
+      <li>Time-pressured events display visible countdowns; non-urgent events offer "consult later"</li>
+      <li><strong>v1 library scope:</strong> ~8–10 shared events + ~4–5 corp-exclusive per corp = ~30 events for a credible launch. Subsequent events become natural update / DLC content</li>
+      <li>A small writer/designer pass at the right time would significantly elevate the system; could be a place where Ambrus contributes beyond visuals</li>
+    </ul>
+
+    <h4>Reference systems worth studying</h4>
+    <ul>
+      <li><strong>Endless Space 2</strong> — minor-faction quests, hero arcs, event chains tied to galactic state</li>
+      <li><strong>Stellaris</strong> — anomaly + event-chain system, very mature design; the gold standard for data-driven 4X events</li>
+      <li><strong>Humankind</strong> — civic decisions and narrative beats</li>
+      <li><strong>Crusader Kings 3</strong> — character-driven event chains; good model for corp-exclusive arcs</li>
+      <li><strong>Frostpunk</strong> — moral-cost decisions under resource pressure; very on-brand for cyberpunk corporate tycoon</li>
+    </ul>
+
+    <p><strong>Recommendation:</strong> strong yes. This feature gives the game character and depth disproportionate to its engineering cost, and it absorbs / enables several other design wishes — external pressure (7.2), corp identity, and replayability when paired with sub-types (7.1). It is a v1 design pillar, not a "nice to have."</p>
+
+    <h3>7.4 The replayability flywheel — how the three threads interlock</h3>
+    <p>
+      Pulling the three threads together: <strong>replayability in Drinkustry comes from the interaction of three coupled systems</strong>, not from picking from a longer list of corps at session start.
+    </p>
+    <div class="callout success">
+      <div class="callout-title">The three-system flywheel</div>
+      <ol>
+        <li><strong>Shared tech tree</strong> (§5) — forces strategic conversation about pacing and direction. <em>What we unlock together.</em></li>
+        <li><strong>Corp-exclusive tech tree / upgrade branches</strong> (§7.1) — drives emergent sub-type identity per corp. <em>How my corp specialises this run.</em></li>
+        <li><strong>Narrative events</strong> (§7.3, coupled with business orders / external pressure) — creates session-defining moments and reactive play. <em>What happens to us this run.</em></li>
+      </ol>
+      <p style="margin-top:12px;">Each session writes its own story along all three axes simultaneously. Same role twice still gives different runs. No setup-screen choice paralysis. And every choice the player makes — what to research with shared credits, what to upgrade in their corp tree, how to react to events — becomes identity-defining rather than just optimisation.</p>
+      <p style="margin-bottom:0;"><strong>This resolves Gergely's "more corps" question.</strong> The answer to "how do we get more variety?" isn't more roles or more pickable factions — it's more <em>depth</em> on the three axes above. That's where the design effort goes.</p>
+    </div>
+  </section>
+
+  <section id="decisions">
+    <h2>8. Decisions Needed for the Next Meeting</h2>
+    <p>
+      These are the open questions worth resolving before any code or art commits go in. Each is small enough to discuss in 10–20 minutes; sequencing them in order will make later decisions easier.
+    </p>
+
+    <div class="decision">
+      <div class="decision-title">D-01 · Confirm the cyberpunk pivot</div>
+      <div class="decision-meta">Owner: both · Effort: discussion · Blocks: art track</div>
+      <p>Are we committing to cyberpunk-megacorp framing, or staying near-contemporary tycoon? Decision unblocks all art work. Recommendation: commit, since the corp factionalism design leans on it.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-02 · Confirm the four-corp split</div>
+      <div class="decision-meta">Owner: both · Effort: discussion · Blocks: D-04, D-05</div>
+      <p>Agree on the four roles as described, or push back on one. In particular: is <em>business + marketing</em> rich enough to be its own role, or does it want to merge with logistics for v1?</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-03 · Solo playability — defer or commit to co-op-only? <span style="color: var(--accent-3); font-size: 12px; font-weight: normal;">[provisionally resolved]</span></div>
+      <div class="decision-meta">Status: provisionally resolved · Discussed · Revisit after first playtest</div>
+      <p><strong>Outcome:</strong> commit to the four-corp co-op design; explicitly defer the solo question. We'll decide along the way whether and how to add solo playability based on what the prototype tells us. Current lean: co-op-only as a market position, with a possible solo training / onboarding mode as a non-core add-on.</p>
+      <p><strong>Open sub-questions to revisit later:</strong> does the asymmetric design admit a meaningful solo "training mode"? If yes, how much extra scope? If no, is co-op-only acceptable to both of us as a shipping decision?</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-04 · Player count target — 3 or 4?</div>
+      <div class="decision-meta">Owner: both · Effort: discussion · Blocks: balance scope</div>
+      <p>Now that four corps are agreed in principle, the live question is: ship as a strict 4-player co-op, or build the design to also degrade gracefully to 2–3 players (with one player optionally running two corps, or one corp omitted/AI-driven)? 4-player-only is the cleanest design. Anything else is a tax on every system. Worth deciding intentionally rather than drifting.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-05 · MP architecture scope</div>
+      <div class="decision-meta">Owner: Gergely · Effort: scoping · Blocks: roadmap</div>
+      <p>What's the smallest credible MP slice? Three layered additions to the existing managers:</p>
+      <ol>
+        <li><strong>Ownership/permission layer</strong> on managers (who owns this building, who can act on it)</li>
+        <li><strong>Interference event channel</strong> (how does pollution from corp A reach yield calculation in corp B)</li>
+        <li><strong>Shared-credit + proposal/vote layer</strong> on the existing tech tree</li>
+      </ol>
+      <p>Rough order-of-magnitude estimate per layer would be very useful for sequencing.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-06 · Hot-seat / single-machine prototype as a stepping stone?</div>
+      <div class="decision-meta">Owner: Gergely · Effort: scoping</div>
+      <p>True networked MP is expensive. A hot-seat or single-screen multi-input prototype could let us playtest the design <em>before</em> committing to networking. Worth considering as a v0.5 milestone.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-07 · Tech tree growth path</div>
+      <div class="decision-meta">Owner: Gergely · Effort: design</div>
+      <p>How does today's profit-gated tech tree grow into the shared-credit, multi-corp version? Is the existing tree data structure extensible, or do we need a refactor pass first? If a refactor is needed, can it land while we're still in SP?</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-08 · Water as the headline shared resource</div>
+      <div class="decision-meta">Owner: both · Effort: discussion</div>
+      <p>Water is the cleanest cross-corp scarcity lever and ties three of the four corps together. Worth making it a <em>first-class</em> system — globally tracked, visible UI, weather/seasonal pressure?</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-09 · Art workstream cadence</div>
+      <div class="decision-meta">Owner: Ambrus · Effort: planning</div>
+      <p>Once D-01 and D-02 are settled, lock down the art track sequence: cyberpunk look-dev → four corp visual languages → tech-tree boardroom UI mock. Rough timing target?</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-10 · Corp variety — emergent sub-types via tech + events <span style="color: var(--accent-3); font-size: 12px; font-weight: normal;">[provisionally agreed]</span></div>
+      <div class="decision-meta">Status: provisionally agreed · Refs: §7.1, §7.4</div>
+      <p><strong>Outcome:</strong> replayability comes from the three-system flywheel (shared tech + corp-exclusive tech + events), not from a faction-select screen. Sub-types <em>emerge</em> from in-session play rather than being picked at start. This resolves Gergely's "more corps" question by reframing it as "more depth on the three axes."</p>
+      <p><strong>Open sub-question:</strong> scope and shape of the corp-exclusive tech tree — needs to be deep enough that emergent sub-types actually feel distinct (target ~3–4 meaningful branching points per corp at v1).</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-11 · External pressure mechanic — combat or alternatives?</div>
+      <div class="decision-meta">Owner: both · Effort: design · Refs: §7.2, §7.3</div>
+      <p>Combat would change the genre (tower defense / RTS) and is recommended against. Need to pick 1–2 of the soft alternatives — corporate espionage, hostile takeovers, regulatory pressure, market warfare, disasters/events — to provide v1 external pressure. Cyberpunk theme leans toward <em>espionage</em> + <em>regulatory pressure</em>. Most of these can be implemented as event chains rather than dedicated systems — so this decision is now tightly coupled with D-12.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-12 · Narrative event system — v1 design pillar?</div>
+      <div class="decision-meta">Owner: both · Effort: design + scoping · Refs: §7.3, §7.4</div>
+      <p>Commit to narrative events (shared / corp-exclusive / cross-corp) as a v1 pillar, with ~30 events at launch? <strong>Key architectural insight (§7.3):</strong> events feed the business corp's order/contract system rather than running parallel to it. D-11 (external pressure), D-12 (events), and the business order mechanic are one coupled system, not three. Decision shapes whether to build the event/contract pipeline as a Phase 11 deliverable or earlier.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-13 · Session shape — three game modes <span style="color: var(--accent-3); font-size: 12px; font-weight: normal;">[provisionally agreed]</span></div>
+      <div class="decision-meta">Status: provisionally agreed · Refs: §9 "Game modes" callout</div>
+      <p><strong>Outcome:</strong> ship three modes that complement each other — <em>custom maps / sandbox</em> with full parameter tuning (map size, economic difficulty, resource scarcity, NPC hostility, event frequency), <em>predefined scenarios</em> with fixed settings and tech-level constraints, and a <em>campaign mode</em> sequencing scenarios with escalating difficulty plus persistent unlocks/bonuses between them.</p>
+      <p>This resolves the original session-length tension: groups can pick a sandbox parameter set that matches the time they have, scenarios deliver tight 1–1.5 hr experiences for short windows, and campaigns reward committed friend groups across multiple sessions. Open implementation questions are split into D-14 (build order) and D-15 (persistent unlock model).</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-14 · Game mode build order &amp; v1 scope</div>
+      <div class="decision-meta">Owner: both · Effort: scoping · Refs: §9 "Game modes" callout</div>
+      <p>The three modes have very different content costs:</p>
+      <ul>
+        <li><strong>Sandbox / custom maps</strong> — cheapest to ship; players generate variety from tuned parameters. Right v1 mode.</li>
+        <li><strong>Scenarios</strong> — mid-cost; each scenario is hand-designed content, balanced against an expected starting position. Good update / DLC pipeline.</li>
+        <li><strong>Campaign</strong> — highest cost; sequence design + cross-scenario progression + narrative connective tissue. Strong marketing hook but real production effort.</li>
+      </ul>
+      <p>Recommendation: ship sandbox as v1; scenarios as post-launch content updates; campaign for a major update or v2. Locks in the right scope for a small team without closing any doors.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-15 · Persistent unlock model — team, per-corp, or both?</div>
+      <div class="decision-meta">Owner: both · Effort: design · Refs: §9 "Game modes" callout</div>
+      <p>If campaign progression unlocks techs/bonuses between scenarios, who owns the unlocks?</p>
+      <ul>
+        <li><strong>Team unlocks</strong> — the four-friend table accumulates permanent bonuses together. Reinforces co-op-essential commitment; encourages the same group to play through the campaign together.</li>
+        <li><strong>Per-corp unlocks</strong> — each player's corp tree gets new permanent options. Rewards specialisation and matches the emergent-sub-types direction (D-10).</li>
+        <li><strong>Both</strong> — most interesting design but most complex and largest balance surface.</li>
+      </ul>
+      <p>Decision shapes how campaign mode interacts with the corp identity system. Worth deferring until D-10 (corp tech tree) is more concrete.</p>
+    </div>
+
+    <div class="decision">
+      <div class="decision-title">D-16 · AI failsafe for disconnects / no-shows</div>
+      <div class="decision-meta">Owner: Gergely · Effort: scoping · Phase 12+</div>
+      <p>Confirming the four-player co-op-only direction unlocks deeper mechanic design. As a pragmatic safety net (not as a real SP mode), include an <strong>AI failsafe</strong> that takes over a disconnected or no-show corp to keep the session playable. Scope is deliberately small:</p>
+      <ul>
+        <li>Keeps the corp's existing operations running (factories don't stop, deliveries continue)</li>
+        <li>Makes sane, non-optimal decisions — accept reasonable contracts, don't block the team, don't take risky bets</li>
+        <li><strong>Does not negotiate</strong> — for shared tech-tree votes or contract acceptance, defaults to "abstain" or "follow majority"</li>
+        <li>Visibly flagged in UI ("Agri Corp · AI failsafe — Pete reconnecting") so the table knows it's a placeholder, not a real partner</li>
+      </ul>
+      <p>This is meaningfully smaller than a "real AI corp partner" — the hardest AI problem (negotiation) is sidestepped. Natural to scope into Phase 12 (networked MP) since disconnect handling lives there anyway. <em>Architectural bonus:</em> if designed with reuse in mind, the same failsafe code could later support a "solo training mode" for onboarding (one human, three scripted partners) — same engine, two purposes.</p>
+    </div>
+
+  </section>
+
+  <section id="roadmap">
+    <h2>9. Proposed Phasing &amp; Roadmap</h2>
+    <p>
+      This is a strawman to react to, not a commitment. Each phase is sized so it can be paused safely — important given how the project's rhythm has gone historically.
+    </p>
+
+    <div class="roadmap">
+
+      <div class="phase">
+        <div>
+          <div class="phase-tag">Phase 8</div>
+          <span class="pill now">now</span>
+        </div>
+        <div class="phase-body">
+          <h4>Consolidate &amp; data-driven groundwork</h4>
+          <ul>
+            <li>Land the design decisions from section 7 in a brief follow-up doc</li>
+            <li>Audit which managers will need an ownership layer; sketch the API</li>
+            <li>Refactor the existing tech tree to support multi-source spend (sets up shared credits later)</li>
+            <li>Stay in SP — no MP code yet</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div>
+          <div class="phase-tag">Phase 9</div>
+          <span class="pill next">next</span>
+        </div>
+        <div class="phase-body">
+          <h4>Look-dev only (tier-1 art, parallel track)</h4>
+          <ul>
+            <li>Cyberpunk moodboard finalised; 1–2 reference scenes painted</li>
+            <li>Four corp visual languages: palette, logo system, silhouette language</li>
+            <li>Low-fidelity boardroom-feel sketch for tech-tree UI direction</li>
+            <li><strong>No concrete building sprites or final UI assets yet</strong> — those wait for mechanic lock (per §10)</li>
+            <li>Runs in parallel with phase 8 code work; informs mechanic discussions rather than depending on them</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div>
+          <div class="phase-tag">Phase 10</div>
+          <span class="pill next">next</span>
+        </div>
+        <div class="phase-body">
+          <h4>Asymmetric corp roles (single-machine dev scaffold)</h4>
+          <ul>
+            <li>Implement role-scoped building access &amp; UI gating, single-machine</li>
+            <li>One playable corp at a time; switch corps from a debug menu</li>
+            <li>Note: this is <em>dev scaffolding for solo testing during development</em>, not a planned SP shipping mode — we're using single-machine to validate the four-corp design before paying the networking tax</li>
+            <li>First playtests with Gergely + a couple of friends, hot-seat style</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div>
+          <div class="phase-tag">Phase 11</div>
+          <span class="pill later">later</span>
+        </div>
+        <div class="phase-body">
+          <h4>Interference + shared credits</h4>
+          <ul>
+            <li>Pollution / waste channel between industrial and agri</li>
+            <li>Shared credit pool wired into existing tech tree</li>
+            <li>Proposal/vote UI for research</li>
+            <li>Still hot-seat or single-screen — no networking yet</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div>
+          <div class="phase-tag">Phase 12</div>
+          <span class="pill later">later</span>
+        </div>
+        <div class="phase-body">
+          <h4>Networked co-op MP</h4>
+          <ul>
+            <li>Once the design has been validated hot-seat, add networking</li>
+            <li>Smallest viable: 2 players, 2 corps, online co-op</li>
+            <li>Scale up to 3–4 players once the protocol is stable</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div>
+          <div class="phase-tag">v2+</div>
+          <span class="pill parking">parking lot</span>
+        </div>
+        <div class="phase-body">
+          <h4>Competitive mode &amp; biome gating</h4>
+          <ul>
+            <li>Competitive: same corps, conflicting goals, no shared credits</li>
+            <li>Biome-segmented resources (kept from earlier design notes — still a good SP/MP mechanic)</li>
+            <li>Anything else parked for now</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Sequencing principle</div>
+      Do not start MP networking until the asymmetric design has been validated hot-seat. Networking adds orders of magnitude more complexity; we want to be sure the <em>game</em> works before we pay that tax.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Playtest plan</div>
+      <p style="margin-top:0;">A real answer to "who plays a co-op-only game during dev?":</p>
+      <ul>
+        <li><strong>Phase 10–11 (private playtest):</strong> existing close-knit friend group that already plays games together regularly. Sessions scheduled ahead of time. Trusted, available, no recruiting overhead.</li>
+        <li><strong>Phase 12+ (early access / alpha-beta):</strong> grow a Discord community as the playtest pool, similar to how <em>Deep Rock Galactic</em> / <em>Risk of Rain 2</em> / <em>Valheim</em> run their pipelines. Crossed when we get there; not over-engineering it now.</li>
+      </ul>
+      <p style="margin-bottom:0;">Session length is handled by the three-mode design below — groups can pick the mode that matches the time they have.</p>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Game modes — three-mode shipping shape</div>
+      <p style="margin-top:0;">Drinkustry ships three complementary modes that together cover short, long, and infinite play patterns:</p>
+      <ul>
+        <li><strong>Sandbox / custom maps</strong> — full parameter tuning before sit-down: map size, economic difficulty, resource scarcity, NPC corp hostility, event frequency, starting tech level, etc. The table picks parameters to match the time they have. <em>Infinite-replayability hook.</em> Cheapest to ship; right primary mode for v1.</li>
+        <li><strong>Predefined scenarios</strong> — fixed settings, tech-level constraints, specific objectives, hand-designed for ~1–1.5 hr arcs. <em>Polished-experience hook;</em> great for first plays, demos, marketing trailers, streaming. Mid-cost — each scenario is content. Good update / DLC pipeline.</li>
+        <li><strong>Campaign mode</strong> — sequence of scenarios with escalating difficulty, persistent unlocks/bonuses carried between them. <em>Story-driven progression hook</em> — the most marketable of the three modes, but the highest-cost to produce (sequence design, cross-scenario progression, narrative connective tissue). Reserve for a major update or v2.</li>
+      </ul>
+      <p style="margin-bottom:0;"><strong>Genre pattern:</strong> Frostpunk, Captain of Industry, Anno 1800, AoE2, Northgard all ship some configuration of this trio. Drinkustry should follow the same pattern. See D-14 for build-order recommendation and D-15 for persistent unlock design.</p>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Two design notes worth flagging now</div>
+      <ul style="margin: 0;">
+        <li><strong>Tunable parameters have a hidden content cost.</strong> Every knob you expose needs to be playtested at extremes, balanced against the others, and clearly explained in UI. <em>Captain of Industry</em> exposes many; <em>Anno 1800</em> is more curated. Decide intentionally how exposed-vs-curated the sandbox settings are — too few feels shallow, too many overwhelms first-time players.</li>
+        <li><strong>Campaign needs narrative connective tissue, not just rising difficulty.</strong> Stacking scenarios that get harder is fine but unmemorable. A campaign that has even minimal story progression — a megacorp arc unfolding scenario by scenario — feels like a real game mode, not "harder versions of the same level." This is exactly where the narrative event system from §7.3 pays off doubly: each campaign scenario can carry its own bespoke event chain. The campaign mode is the place where Drinkustry's writing voice can really land.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="art">
+    <h2>10. Art Track — Parallel Workstream</h2>
+    <p>
+      Ambrus's stated preference (2026-05-01): <strong>concrete asset production for buildings and UI elements waits until mechanics are decided and tested.</strong> Drawing what we don't yet know means redoing work when mechanics shift. The art track is therefore split into two tiers — work that runs in parallel with mechanic design, and work that's gated on mechanic lock.
+    </p>
+
+    <div class="callout success">
+      <div class="callout-title">Tier 1 — runs in parallel (informs mechanic discussions, doesn't depend on locked buildings)</div>
+      <ol style="margin-bottom: 0;">
+        <li><strong>Cyberpunk reference compilation</strong> — a curated PureRef sub-board pulling from <em>Mindustry</em>, <em>Cyberpunk 2077</em> corporate scenes, <em>Deus Ex</em> UI, megacorp branding from real-world references. Cheap, useful as conversation fuel for design discussions.</li>
+        <li><strong>Four corp visual languages</strong> — one-pager per corp: logo system, color palette, building silhouette language, signature material, key motif. Designed in isolation but tested together. <em>This work informs the corp identity discussion (D-10) — having visual language helps us think about what a "BioCorp" run feels like vs. a "Heritage" run.</em>
+          <ul>
+            <li><strong>Agri:</strong> organic / biotech / verdant — engineered nature</li>
+            <li><strong>Industrial:</strong> brutalist / heavy / smoking — power and mass</li>
+            <li><strong>Logistics:</strong> sleek / networked / kinetic — flow and connection</li>
+            <li><strong>Business:</strong> sleek / corporate / luxurious — boardrooms and brand</li>
+          </ul>
+        </li>
+        <li><strong>One painted "key art" scene</strong> — a single illustration that establishes the world's tone. Useful for marketing, pitch, and as a reference touchstone. Doesn't depend on building lists.</li>
+      </ol>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Tier 2 — gated on mechanic lock (deferred per Ambrus 2026-05-01)</div>
+      <ul style="margin-bottom: 0;">
+        <li><strong>Concrete building sprites and machine icons</strong> — wait until the building list, machine list, and production chains are locked through playtest. Producing these against an unstable spec means redoing them.</li>
+        <li><strong>Final UI element design</strong> (HUD, menus, panels, the actual tech-tree screen) — wait until the underlying systems are stable enough that the UI is being designed against real interactions, not hypothetical ones.</li>
+        <li><strong>Tech-tree boardroom UI mock</strong> — useful as a tier-1 mood/concept mock at low fidelity (loose sketch establishing the boardroom feel), but final UI work waits until the tech tree's data model is locked.</li>
+      </ul>
+    </div>
+
+    <p>
+      <strong>The pattern:</strong> low-fidelity sketches in service of design conversations are fine and welcome at any phase; final asset production waits for mechanic lock. Even tier-2 work can have a paper-prototype version that <em>informs</em> mechanic discussions without committing the artist's time to anything that might be thrown away. This keeps art's voice in the design conversation without paying redo costs.
+    </p>
+  </section>
+
+  <section id="comparative">
+    <h2>11. Comparative Reference — Anno &amp; Sierra Historical City Builders</h2>
+    <p>
+      The 2026-05-01 design pass surfaced two reference families worth analyzing explicitly:
+      <strong>Anno</strong> (1404, 1800, 2070, 2205, 117) and the <strong>Sierra / Impressions historical city builders</strong>
+      (Caesar III, Pharaoh + Cleopatra, Zeus: Master of Olympus + Poseidon, Emperor: Rise of the Middle Kingdom). Both
+      franchises sit upstream of the modern production-chain tycoon genre, and several Drinkustry mechanics are inheriting
+      their conventions implicitly. Worth pulling them onto the table.
+    </p>
+
+    <h3>11.1 Shared DNA — what we are already doing that they pioneered</h3>
+    <table>
+      <thead>
+        <tr><th>Mechanic</th><th>Drinkustry plan</th><th>Anno</th><th>Sierra historical builders</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Multi-step production chains</strong></td>
+          <td>Barley → malt → beer; later cider, spirits</td>
+          <td>Defining mechanic: hops → beer; sheep → cloth → garments</td>
+          <td>Defining mechanic: reeds → papyrus; grain → mill → bakery</td>
+        </tr>
+        <tr>
+          <td><strong>Crop suitability / land fertility</strong></td>
+          <td>Tropico-style heat map; pollution shrinks suitable land over time</td>
+          <td>Per-island fertility; some islands grow grapes, others spices</td>
+          <td>Floodplains in Pharaoh; soil tiles per crop in Emperor</td>
+        </tr>
+        <tr>
+          <td><strong>Storage buffers</strong></td>
+          <td>Silos owned by agri</td>
+          <td>Warehouses with working radius</td>
+          <td>Granaries, storage yards with accept/reject configs</td>
+        </tr>
+        <tr>
+          <td><strong>External trade with NPCs</strong></td>
+          <td>Business corp's trading depots and trade routes</td>
+          <td>NPC traders (Old Nate, Anne Harlow, etc.); ship-based</td>
+          <td>Foreign trade partners; caravan + ship</td>
+        </tr>
+        <tr>
+          <td><strong>Logistics network</strong></td>
+          <td>Roads, rails, pipes, vehicles; node-graph routing</td>
+          <td>Trade routes between own islands; abstract but multi-modal</td>
+          <td>Walker AI on roads — workers carry goods on foot</td>
+        </tr>
+        <tr>
+          <td><strong>Demand sinks (cities, towns)</strong></td>
+          <td>Sales outlets at settlements; demand shifts late game</td>
+          <td>Population tiers (Farmer → Worker → Artisan → Engineer) demand specific goods</td>
+          <td>Foreign markets demand specific goods; housing tiers</td>
+        </tr>
+        <tr>
+          <td><strong>External pressure / disasters</strong></td>
+          <td>Pollution creep + narrative events + corporate espionage</td>
+          <td>Disasters, hostile AI factions, expedition mishaps</td>
+          <td>Plagues, fires, riots, invasions, drought</td>
+        </tr>
+        <tr>
+          <td><strong>Progression / tech</strong></td>
+          <td>Shared higher-level tree + per-corp internal trees</td>
+          <td>Research panels + era progression (1800: passages between worlds)</td>
+          <td>Population tiers gate building options; campaign-gated tech</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Drinkustry's <strong>chain shape</strong> is closest to Anno's. Its <strong>suitability handling</strong>
+      is closest to Pharaoh's floodplain logic. Its <strong>storage role</strong> and <strong>demand-sink shape</strong>
+      are shared across both franchises. We are not stealing — we are extending an inherited tradition into asymmetric
+      co-op territory.
+    </p>
+
+    <h3>11.2 Mechanics worth borrowing — concrete proposals</h3>
+
+    <div class="callout success">
+      <div class="callout-title">Anno settlement tiers → city demand evolution</div>
+      <p style="margin-top: 0;">
+        Anno's defining loop: a population tier demands specific goods; satisfying demand consistently lets the tier
+        evolve, which unlocks the next tier and demands more diverse goods.
+      </p>
+      <p>
+        <strong>Drinkustry analogue:</strong> cities, towns, and outposts each have a tier (e.g., Outpost → Town → City → Megacity).
+        At the lowest tier they demand only <em>lager beer</em>; consistent supply for a duration evolves them, and
+        they begin demanding <em>cider</em> alongside; further evolution adds spirits, premium products, branded variants.
+        This gives the business corp a <em>visible map of growth</em> and a structural reason for the production corps
+        to keep diversifying. Pairs cleanly with the existing pollution-shrinks-suitable-land mechanic — late game has
+        fewer fields but richer markets, forcing optimisation.
+      </p>
+      <p style="margin-bottom: 0;">
+        Architectural fit: this dovetails with the 2026-05-01 gameplay doc's "demand isn't a problem early game; market shifts later" framing.
+        Settlement tiers are the explicit mechanism behind that shift.
+      </p>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Sierra monuments → the Co-op Megaproject</div>
+      <p style="margin-top: 0;">
+        Pyramids in Pharaoh, the Parthenon in Zeus, the Great Wall in Emperor — multi-year construction projects
+        requiring sustained logistics from many industries simultaneously. They are the city's <em>shared pinnacle</em>.
+      </p>
+      <p>
+        <strong>Drinkustry analogue:</strong> a slow-build endgame megaproject the four corps pursue together. Candidate forms:
+      </p>
+      <ul>
+        <li><strong>Megaplant</strong> — one giant brewery requiring constant raw input from agri, custom machinery from industrial, dedicated trunk lines from logistics, and pre-sold contracts from business</li>
+        <li><strong>Flagship Brand</strong> — multi-stage marketing campaign that elevates the table's reputation and unlocks new market tiers</li>
+        <li><strong>District Reclamation</strong> — reverse a polluted region, requires the fertilizer-loop sustained over time, returns valuable suitable land</li>
+      </ul>
+      <p style="margin-bottom: 0;">
+        Gives campaigns and scenarios a natural climactic objective without scripted authoring. The "guys, can we do this together?"
+        question scales from per-contract to per-megaproject.
+      </p>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Anno specialists / items → corp specialists</div>
+      Anno 1800's items are equippable buffs slotted into buildings: yield boosts, throughput speedups, recipe changers.
+      <strong>Drinkustry analogue:</strong> the per-corp internal tech tree (§5, §7.4) could deliver part of its bonuses
+      through equippable specialists — <em>"Master Maltster"</em> assigned to a malthouse, <em>"Hops Whisperer"</em> assigned to
+      an agri field. Gives the corp-internal tree texture beyond pure stat tweaks, and gives players visible decisions about
+      <em>where</em> their corp's progress is being spent. Naturally absorbs corp-exclusive event rewards (§7.3) — events can hand out
+      named specialists.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Sierra festivals → city-targeted ad campaigns</div>
+      Sierra's festivals are scheduled, paid events that generate temporary city-wide bonuses (or appease angry deities).
+      <strong>Drinkustry analogue:</strong> the business corp's ad campaign mechanic (§4) sharpens into <em>festivals</em> —
+      scheduled, paid, city-targeted events that spike demand or accelerate tier evolution at a chosen settlement. Reads more
+      grounded than a generic "ad campaign" and creates a natural "pick the city we'll push this run" moment. Pairs with the
+      settlement-tier system above.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Anno influence → reputation as a meta-currency</div>
+      Anno 1800's <em>influence</em> is a meta-resource that gates diplomacy, propaganda, and expedition power — parallel to credits.
+      <strong>Drinkustry analogue:</strong> a <em>reputation</em> meta-currency tracked per corp <em>and</em> per table.
+      Spent on accepting better contracts, running festivals, navigating regulatory pressure (D-11). Lost on accepting black-market
+      deals or letting pollution run wild. Earned through finished contracts, festival success, environmental remediation. Adds a
+      third resource axis (alongside materials and credits) that the four corps must coordinate on, and gives the business corp
+      a non-monetary lever to manage.
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">Pharaoh's seasonal cycles → harvest seasons</div>
+      Pharaoh's calendar centers on the annual Nile flood: a forced rhythm that shapes every farming decision.
+      <strong>Drinkustry analogue:</strong> certain crops carry seasonal cycles — apples have a harvest window, hops have a
+      flowering month, future grapes have a vintage year. Adds a temporal beat to agri's verb set and gives long-aging spirits
+      (whisky, calvados) a natural mechanical home. Optional in slice 1; appears alongside orchards as a slice-2+ feature.
+    </div>
+
+    <h3>11.3 Mechanics deliberately not carried over</h3>
+
+    <div class="callout warn">
+      <div class="callout-title">Sierra walker AI — too granular for our logistics scope</div>
+      Walker-based logistics (each worker walks the road carrying one good) is iconic but it would micro-shred Drinkustry's
+      logistics corp into per-tile pathfinding management, against an abstracted vehicle-route model that's already working
+      at Phase 7B. Worth admiring as an inspiration, not as an implementation.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Sierra housing evolution — we don't simulate citizens</div>
+      In Sierra builders, every house is a unit that evolves through housing tiers as services arrive. Drinkustry's
+      "settlements as demand sinks" approach is much lighter — cities are entities with tiers, not collections of simulated
+      households. The Anno settlement-tier mechanic above (§11.2) gives us the same gameplay shape without the simulation cost.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Anno expeditions — out of scope for v1</div>
+      Anno 1800's expedition system (send a ship with crew/supplies/skills to resolve away missions) is great but cuts
+      against the four-corp negotiation focus. Saved as a v2+ idea if a "trade expedition" fits into the business corp's late game.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Sierra mythology / gods → reskinned as cyberpunk regulatory bodies</div>
+      Zeus's gods, Pharaoh's pantheon — divine actors who reward festivals and punish neglect. Doesn't fit a cyberpunk megacorp
+      setting literally, but the <em>shape</em> reskins cleanly: government regulators, media bodies, AI overlords as the
+      "deities" we appease through compliance, ad spend, and donations. This bends back into the narrative event system (§7.3)
+      rather than becoming its own subsystem.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Anno combat / Sierra military — already declined (D-11)</div>
+      Anno is combat-optional; Sierra has tower-defense-style invasions in some campaigns. Drinkustry explicitly opted out
+      of literal combat in §7.2 / D-11. The soft alternatives (espionage, regulatory pressure, market warfare) cover the same
+      "external threat" beat without changing the genre.
+    </div>
+
+    <h3>11.4 Where Drinkustry diverges</h3>
+    <p>Three commitments that Anno and Sierra do not share, and that genuinely change the design problem:</p>
+    <ul>
+      <li><strong>Asymmetric four-player co-op.</strong> Anno and Sierra are SP. Drinkustry's whole spine — shared tech tree,
+        cross-corp negotiation, contract acceptance as a table decision — only exists because of co-op. The "alpha player"
+        failure mode (§6) is a problem those games never had to solve.</li>
+      <li><strong>Inside-the-building factory layout.</strong> Anno's production buildings are black boxes; Sierra's are too.
+        Drinkustry's industrial corp <em>steps inside</em> to design machine layouts Mindustry / Modulus-style. This is the
+        depth axis those references don't have.</li>
+      <li><strong>Cyberpunk megacorp framing.</strong> Anno reskins across eras; Sierra reskins across civilizations.
+        Drinkustry's cyberpunk reskin is closer to Anno 2070 than to anything Sierra shipped — but the <em>narrative pillar</em>
+        (events as corporate scandals, regulator inspections, black-market deals) leans heavier than Anno did.</li>
+    </ul>
+
+    <div class="callout success">
+      <div class="callout-title">One-line positioning</div>
+      Drinkustry = <em>Anno's production chains and tier demand</em> + <em>Sierra's industry-specific suitability and
+      shared-monument feel</em> + <em>Mindustry's inside-the-building factory</em> + <em>cyberpunk megacorp reskin</em>
+      + <em>asymmetric four-player co-op</em>. The first two ingredients are decades-tested; the last three are where
+      the design's originality lives.
+    </div>
+
+    <h3>11.5 What this analysis implies for the open decisions</h3>
+    <ul>
+      <li><strong>D-11 (external pressure)</strong> — Sierra-style "deity" appeasement reframed as regulatory bodies fits the cyberpunk theme cleanly. Picks up festivals as a natural sub-mechanic.</li>
+      <li><strong>D-12 (narrative events)</strong> — settlement-tier evolution and reputation meta-currency are <em>structural pillars</em> the event library can hook into; events become more meaningful when they shift tier or reputation.</li>
+      <li><strong>D-13/D-14 (game modes)</strong> — the Co-op Megaproject is a natural <em>scenario objective</em> and a natural <em>campaign climax</em>. Strengthens the case for scenarios as a content surface.</li>
+      <li><strong>D-15 (persistent unlocks)</strong> — Anno's specialists/items map onto per-corp persistent unlocks cleanly: the campaign hands out named specialists across scenarios.</li>
+      <li><strong>2026-05-01 gameplay doc Q3</strong> — settlement tiers give business a clear spatial purpose: place outlets, evolve cities, choose which markets to push. Resolves "is business just a UI layer?" in favour of strong spatial presence.</li>
+    </ul>
+  </section>
+
+  <section id="references">
+    <h2>12. References &amp; Inspiration</h2>
+    <ul>
+      <li><strong>Mindustry</strong> — closest tonal match for cyberpunk-industrial tycoon</li>
+      <li><strong>Modulus / Factorio</strong> — interior factory chain design (industrial corp's inside-the-building gameplay)</li>
+      <li><strong>Sandship</strong> — pacing and tactile factory feel (Miro references)</li>
+      <li><strong>RollerCoaster Tycoon &amp; Transport Tycoon</strong> — ad campaigns, contracts, marketing levers (business corp toolkit)</li>
+      <li><strong>Offworld Trading Company</strong> — megacorp tension and shared-market dynamics</li>
+      <li><strong>Pandemic Legacy / Hanabi / Keep Talking and Nobody Explodes</strong> — asymmetric co-op information design</li>
+      <li><strong>It Takes Two / Overcooked / Lovers in a Dangerous Spacetime / We Were Here</strong> — successful co-op-only commercial designs</li>
+      <li><strong>Civilization / Endless Space 2 / Stellaris</strong> — sub-type / faction / origin design patterns (D-10)</li>
+      <li><strong>Stellaris (anomaly system) / Crusader Kings 3 / Humankind / Frostpunk</strong> — narrative event / decision system references (D-12)</li>
+      <li><strong>Anno / Captain of Industry</strong> — factory-tycoon designs that handle combat as optional or absent</li>
+      <li><strong>Frostpunk / Captain of Industry / Anno 1800 / AoE2 / Northgard</strong> — sandbox + scenarios + campaign as a shipping pattern (D-13/D-14)</li>
+      <li><strong>Pixel-art tycoon inspo folder</strong> — Banished, Mini Settlers, Sim Farm, Stardew, Dwarf Fortress, Zeus Master of Olympus</li>
+      <li><strong>Anno series</strong> (1404, 1800, 2070, 2205, 117) — multi-step production chains, settlement tier demand, island fertility, NPC trade routes, equippable specialists, influence as meta-currency (full comparison in §11)</li>
+      <li><strong>Sierra / Impressions historical city builders</strong> — Caesar III, Pharaoh / Cleopatra, Zeus: Master of Olympus / Poseidon, Emperor: Rise of the Middle Kingdom — production chains, crop suitability, granaries, monuments as sustained shared projects, festivals, walker-based logistics (full comparison in §11)</li>
+    </ul>
+    <h4>Internal references</h4>
+    <ul>
+      <li><code>github.com/GergelyKrista/butykos</code> — code repo</li>
+      <li><code>DEVELOPMENT_STATUS.md</code> / <code>CLAUDE.md</code> — current build status</li>
+      <li><code>ASSET_NAMING_CONVENTION.md</code> — asset pipeline conventions</li>
+      <li><code>Drinkustry.pur</code> — PureRef mood board</li>
+      <li><code>pixelart_strategy_game_inspo/</code> — visual inspiration folder</li>
+    </ul>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / butykos · Design Brainstorm Summary · 2026-04-30 · Working draft for next planning session
+  </footer>
+
+</div>
+</body>
+</html>
