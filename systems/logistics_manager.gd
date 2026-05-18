@@ -335,7 +335,7 @@ func _create_vehicle(connection_id: String, source_id: String, destination_id: S
 
 	# Vehicles inherit corp_id from their parent connection. No separate parameter
 	# because vehicles are never created outside the auto-dispatch path inside this manager.
-	var parent_connection := connections.get(connection_id, {})
+	var parent_connection: Dictionary = connections.get(connection_id, {})
 	var vehicle_corp_id: String = parent_connection.get("corp_id", GameManager.CORP_LOGISTICS)
 
 	var vehicle = {
