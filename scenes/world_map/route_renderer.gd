@@ -1,42 +1,44 @@
 extends Node2D
 
-## RouteRenderer - Draws route lines between facilities
+## RouteRenderer - Draws connection lines between facilities
 ##
-## Visualizes logistics routes on the world map with directional arrows
+## Visualizes logistics connections on the world map with directional arrows
+
+# TODO(Phase 10 catchment work): rename file route_renderer.gd → connection_renderer.gd as part of visual-layer restructure.
 
 # ========================================
 # INITIALIZATION
 # ========================================
 
 func _ready() -> void:
-	# Connect to route events
-	EventBus.route_created.connect(_on_route_created)
-	EventBus.route_removed.connect(_on_route_removed)
+	# Connect to connection events
+	EventBus.connection_created.connect(_on_connection_created)
+	EventBus.connection_removed.connect(_on_connection_removed)
 
-	# Redraw all existing routes
-	_redraw_all_routes()
+	# Redraw all existing connections
+	_redraw_all_connections()
 
 
 # ========================================
-# ROUTE VISUALIZATION
+# CONNECTION VISUALIZATION
 # ========================================
 
-func _redraw_all_routes() -> void:
-	"""Clear and redraw all routes"""
+func _redraw_all_connections() -> void:
+	"""Clear and redraw all connections"""
 	# Clear existing visuals
 	for child in get_children():
 		child.queue_free()
 
-	# Draw each route
-	for route_id in LogisticsManager.routes:
-		var route = LogisticsManager.routes[route_id]
-		_create_route_visual(route_id, route)
+	# Draw each connection
+	for connection_id in LogisticsManager.connections:
+		var connection = LogisticsManager.connections[connection_id]
+		_create_connection_visual(connection_id, connection)
 
 
-func _create_route_visual(route_id: String, route: Dictionary) -> void:
-	"""Create visual representation of a route"""
-	var source_id = route.get("source_id", "")
-	var destination_id = route.get("destination_id", "")
+func _create_connection_visual(connection_id: String, connection: Dictionary) -> void:
+	"""Create visual representation of a connection"""
+	var source_id = connection.get("source_id", "")
+	var destination_id = connection.get("destination_id", "")
 
 	if source_id.is_empty() or destination_id.is_empty():
 		return
@@ -51,9 +53,9 @@ func _create_route_visual(route_id: String, route: Dictionary) -> void:
 	var source_pos = _get_facility_center_position(source_facility)
 	var dest_pos = _get_facility_center_position(destination_facility)
 
-	# Create route line
+	# Create connection line
 	var line = Line2D.new()
-	line.name = "route_line_%s" % route_id
+	line.name = "connection_line_%s" % connection_id
 	line.width = 3.0
 	line.default_color = Color(0.2, 0.6, 1.0, 0.8)  # Blue
 	line.z_index = -1  # Draw behind facilities
@@ -64,23 +66,23 @@ func _create_route_visual(route_id: String, route: Dictionary) -> void:
 
 	add_child(line)
 
-	# Add directional arrows along the route
-	_add_route_arrows(route_id, source_pos, dest_pos)
+	# Add directional arrows along the connection
+	_add_connection_arrows(connection_id, source_pos, dest_pos)
 
 
-func _add_route_arrows(route_id: String, start_pos: Vector2, end_pos: Vector2) -> void:
-	"""Add directional arrow indicators along the route"""
+func _add_connection_arrows(connection_id: String, start_pos: Vector2, end_pos: Vector2) -> void:
+	"""Add directional arrow indicators along the connection"""
 	var direction = (end_pos - start_pos).normalized()
 	var distance = start_pos.distance_to(end_pos)
 
-	# Add arrow at 1/3 and 2/3 along the route
+	# Add arrow at 1/3 and 2/3 along the connection
 	var arrow_positions = [0.33, 0.66]
 
 	for t in arrow_positions:
 		var arrow_pos = start_pos.lerp(end_pos, t)
 
 		var arrow = Polygon2D.new()
-		arrow.name = "route_arrow_%s_%d" % [route_id, int(t * 100)]
+		arrow.name = "connection_arrow_%s_%d" % [connection_id, int(t * 100)]
 		arrow.color = Color(1.0, 0.8, 0.2, 0.9)  # Orange/yellow
 		arrow.position = arrow_pos
 		arrow.z_index = -1
@@ -119,21 +121,21 @@ func _get_facility_center_position(facility: Dictionary) -> Vector2:
 # EVENT HANDLERS
 # ========================================
 
-func _on_route_created(route: Dictionary) -> void:
-	"""Handle route creation"""
-	var route_id = route.get("id", "")
-	if route_id.is_empty():
+func _on_connection_created(connection: Dictionary) -> void:
+	"""Handle connection creation"""
+	var connection_id = connection.get("id", "")
+	if connection_id.is_empty():
 		return
 
-	_create_route_visual(route_id, route)
-	print("Route visual created: %s" % route_id)
+	_create_connection_visual(connection_id, connection)
+	print("Connection visual created: %s" % connection_id)
 
 
-func _on_route_removed(route_id: String) -> void:
-	"""Handle route removal"""
-	# Remove all visuals for this route
+func _on_connection_removed(connection_id: String) -> void:
+	"""Handle connection removal"""
+	# Remove all visuals for this connection
 	for child in get_children():
-		if route_id in child.name:
+		if connection_id in child.name:
 			child.queue_free()
 
-	print("Route visual removed: %s" % route_id)
+	print("Connection visual removed: %s" % connection_id)

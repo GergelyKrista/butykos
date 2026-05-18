@@ -61,10 +61,10 @@ func _ready() -> void:
 	if routes_close_button:
 		routes_close_button.pressed.connect(_on_routes_close_pressed)
 
-	# Connect route events
-	EventBus.route_created.connect(_on_route_changed)
-	EventBus.route_removed.connect(_on_route_removed)
-	EventBus.route_updated.connect(_on_route_changed)
+	# Connect connection events
+	EventBus.connection_created.connect(_on_connection_changed)
+	EventBus.connection_removed.connect(_on_connection_removed)
+	EventBus.connection_updated.connect(_on_connection_changed)
 
 
 func _process(_delta: float) -> void:
@@ -514,14 +514,14 @@ func _on_routes_close_pressed() -> void:
 		routes_panel.visible = false
 
 
-func _on_route_changed(_route_data: Dictionary) -> void:
-	"""Update routes panel when routes change"""
+func _on_connection_changed(_connection_data: Dictionary) -> void:
+	"""Update routes panel when connections change"""
 	if routes_panel and routes_panel.visible:
 		_update_routes_panel()
 
 
-func _on_route_removed(_route_id: String) -> void:
-	"""Update routes panel when a route is removed"""
+func _on_connection_removed(_connection_id: String) -> void:
+	"""Update routes panel when a connection is removed"""
 	if routes_panel and routes_panel.visible:
 		_update_routes_panel()
 
@@ -535,8 +535,8 @@ func _update_routes_panel() -> void:
 	for child in route_list.get_children():
 		child.queue_free()
 
-	# Get all routes
-	var routes = LogisticsManager.get_all_routes()
+	# Get all connections
+	var routes = LogisticsManager.get_all_connections()
 
 	if routes.is_empty():
 		var empty_label = Label.new()
@@ -610,13 +610,13 @@ func _create_route_entry(route: Dictionary) -> void:
 	route_list.add_child(separator)
 
 
-func _on_route_pause_pressed(route_id: String) -> void:
-	"""Toggle route pause state"""
-	LogisticsManager.toggle_route_active(route_id)
+func _on_route_pause_pressed(connection_id: String) -> void:
+	"""Toggle connection pause state"""
+	LogisticsManager.toggle_connection_active(connection_id)
 	_update_routes_panel()
 
 
-func _on_route_delete_pressed(route_id: String) -> void:
-	"""Delete a route"""
-	LogisticsManager.remove_route(route_id)
+func _on_route_delete_pressed(connection_id: String) -> void:
+	"""Delete a connection"""
+	LogisticsManager.remove_connection(connection_id)
 	_update_routes_panel()

@@ -80,7 +80,7 @@ func _create_vehicle_sprite() -> Polygon2D:
 	])
 
 	vehicle.polygon = points
-	vehicle.z_index = 5  # Draw above routes and facilities
+	vehicle.z_index = 5  # Draw above connections and facilities
 
 	return vehicle
 
@@ -101,17 +101,17 @@ func _update_vehicle_positions() -> void:
 
 		# Get vehicle state
 		var state = vehicle.get("state", "")
-		var route_id = vehicle.get("route_id", "")
+		var connection_id = vehicle.get("connection_id", "")
 
 		# Update position based on state
 		match state:
 			"at_source":
-				_position_at_facility(vehicle_node, vehicle, route_id, true)
+				_position_at_facility(vehicle_node, vehicle, connection_id, true)
 				if label:
 					label.text = "Loading..."
 
 			"traveling":
-				_position_traveling(vehicle_node, vehicle, route_id)
+				_position_traveling(vehicle_node, vehicle, connection_id)
 				var cargo = vehicle.get("cargo", {})
 				if label and not cargo.is_empty():
 					var product = cargo.keys()[0]
@@ -119,18 +119,18 @@ func _update_vehicle_positions() -> void:
 					label.text = "%d %s" % [quantity, product]
 
 			"at_destination":
-				_position_at_facility(vehicle_node, vehicle, route_id, false)
+				_position_at_facility(vehicle_node, vehicle, connection_id, false)
 				if label:
 					label.text = "Unloading..."
 
 
-func _position_at_facility(vehicle_node: Node2D, vehicle: Dictionary, route_id: String, is_source: bool) -> void:
+func _position_at_facility(vehicle_node: Node2D, vehicle: Dictionary, connection_id: String, is_source: bool) -> void:
 	"""Position vehicle at a facility"""
-	var route = LogisticsManager.routes.get(route_id, {})
-	if route.is_empty():
+	var connection = LogisticsManager.connections.get(connection_id, {})
+	if connection.is_empty():
 		return
 
-	var facility_id = route.get("source_id" if is_source else "destination_id", "")
+	var facility_id = connection.get("source_id" if is_source else "destination_id", "")
 	var facility = WorldManager.get_facility(facility_id)
 	if facility.is_empty():
 		return
@@ -140,7 +140,7 @@ func _position_at_facility(vehicle_node: Node2D, vehicle: Dictionary, route_id: 
 	vehicle_node.position = facility_pos + Vector2(20, 20)  # Offset so not overlapping facility
 
 
-func _position_traveling(vehicle_node: Node2D, vehicle: Dictionary, route_id: String) -> void:
+func _position_traveling(vehicle_node: Node2D, vehicle: Dictionary, connection_id: String) -> void:
 	"""Position vehicle traveling along route (follows road path)"""
 	# Use the position calculated by LogisticsManager (which follows the road path)
 	var vehicle_pos = vehicle.get("position", Vector2.ZERO)

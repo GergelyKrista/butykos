@@ -81,15 +81,6 @@ signal connection_removed(connection_id: String)
 ## Emitted when a connection is updated (paused/unpaused)
 signal connection_updated(connection_data: Dictionary)
 
-## Emitted when a route is created (alias for connection_created)
-signal route_created(route_data: Dictionary)
-
-## Emitted when a route is removed (alias for connection_removed)
-signal route_removed(route_id: String)
-
-## Emitted when a route is updated (alias for connection_updated)
-signal route_updated(route_data: Dictionary)
-
 ## Emitted when a road is placed
 signal road_placed(grid_pos: Vector2i, road_type: String)
 

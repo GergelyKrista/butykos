@@ -303,7 +303,7 @@ func _gather_logistics_data() -> Dictionary:
 	var vehicles_data = {}
 	var connection_paths_data = {}
 
-	# Save all connections (formerly routes)
+	# Save all connections
 	for connection_id in LogisticsManager.connections:
 		var connection = LogisticsManager.connections[connection_id]
 		connections_data[connection_id] = {
@@ -333,7 +333,7 @@ func _gather_logistics_data() -> Dictionary:
 			vehicle_path.append({"x": pos.x, "y": pos.y})
 		vehicles_data[vehicle_id] = {
 			"id": vehicle.id,
-			"connection_id": vehicle.get("connection_id", vehicle.get("route_id", "")),
+			"connection_id": vehicle.get("connection_id", ""),
 			"source_id": vehicle.source_id,
 			"destination_id": vehicle.destination_id,
 			"state": vehicle.state,
@@ -350,11 +350,7 @@ func _gather_logistics_data() -> Dictionary:
 		"next_vehicle_id": LogisticsManager._next_vehicle_id,
 		"connections": connections_data,
 		"vehicles": vehicles_data,
-		"connection_paths": connection_paths_data,
-		# Keep old keys for backward compatibility when loading
-		"next_route_id": LogisticsManager._next_connection_id,
-		"routes": connections_data,
-		"route_paths": connection_paths_data
+		"connection_paths": connection_paths_data
 	}
 
 
@@ -606,11 +602,11 @@ func _restore_factory_data(data: Dictionary) -> void:
 func _restore_logistics_data(data: Dictionary) -> void:
 	"""Restore logistics state (handles both old 'routes' and new 'connections' format)"""
 	# Restore ID counters (try new name first, fall back to old)
-	LogisticsManager._next_connection_id = data.get("next_connection_id", data.get("next_route_id", 1))
+	LogisticsManager._next_connection_id = data.get("next_connection_id", data.get("next_route_id", 1))  # TODO(step-2 v3 bump): drop the next_route_id fallback once schema bumps to v3.
 	LogisticsManager._next_vehicle_id = data.get("next_vehicle_id", 1)
 
 	# Restore connection paths first (try new name first, fall back to old)
-	var connection_paths_data = data.get("connection_paths", data.get("route_paths", {}))
+	var connection_paths_data = data.get("connection_paths", data.get("route_paths", {}))  # TODO(step-2 v3 bump): drop the route_paths fallback once schema bumps to v3.
 	for connection_id in connection_paths_data:
 		var path_array = connection_paths_data[connection_id]
 		var path: Array = []
@@ -619,7 +615,7 @@ func _restore_logistics_data(data: Dictionary) -> void:
 		LogisticsManager.connection_paths[connection_id] = path
 
 	# Restore connections (try new name first, fall back to old)
-	var connections_data = data.get("connections", data.get("routes", {}))
+	var connections_data = data.get("connections", data.get("routes", {}))  # TODO(step-2 v3 bump): drop the routes fallback once schema bumps to v3.
 	for connection_id in connections_data:
 		var connection_data = connections_data[connection_id]
 		var connection = {
@@ -636,7 +632,6 @@ func _restore_logistics_data(data: Dictionary) -> void:
 
 		# Emit signal so connection visuals are created
 		EventBus.connection_created.emit(connection)
-		EventBus.route_created.emit(connection)  # Backward compatibility
 
 	# Restore vehicles
 	var vehicles_data = data.get("vehicles", {})
@@ -649,12 +644,11 @@ func _restore_logistics_data(data: Dictionary) -> void:
 			vehicle_path.append(Vector2i(pos.x, pos.y))
 
 		# Get connection_id (try new name first, fall back to old)
-		var connection_id = vehicle_data.get("connection_id", vehicle_data.get("route_id", ""))
+		var connection_id = vehicle_data.get("connection_id", vehicle_data.get("route_id", ""))  # TODO(step-2 v3 bump): drop the route_id fallback once schema bumps to v3.
 
 		var vehicle = {
 			"id": vehicle_data.id,
 			"connection_id": connection_id,
-			"route_id": connection_id,  # Backward compatibility
 			"source_id": vehicle_data.source_id,
 			"destination_id": vehicle_data.destination_id,
 			"state": vehicle_data.get("state", "at_source"),

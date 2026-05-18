@@ -879,11 +879,11 @@ func _select_facility_for_route(facility_id: String) -> void:
 		_cancel_route_mode()
 		return
 
-	# Create the route
-	var route_id = LogisticsManager.create_route(route_source_id, route_destination_id, product)
+	# Create the connection
+	var connection_id = LogisticsManager.create_connection(route_source_id, route_destination_id, product)
 
-	if not route_id.is_empty():
-		print("Route created: %s" % route_id)
+	if not connection_id.is_empty():
+		print("Connection created: %s" % connection_id)
 
 	_cancel_route_mode()
 

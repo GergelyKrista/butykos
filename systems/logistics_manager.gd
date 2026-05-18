@@ -48,26 +48,16 @@ func _has_instant_delivery_bonus() -> bool:
 # ========================================
 
 # Dictionary of connections: { connection_id: connection_data }
-# (Also accessible as 'routes' for backward compatibility)
 var connections: Dictionary = {}
-var routes: Dictionary:
-	get: return connections
-	set(value): connections = value
 
 # Dictionary of vehicles: { vehicle_id: vehicle_data }
 var vehicles: Dictionary = {}
 
 # Dictionary of connection paths: { connection_id: [Vector2i waypoints] }
 var connection_paths: Dictionary = {}
-var route_paths: Dictionary:
-	get: return connection_paths
-	set(value): connection_paths = value
 
 # Counter for generating unique IDs
 var _next_connection_id: int = 1
-var _next_route_id: int:
-	get: return _next_connection_id
-	set(value): _next_connection_id = value
 var _next_vehicle_id: int = 1
 
 # ========================================
@@ -76,9 +66,6 @@ var _next_vehicle_id: int = 1
 
 var vehicle_speed: float = 20.0  # pixels per second (slower for visible travel)
 var vehicle_capacity: int = 50   # units per truck (increased from 10)
-var pickup_amount: int:  # Alias for backward compatibility
-	get: return vehicle_capacity
-	set(value): vehicle_capacity = value
 var instant_delivery: bool = false  # For testing: instant delivery
 
 # Auto-dispatch settings
@@ -175,7 +162,7 @@ func _check_auto_dispatch(connection_id: String, connection: Dictionary) -> void
 func _has_loading_vehicle(connection_id: String) -> bool:
 	"""Check if any vehicle is currently at source (loading) for this connection"""
 	for vehicle in vehicles.values():
-		if vehicle.get("connection_id", vehicle.get("route_id", "")) == connection_id:
+		if vehicle.get("connection_id", "") == connection_id:
 			if vehicle.state == "at_source":
 				return true
 	return false
@@ -184,12 +171,6 @@ func _has_loading_vehicle(connection_id: String) -> bool:
 # ========================================
 # ROUTE MANAGEMENT
 # ========================================
-
-func create_route(source_id: String, destination_id: String, product: String) -> String:
-	"""Create a route/connection between two facilities for a specific product.
-	Alias for create_connection for backward compatibility."""
-	return create_connection(source_id, destination_id, product)
-
 
 func create_connection(source_id: String, destination_id: String, product: String) -> String:
 	"""Create a connection between two facilities for a specific product.
@@ -242,17 +223,11 @@ func create_connection(source_id: String, destination_id: String, product: Strin
 	# Emit events
 	print("Connection created: %s → %s (%s) via %d road tiles" % [source_id, destination_id, product, path.size()])
 	EventBus.connection_created.emit(connection)
-	EventBus.route_created.emit(connection)  # Backward compatibility
 
 	# Immediately check for auto-dispatch
 	_check_auto_dispatch(connection_id, connection)
 
 	return connection_id
-
-
-func remove_route(route_id: String) -> bool:
-	"""Remove a route/connection. Alias for remove_connection."""
-	return remove_connection(route_id)
 
 
 func remove_connection(connection_id: String) -> bool:
@@ -265,7 +240,7 @@ func remove_connection(connection_id: String) -> bool:
 	var vehicles_to_remove: Array[String] = []
 	for vehicle_id in vehicles:
 		var vehicle = vehicles[vehicle_id]
-		var conn_id = vehicle.get("connection_id", vehicle.get("route_id", ""))
+		var conn_id = vehicle.get("connection_id", "")
 		if conn_id == connection_id:
 			vehicles_to_remove.append(vehicle_id)
 
@@ -280,24 +255,13 @@ func remove_connection(connection_id: String) -> bool:
 
 	print("Connection removed: %s (removed %d vehicles)" % [connection_id, vehicles_to_remove.size()])
 	EventBus.connection_removed.emit(connection_id)
-	EventBus.route_removed.emit(connection_id)  # Backward compatibility
 
 	return true
-
-
-func get_route(route_id: String) -> Dictionary:
-	"""Get route/connection data. Alias for get_connection."""
-	return get_connection(route_id)
 
 
 func get_connection(connection_id: String) -> Dictionary:
 	"""Get connection data"""
 	return connections.get(connection_id, {})
-
-
-func set_route_active(route_id: String, active: bool) -> bool:
-	"""Alias for set_connection_active."""
-	return set_connection_active(route_id, active)
 
 
 func set_connection_active(connection_id: String, active: bool) -> bool:
@@ -309,13 +273,7 @@ func set_connection_active(connection_id: String, active: bool) -> bool:
 	connection.active = active
 	print("Connection %s %s" % [connection_id, "resumed" if active else "paused"])
 	EventBus.connection_updated.emit(connection)
-	EventBus.route_updated.emit(connection)  # Backward compatibility
 	return true
-
-
-func toggle_route_active(route_id: String) -> bool:
-	"""Alias for toggle_connection_active."""
-	return toggle_connection_active(route_id)
 
 
 func toggle_connection_active(connection_id: String) -> bool:
@@ -327,13 +285,7 @@ func toggle_connection_active(connection_id: String) -> bool:
 	connection.active = not connection.active
 	print("Connection %s %s" % [connection_id, "resumed" if connection.active else "paused"])
 	EventBus.connection_updated.emit(connection)
-	EventBus.route_updated.emit(connection)  # Backward compatibility
 	return true
-
-
-func get_routes_from_facility(facility_id: String) -> Array[Dictionary]:
-	"""Get all connections originating from a facility"""
-	return get_connections_from_facility(facility_id)
 
 
 func get_connections_from_facility(facility_id: String) -> Array[Dictionary]:
@@ -343,11 +295,6 @@ func get_connections_from_facility(facility_id: String) -> Array[Dictionary]:
 		if connection.source_id == facility_id:
 			result.append(connection)
 	return result
-
-
-func get_routes_to_facility(facility_id: String) -> Array[Dictionary]:
-	"""Get all connections going to a facility"""
-	return get_connections_to_facility(facility_id)
 
 
 func get_connections_to_facility(facility_id: String) -> Array[Dictionary]:
@@ -363,7 +310,7 @@ func get_connection_vehicles(connection_id: String) -> Array[Dictionary]:
 	"""Get all vehicles for a specific connection"""
 	var result: Array[Dictionary] = []
 	for vehicle in vehicles.values():
-		var conn_id = vehicle.get("connection_id", vehicle.get("route_id", ""))
+		var conn_id = vehicle.get("connection_id", "")
 		if conn_id == connection_id:
 			result.append(vehicle)
 	return result
@@ -385,7 +332,6 @@ func _create_vehicle(connection_id: String, source_id: String, destination_id: S
 	var vehicle = {
 		"id": vehicle_id,
 		"connection_id": connection_id,
-		"route_id": connection_id,  # Alias for backward compatibility
 		"source_id": source_id,
 		"destination_id": destination_id,
 		"state": "at_source",  # at_source, traveling, at_destination
@@ -423,7 +369,7 @@ func _update_vehicles(delta: float) -> void:
 
 	for vehicle_id in vehicles.keys():
 		var vehicle = vehicles[vehicle_id]
-		var connection_id = vehicle.get("connection_id", vehicle.get("route_id", ""))
+		var connection_id = vehicle.get("connection_id", "")
 		var connection = connections.get(connection_id, {})
 
 		if connection.is_empty() or not connection.get("active", false):
@@ -638,13 +584,12 @@ func _on_road_removed(grid_pos: Vector2i) -> void:
 			print("Connection %s paused: road connection broken" % connection_id)
 			EventBus.notification_posted.emit("Connection paused: road removed", "warning")
 			EventBus.connection_updated.emit(connection)
-			EventBus.route_updated.emit(connection)  # Backward compatibility
 		else:
 			# Update the path
 			connection_paths[connection_id] = new_path
 			# Update all vehicles on this connection
 			for vehicle in vehicles.values():
-				var conn_id = vehicle.get("connection_id", vehicle.get("route_id", ""))
+				var conn_id = vehicle.get("connection_id", "")
 				if conn_id == connection_id:
 					vehicle.path = new_path
 					vehicle.path_index = 0
@@ -655,11 +600,6 @@ func _on_road_removed(grid_pos: Vector2i) -> void:
 # ========================================
 # QUERIES
 # ========================================
-
-func get_all_routes() -> Array[Dictionary]:
-	"""Get all connections. Alias for backward compatibility."""
-	return get_all_connections()
-
 
 func get_all_connections() -> Array[Dictionary]:
 	"""Get all connections"""
@@ -678,11 +618,6 @@ func get_all_vehicles() -> Array[Dictionary]:
 func get_vehicle_count() -> int:
 	"""Get total number of vehicles"""
 	return vehicles.size()
-
-
-func get_route_count() -> int:
-	"""Get total number of connections. Alias for backward compatibility."""
-	return get_connection_count()
 
 
 func get_connection_count() -> int:
