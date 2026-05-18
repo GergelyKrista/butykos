@@ -226,6 +226,7 @@ func _gather_world_data() -> Dictionary:
 		var facility = WorldManager.facilities[facility_id]
 		facilities_data[facility_id] = {
 			"id": facility.id,
+			"corp_id": facility.get("corp_id", GameManager.CORP_SINGLE),
 			"type": facility.type,
 			"grid_pos": {"x": facility.grid_pos.x, "y": facility.grid_pos.y},
 			"size": {"x": facility.size.x, "y": facility.size.y},
@@ -273,6 +274,7 @@ func _gather_factory_data() -> Dictionary:
 			var machine = interior.machines[machine_id]
 			machines_data[machine_id] = {
 				"id": machine.id,
+				"corp_id": machine.get("corp_id", GameManager.CORP_SINGLE),
 				"type": machine.type,
 				"grid_pos": {"x": machine.grid_pos.x, "y": machine.grid_pos.y},
 				"size": {"x": machine.size.x, "y": machine.size.y},
@@ -308,6 +310,7 @@ func _gather_logistics_data() -> Dictionary:
 		var connection = LogisticsManager.connections[connection_id]
 		connections_data[connection_id] = {
 			"id": connection.id,
+			"corp_id": connection.get("corp_id", GameManager.CORP_LOGISTICS),
 			"source_id": connection.source_id,
 			"destination_id": connection.destination_id,
 			"product": connection.product,
@@ -333,6 +336,7 @@ func _gather_logistics_data() -> Dictionary:
 			vehicle_path.append({"x": pos.x, "y": pos.y})
 		vehicles_data[vehicle_id] = {
 			"id": vehicle.id,
+			"corp_id": vehicle.get("corp_id", GameManager.CORP_LOGISTICS),
 			"connection_id": vehicle.get("connection_id", ""),
 			"source_id": vehicle.source_id,
 			"destination_id": vehicle.destination_id,
@@ -495,6 +499,7 @@ func _restore_world_data(data: Dictionary) -> void:
 		# Reconstruct facility dictionary
 		var facility = {
 			"id": fac_data.id,
+			"corp_id": fac_data.get("corp_id", GameManager.CORP_SINGLE),
 			"type": fac_data.type,
 			"grid_pos": Vector2i(fac_data.grid_pos.x, fac_data.grid_pos.y),
 			"size": Vector2i(fac_data.size.x, fac_data.size.y),
@@ -570,6 +575,7 @@ func _restore_factory_data(data: Dictionary) -> void:
 			var mach_data = machines_data[machine_id]
 			var machine = {
 				"id": mach_data.id,
+				"corp_id": mach_data.get("corp_id", GameManager.CORP_SINGLE),
 				"type": mach_data.type,
 				"grid_pos": Vector2i(mach_data.grid_pos.x, mach_data.grid_pos.y),
 				"size": Vector2i(mach_data.size.x, mach_data.size.y),
@@ -620,6 +626,7 @@ func _restore_logistics_data(data: Dictionary) -> void:
 		var connection_data = connections_data[connection_id]
 		var connection = {
 			"id": connection_data.id,
+			"corp_id": connection_data.get("corp_id", GameManager.CORP_LOGISTICS),
 			"source_id": connection_data.source_id,
 			"destination_id": connection_data.destination_id,
 			"product": connection_data.product,
@@ -648,6 +655,7 @@ func _restore_logistics_data(data: Dictionary) -> void:
 
 		var vehicle = {
 			"id": vehicle_data.id,
+			"corp_id": vehicle_data.get("corp_id", GameManager.CORP_LOGISTICS),
 			"connection_id": connection_id,
 			"source_id": vehicle_data.source_id,
 			"destination_id": vehicle_data.destination_id,

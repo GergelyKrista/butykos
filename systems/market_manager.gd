@@ -321,6 +321,7 @@ func _generate_random_contract() -> Dictionary:
 
 	return {
 		"id": _next_contract_id,
+		"corp_id": GameManager.CORP_BUSINESS,    # Phase 8 step 1: contracts are Business-owned in v1.
 		"product": product,
 		"quantity": quantity,
 		"quantity_delivered": 0,

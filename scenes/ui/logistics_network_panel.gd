@@ -83,7 +83,7 @@ func _on_drag_ended(target_facility_id: String) -> void:
 		_drag_source = ""
 		return
 
-	# Create connection
+	# Routes are Logistics-owned in v1 (technical-architecture A7); omit corp_id to take the default.
 	var conn_id = LogisticsManager.create_connection(_drag_source, target_facility_id, product)
 	if not conn_id.is_empty():
 		EventBus.notification_posted.emit("Connection: %s" % product.capitalize(), "info")

@@ -289,7 +289,7 @@ func _try_place_machine() -> void:
 		print("Cannot place machine: purchase failed")
 		return
 
-	# Place machine
+	# Machine corp_id is inherited from the parent facility — no need to pass active_corp_id.
 	var machine_id = FactoryManager.place_machine(facility_id, placement_machine_id, mouse_grid_pos, {
 		"size": size
 	})

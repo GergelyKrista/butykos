@@ -14,6 +14,33 @@ enum GameState {
 }
 
 # ========================================
+# CORP OWNERSHIP CONSTANTS
+# ========================================
+#
+# Valid corp_id values across all owned entities. See:
+#   - design_docs/2026-05-07_technical_architecture.html §3
+#
+# Step 1 of Phase 8: every owned entity carries `corp_id` but nothing
+# reads it for gating yet. All entities default to CORP_SINGLE during
+# this phase. The action pipe (step 3) and predicates (step 4) come later.
+
+const CORP_AGRI: String = "agri"
+const CORP_INDUSTRIAL: String = "industrial"
+const CORP_LOGISTICS: String = "logistics"
+const CORP_BUSINESS: String = "business"
+const CORP_SHARED: String = "shared"        # cross-corp infra (roads, utilities, shared research)
+const CORP_SINGLE: String = "single"        # legacy / no-op default during step 1; replaced by real corp once action pipe lands
+
+const VALID_CORP_IDS: Array[String] = [
+	CORP_AGRI,
+	CORP_INDUSTRIAL,
+	CORP_LOGISTICS,
+	CORP_BUSINESS,
+	CORP_SHARED,
+	CORP_SINGLE,
+]
+
+# ========================================
 # GAME STATE
 # ========================================
 
@@ -33,6 +60,30 @@ var days_per_second: float = 0.5  # Default: 1 day per 2 seconds
 
 # Active factory being viewed (null when on world map)
 var active_factory_id: String = ""
+
+# Currently active corp (hot-seat: which corp the player is acting as).
+# Step 1 default: CORP_SINGLE. Real corp switching arrives with the hot-seat
+# corp-switcher UI in a later step (per technical-architecture §3.1).
+var active_corp_id: String = CORP_SINGLE
+
+# ========================================
+# CORP MANAGEMENT
+# ========================================
+
+func set_active_corp(corp_id: String) -> void:
+	"""Switch the active corp. In step 1 this is only called manually for testing.
+	The hot-seat switcher UI hooks into this in a later step."""
+	if corp_id == active_corp_id:
+		return
+	if corp_id not in VALID_CORP_IDS:
+		push_error("Invalid corp_id: %s" % corp_id)
+		return
+
+	var old_corp_id := active_corp_id
+	active_corp_id = corp_id
+	EventBus.active_corp_changed.emit(old_corp_id, corp_id)
+	print("Active corp: %s -> %s" % [old_corp_id, corp_id])
+
 
 # ========================================
 # INITIALIZATION

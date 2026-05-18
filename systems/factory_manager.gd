@@ -116,11 +116,19 @@ func can_place_machine(facility_id: String, grid_pos: Vector2i, machine_size: Ve
 	return true
 
 
-func place_machine(facility_id: String, machine_type: String, grid_pos: Vector2i, machine_data: Dictionary = {}) -> String:
-	"""Place a machine in factory interior. Returns machine_id or empty string on failure."""
+func place_machine(facility_id: String, machine_type: String, grid_pos: Vector2i, machine_data: Dictionary = {}, corp_id: String = "") -> String:
+	"""Place a machine in factory interior. Returns machine_id or empty string on failure.
+	corp_id defaults to parent facility's corp_id (inherits). Pass explicit value only when
+	the caller has already resolved ownership — in v1 the inherit path always applies."""
 
 	var interior = get_factory_interior(facility_id)
 	var grid = interior.grid
+
+	# Inherit corp_id from parent facility unless explicitly overridden.
+	var resolved_corp_id := corp_id
+	if resolved_corp_id == "":
+		var parent_facility := WorldManager.get_facility(facility_id)
+		resolved_corp_id = parent_facility.get("corp_id", GameManager.CORP_SINGLE)
 
 	var size = machine_data.get("size", Vector2i(1, 1))
 
@@ -145,6 +153,7 @@ func place_machine(facility_id: String, machine_type: String, grid_pos: Vector2i
 
 	var machine = {
 		"id": machine_id,
+		"corp_id": resolved_corp_id,   # Phase 8 step 1: inherited from parent facility.
 		"type": machine_type,
 		"grid_pos": grid_pos,
 		"size": size,

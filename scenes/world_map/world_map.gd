@@ -440,7 +440,7 @@ func _try_place_facility() -> void:
 	if EconomyManager.purchase_facility(placement_facility_id):
 		var facility_id = WorldManager.place_facility(placement_facility_id, mouse_grid_pos, {
 			"size": size
-		})
+		}, GameManager.active_corp_id)
 
 		if facility_id:
 			# Mark as constructed immediately for now (no construction time in MVP)
@@ -577,7 +577,7 @@ func _complete_drag_placement() -> void:
 			if EconomyManager.purchase_facility(placement_facility_id):
 				var facility_id = WorldManager.place_facility(placement_facility_id, grid_pos, {
 					"size": size
-				})
+				}, GameManager.active_corp_id)
 
 				if facility_id:
 					WorldManager.complete_construction(facility_id)
@@ -879,7 +879,7 @@ func _select_facility_for_route(facility_id: String) -> void:
 		_cancel_route_mode()
 		return
 
-	# Create the connection
+	# Routes are Logistics-owned in v1 (technical-architecture A7); omit corp_id to take the default.
 	var connection_id = LogisticsManager.create_connection(route_source_id, route_destination_id, product)
 
 	if not connection_id.is_empty():
@@ -1660,7 +1660,7 @@ func _complete_field_placement() -> void:
 				print("DEBUG: Placing field at %s with size (1, 1)" % grid_pos)
 				var field_id = WorldManager.place_facility(field_type, grid_pos, {
 					"size": Vector2i(1, 1)
-				})
+				}, GameManager.active_corp_id)
 
 				if field_id:
 					var placed_facility = WorldManager.facilities[field_id]

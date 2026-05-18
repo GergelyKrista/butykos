@@ -12,6 +12,9 @@ extends Node
 ## Emitted when game is paused/unpaused
 signal game_paused(is_paused: bool)
 
+## Emitted when the active corp changes (hot-seat switcher / network connect).
+signal active_corp_changed(old_corp_id: String, new_corp_id: String)
+
 ## Emitted when player money changes
 signal money_changed(new_amount: int, delta: int)
 

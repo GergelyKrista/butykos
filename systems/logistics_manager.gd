@@ -172,8 +172,11 @@ func _has_loading_vehicle(connection_id: String) -> bool:
 # ROUTE MANAGEMENT
 # ========================================
 
-func create_connection(source_id: String, destination_id: String, product: String) -> String:
+func create_connection(source_id: String, destination_id: String, product: String, corp_id: String = GameManager.CORP_LOGISTICS) -> String:
 	"""Create a connection between two facilities for a specific product.
+	Per technical-architecture A7: Logistics owns transport routes in v1.
+	Default corp_id is CORP_LOGISTICS, not CORP_SINGLE — Logistics is the broker.
+	Cross-corp negotiation UI is a v1.5 feature.
 	Vehicles will auto-dispatch when source has enough inventory."""
 
 	# Validate facilities exist
@@ -209,6 +212,7 @@ func create_connection(source_id: String, destination_id: String, product: Strin
 	# Create connection data
 	var connection = {
 		"id": connection_id,
+		"corp_id": corp_id,            # Phase 8 step 1: Logistics-owned by default.
 		"source_id": source_id,
 		"destination_id": destination_id,
 		"product": product,
@@ -329,8 +333,14 @@ func _create_vehicle(connection_id: String, source_id: String, destination_id: S
 	var source = WorldManager.get_facility(source_id)
 	var destination = WorldManager.get_facility(destination_id)
 
+	# Vehicles inherit corp_id from their parent connection. No separate parameter
+	# because vehicles are never created outside the auto-dispatch path inside this manager.
+	var parent_connection := connections.get(connection_id, {})
+	var vehicle_corp_id: String = parent_connection.get("corp_id", GameManager.CORP_LOGISTICS)
+
 	var vehicle = {
 		"id": vehicle_id,
+		"corp_id": vehicle_corp_id,    # Phase 8 step 1: inherited from connection.
 		"connection_id": connection_id,
 		"source_id": source_id,
 		"destination_id": destination_id,

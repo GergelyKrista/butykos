@@ -95,7 +95,7 @@ func can_place_facility(grid_pos: Vector2i, facility_size: Vector2i = Vector2i(1
 	return true
 
 
-func place_facility(facility_type: String, grid_pos: Vector2i, facility_data: Dictionary = {}) -> String:
+func place_facility(facility_type: String, grid_pos: Vector2i, facility_data: Dictionary = {}, corp_id: String = GameManager.CORP_SINGLE) -> String:
 	"""Place a facility on the world map. Returns facility_id or empty string on failure."""
 
 	var size = facility_data.get("size", Vector2i(1, 1))
@@ -118,6 +118,7 @@ func place_facility(facility_type: String, grid_pos: Vector2i, facility_data: Di
 
 	var facility = {
 		"id": facility_id,
+		"corp_id": corp_id,            # Phase 8 step 1: ownership field. No gating yet.
 		"type": facility_type,
 		"grid_pos": grid_pos,
 		"size": size,
