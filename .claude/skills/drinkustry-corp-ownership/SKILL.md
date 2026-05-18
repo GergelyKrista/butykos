@@ -148,11 +148,32 @@ GameManager.submit_action(GameManager.active_corp_id, "place_facility", {
 })
 ```
 
+## Defensive fallback on write (step 2+)
+
+When gathering save data, any entity with a missing or invalid `corp_id` must not silently inject into a wrong partition. Pattern established in step 2:
+
+```gdscript
+func _resolve_entity_corp_for_write(entity_dict: Dictionary, default_corp: String) -> String:
+    var cid: String = entity_dict.get("corp_id", "")
+    if cid in [GameManager.CORP_AGRI, GameManager.CORP_INDUSTRIAL,
+               GameManager.CORP_LOGISTICS, GameManager.CORP_BUSINESS]:
+        return cid
+    push_error("Entity has invalid corp_id '%s' for save; routing to %s" % [cid, default_corp])
+    return default_corp
+```
+
+Default values per entity type:
+- Facilities → `GameManager.CORP_INDUSTRIAL`
+- Connections / vehicles → `GameManager.CORP_LOGISTICS`
+- Contracts → `GameManager.CORP_BUSINESS`
+
+`push_error` (not `push_warning`) because a missing corp_id at write time means a step-1 code path didn't propagate the field — that is a bug, not a recoverable ambiguity.
+
 ## Rollout order (matches refactor ordering in technical doc §7)
 
-1. Add `corp_id` field to facility/machine/route/vehicle/contract entities (no behavior change yet — defaults to "single" or "industrial")
-2. Bump save schema to v3 with per-corp partitions; write migration
-3. Wire `submit_action` skeleton; route every UI mutation through it
+1. ~~Add `corp_id` field to facility/machine/route/vehicle/contract entities~~ — **shipped (step 1, 2026-05-18)**; defaults to `"single"` with no behavior gating.
+2. ~~Bump save schema to v3 with per-corp partitions; write migration~~ — **shipped (step 2, 2026-05-18)**; `shared.money` for now; v3→v4 migration when EconomyManager per-corp wallets land.
+3. Wire `submit_action` skeleton; route every UI mutation through it — **next (step 3)**
 4. Add `can_<action>(corp_id, ...)` predicates to every mutator
 5. Surface `active_corp_id` in `GameManager` and a corp-switcher UI for hot-seat dev
 6. Add per-corp build menus

@@ -357,40 +357,52 @@ func submit_action(corp_id: String, action_type: String, payload: Dictionary) ->
       Current save (<code>core/save_manager.gd</code>) is a flat dictionary keyed by subsystem (<code>world</code>, <code>factories</code>, <code>logistics</code>, <code>economy</code>, <code>production</code>, <code>market</code>, <code>research</code>) plus metadata. <code>CURRENT_SAVE_VERSION = 1</code>. Skip v2 (leave headroom) and target v3 directly.
     </p>
 
-    <h3>5.1 New shape</h3>
+    <h3>5.1 New shape <span class="pill set">SHIPPED — step 2, 2026-05-18</span></h3>
+    <p>
+      <em>The shape below reflects what actually shipped in commit <code>6ac4ffa</code>, not the originally-spec'd shape. Two deviations from the first draft of this section, both load-bearing: (1) <code>money</code> stays in <code>shared.money</code> rather than splitting per corp — deferred to the EconomyManager refactor; (2) <code>connections</code> and <code>vehicles</code> live under each owning corp's partition rather than under a single <code>logistics</code> section, so an ownership transfer (e.g., Agri buys out a route in v1.5+) is a clean dict move.</em>
+    </p>
     <pre><code>{
   "version": 3,
-  "tick": 145820,            // game-tick counter, replaces unix timestamp for sim time
-  "wall_timestamp": ...,     // unix time, only for save-list display sort
-  "date": {...},
-  "active_corp_id": "agri",
+  "save_metadata": { wall_timestamp, date, ... },  // for save-list display
+  "shared": {
+    "money": ...,                                  // single wallet, splits per-corp at v3→v4
+    "world_tiles": {...},
+    "road_tiles": {...},
+    "market_state": {...},                         // current_prices, demand pressure, etc.
+    "research": {...}                              // shared higher-tier research (placeholder shape)
+  },
   "corps": {
-    "agri":       { "money": ..., "research": {...}, "stats": {...} },
+    "agri":       { "facilities": {...}, "machines": {...}, "connections": {...}, "vehicles": {...}, "contracts": [...], "research_internal": {...} },
     "industrial": { ... },
     "logistics":  { ... },
-    "business":   { ... },
-    "shared":     { "research": {...} }
+    "business":   { ... }
   },
-  "world":     { "facilities": {...}, "roads": {...}, "field_parents": {...} },
-  "factories": { ... },                           // unchanged shape, machines carry corp_id
-  "logistics": { "connections": {...}, "vehicles": {...} },
-  "production":{ ... },                           // unchanged shape
-  "utilities": { "water": {...}, "power": {...}, "sewage": {...} },   // new in v3
-  "events":    { "active": [...], "fired": [...], "queue": [...] },   // new in v3
-  "demand":    { "settlements": {...}, "reputation": {...} },         // new in v3
-  "security":  { "integrity_by_region": {...}, "outposts": [...] }    // new in v3
+  "utilities": null,    // placeholder for step 5 (UtilityManager)
+  "events":    null     // placeholder for step 11 (EventManager)
 }
 </code></pre>
+    <p>
+      Each corp partition holds <em>only its owned entities</em>. Connections/vehicles live under the owning corp (typically <code>logistics</code> in v1, but Agri irrigation networks land under <code>agri</code>). The corp_id field on each entity is the source of truth; partition location follows it.
+    </p>
+    <p>
+      <code>save_metadata</code> sits at the top level (not inside <code>shared</code>) because the save-slot list reads it without opening the full save body.
+    </p>
 
-    <h3>5.2 Migration rule (v1 → v3)</h3>
+    <h3>5.2 Migration rule (v1 → v3) <span class="pill set">SHIPPED — step 2, 2026-05-18</span></h3>
     <ol>
       <li>Read <code>version</code>; if <code>&lt; 3</code>, run migration.</li>
-      <li>Wrap existing per-system dicts under <code>corps.single</code> initially.</li>
-      <li>Walk all facilities, assign <code>corp_id</code> per the §3.4 type map. Push corp-specific state (money, research) into <code>corps.&lt;corp_id&gt;</code>; current single-player money becomes <code>corps.business.money</code> (the corp that "had" the income).</li>
-      <li>Initialize empty <code>utilities</code>, <code>events</code>, <code>demand</code>, <code>security</code> sections.</li>
-      <li>Set <code>tick: 0</code> (replay isn't preserved across migration; current state is).</li>
-      <li>Bump version to 3.</li>
+      <li><strong>Backup first.</strong> Write the original to <code>&lt;slot&gt;.save.v1.bak</code> before any overwrite. One-time per slot; never overwritten.</li>
+      <li>Detect intra-v1 shape: (a) pre-step-0.5 (legacy <code>routes</code> key, no <code>corp_id</code>); (b) post-step-0.5 (canonical <code>connections</code>, still no <code>corp_id</code>); (c) post-step-1 (canonical, has <code>corp_id</code>). All three are handled by the same migration entry point.</li>
+      <li>Walk all facilities and machines. For each, if <code>corp_id</code> is present and not <code>"single"</code>, trust it. Otherwise look up corp via <code>_facility_type_to_corp()</code> / <code>_machine_type_to_corp()</code> (full coverage of <code>data/facilities.json</code> and <code>data/machines.json</code>; unknowns default to <code>industrial</code> with <code>push_warning</code>).</li>
+      <li>Walk connections and vehicles. Migrate to the owning corp's partition (typically <code>logistics</code>).</li>
+      <li>Move single-wallet <code>money</code> into <code>shared.money</code> as-is. <strong>Do not split per corp here</strong> — that is the v3→v4 EconomyManager refactor (see §6 and §7 step 4.5). Splitting now would force EconomyManager scope into the schema commit and leave three corps with $0 against a UI that has no corp switcher yet.</li>
+      <li>Move market state, road tiles, and world tiles into <code>shared</code>.</li>
+      <li>Build the full v3 dict in memory; only write to disk after migration completes. Atomic write (<code>.tmp</code> → rename) to prevent partial-write corruption.</li>
+      <li>Bump version to 3 on the in-memory dict; subsequent saves are v3-only.</li>
     </ol>
+    <p>
+      <em>Tolerant legacy-key reads (from step 0.5's TODO markers) are deleted after this migration ships; their fallback logic is fully consumed by the migration entry point.</em>
+    </p>
 
     <h3>5.3 Format decision</h3>
     <p>
@@ -533,26 +545,36 @@ func submit_action(corp_id: String, action_type: String, payload: Dictionary) ->
     <p>
       The order is the artifact. Wrong order = redo. Each step's prerequisites must already exist.
     </p>
+    <p>
+      <em>Detailed per-step implementation plans live in <code>design_docs/plans/</code> (one markdown file per step, dated). They contain the file-by-file refactor breakdown, smoke tests, and architect→implementer handoff. The list below is the strategic ordering only.</em>
+    </p>
 
+    <div class="step">
+      <div class="step-n">0.5</div>
+      <div class="step-body">
+        <div class="step-title">LogisticsManager alias-creep cleanup <span class="pill set">SHIPPED — 2026-05-18, <code>81d4f95</code></span></div>
+        <div class="step-why">Added when alias-creep was discovered in <code>LogisticsManager</code> while planning step 1 (routes/connections, create_route/create_connection, and dual save keys all aliased on the same <code>version: 1</code>). Removed in a focused commit so step 1's diff and step 2's migration stay clean. Plan: <code>design_docs/plans/2026-05-18_phase8_step0_5_alias_cleanup.md</code>.</div>
+      </div>
+    </div>
     <div class="step">
       <div class="step-n">1</div>
       <div class="step-body">
-        <div class="step-title">Ownership layer (<code>corp_id</code> on every owned entity)</div>
-        <div class="step-why">Touches every manager. Has to come first because every later step assumes it.</div>
+        <div class="step-title">Ownership layer (<code>corp_id</code> on every owned entity) <span class="pill set">SHIPPED — 2026-05-18, <code>3ab0c1b</code> + hotfix <code>e6960a4</code></span></div>
+        <div class="step-why">Touches every manager. Has to come first because every later step assumes it. Defaults are corp-aware: facilities/machines → <code>CORP_SINGLE</code> (migrates in step 2); connections/vehicles → <code>CORP_LOGISTICS</code>; contracts → <code>CORP_BUSINESS</code>. No gating yet — predicates land with step 3. Plan: <code>design_docs/plans/2026-05-18_phase8_step1_corp_id.md</code>.</div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">2</div>
       <div class="step-body">
-        <div class="step-title">Save schema v3 + migration</div>
-        <div class="step-why">Locks ownership in to disk. After this, no later step can quietly drop <code>corp_id</code> in serialization without breaking saves.</div>
+        <div class="step-title">Save schema v3 + migration <span class="pill set">SHIPPED — 2026-05-18, <code>6ac4ffa</code></span></div>
+        <div class="step-why">Locks ownership in to disk. After this, no later step can quietly drop <code>corp_id</code> in serialization without breaking saves. Migration from v1 (any of three intra-v1 shapes) rebuckets entities by <code>corp_id</code> or by type lookup. Money stays in <code>shared.money</code> — per-corp wallets land at v3→v4 with the EconomyManager refactor. Plan: <code>design_docs/plans/2026-05-18_phase8_step2_save_v3.md</code>.</div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">3</div>
       <div class="step-body">
-        <div class="step-title">Action pipe scaffold (<code>submit_action</code>)</div>
-        <div class="step-why">Empty wrapper at first — every UI mutation gets routed through it but managers stay directly callable. Makes the network seam explicit before there are too many call sites to retrofit.</div>
+        <div class="step-title">Action pipe scaffold (<code>submit_action</code>) <span class="pill q">NEXT</span></div>
+        <div class="step-why">Empty wrapper at first — every UI mutation gets routed through it but managers stay directly callable. Makes the network seam explicit before there are too many call sites to retrofit. Predicates (<code>can_&lt;action&gt;(corp_id, ...)</code>) land alongside, gating UI buttons and re-checking in managers before mutation. <code>GameManager.reset_game()</code> resets <code>active_corp_id</code> here (followup flagged from step 1).</div>
       </div>
     </div>
     <div class="step">

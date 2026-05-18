@@ -117,7 +117,7 @@ WorldManager.place_facility(...)
 **Key signals:**
 - `facility_placed`, `facility_removed`
 - `machine_placed`, `machine_removed`
-- `route_created`, `route_removed`
+- `connection_created`, `connection_removed`, `connection_updated`
 - `vehicle_spawned`, `vehicle_removed`
 - `money_changed`, `production_changed`
 
@@ -311,10 +311,10 @@ var world_pos = cart_to_iso(center_grid_pos)
 
 > Superseded by the design pivot. The list below is the **current** roadmap; the old `DEVELOPMENT_STATUS.md` plan (vineyard / hop farm / wine / AI competitors) is historical.
 
-**Phase 8 — Consolidate + tech-tree refactor:**
-- Add `corp_id` ownership field to facility/machine/route/vehicle entities
-- Save schema v3 with per-corp partitions + migration from existing saves
-- `submit_action(corp_id, action_type, payload)` skeleton in `GameManager` — wraps mutations, becomes the network-boundary later
+**Phase 8 — Consolidate + tech-tree refactor (in progress):**
+- ~~Add `corp_id` ownership field to facility/machine/route/vehicle entities~~ — **done** (step 0.5 alias cleanup + step 1 corp_id field, 2026-05-18)
+- ~~Save schema v3 with per-corp partitions + migration from existing saves~~ — **done** (step 2, 2026-05-18; `shared.money` for now; per-corp wallets are v3→v4 in a later commit)
+- `submit_action(corp_id, action_type, payload)` skeleton in `GameManager` — **next** (step 3)
 - Two-layer tech tree: existing 40 nodes migrate to `tier: "corp_internal"` distributed across four corps; add `tier: "shared"` layer for cross-corp research
 
 **Phase 9 — Art look-dev (parallel to mechanic work):**
@@ -361,10 +361,10 @@ See `design_docs/2026-05-07_technical_architecture.html` for the full refactor o
 - Production: 95% ✅
 - Economy: 95% ✅ (market manager with dynamic pricing exists; reframed as Business-corp-owned in Phase 10)
 - Research: 100% ✅ (single-layer tree; refactored to two-layer in Phase 8)
-- Save/Load: 100% ✅ (single-player schema v2; v3 with per-corp partitions in Phase 8)
+- Save/Load: 100% ✅ (schema v3 with per-corp partitions shipped Phase 8 step 2, 2026-05-18; `shared.money` until EconomyManager v3→v4 refactor)
 
 ### Known Gaps vs. New Direction
-- No corp-ownership layer on entities (Phase 8)
+- ~~No corp-ownership layer on entities~~ — `corp_id` field shipped Phase 8 step 1; schema v3 shipped step 2; action pipe is step 3 (next)
 - No utilities (water/power/sewage) — entirely new (Phase 11)
 - No catchment-radius rule — current routes are direct-connect (Phase 10)
 - No spatial demand model — sales auto-sell at flat prices (Phase 10)

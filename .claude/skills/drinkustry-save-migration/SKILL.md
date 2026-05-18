@@ -27,25 +27,31 @@ Future versions:
 ```json
 {
   "version": 3,
-  "tick_count": 12345,
-  "rng_seed": 0xDEADBEEF,
-  "corps": {
-    "agri": { "money": 50000, "facilities": [...], "research": {...}, ... },
-    "industrial": { ... },
-    "logistics": { ... },
-    "business": { ... }
-  },
+  "wall_timestamp": 1779106576.724,
+  "tick_count": 0,
+  "rng_seed": 0,
+  "active_corp_id": "single",
+  "active_factory_id": "",
   "shared": {
-    "research_shared": {...},
-    "world_tiles": [...],
-    "events_log": [...]
+    "money": 98500,
+    "world_tiles": { "next_facility_id": 2, "roads": {}, "field_parents": {}, "farmhouse_children": {} },
+    "next_machine_id": 1, "next_connection_id": 1, "next_vehicle_id": 1, "next_contract_id": 1,
+    "factory_connections": {},
+    "market": { "current_prices": {}, "price_multipliers": {}, "supply_pressure": {}, "market_trends": {} },
+    "research_shared": null
+  },
+  "corps": {
+    "agri":       { "facilities": {}, "machines": {}, "connections": {}, "vehicles": {}, "contracts": [], "research_internal": {}, "production": {} },
+    "industrial": { ... },
+    "logistics":  { ... },
+    "business":   { ... }
   },
   "utilities": null,
   "events": null
 }
 ```
 
-`utilities: null` and `events: null` are placeholders for v4/v5 systems — present so the schema shape is stable across the v3 generation, even though those fields aren't read yet.
+`utilities: null` and `events: null` are placeholders for v4/v5 systems — present so the schema shape is stable across the v3 generation, even though those fields aren't read yet. `tick_count` and `rng_seed` are reserved for the determinism-refactor commit and written as 0 in step 2. `wall_timestamp` replaces the old `timestamp` key (renamed to prevent confusion with sim time).
 
 ## Migration pattern
 
@@ -63,8 +69,9 @@ func load_state(data: Dictionary) -> void:
     _load_v3(data)
 
 func _migrate_to_v3(data: Dictionary, from_version: int) -> Dictionary:
-    # v1/v2 → v3: wrap legacy single-player state under corps.single,
+    # v1 → v3: wrap legacy single-player state under corps partitions,
     # then re-bucket facilities into the four corps based on facility_type.
+    # (v2 was intentionally skipped — technical doc §5 / step-0.5 plan §3)
     var migrated := {
         "version": 3,
         "tick_count": data.get("tick_count", 0),
@@ -102,20 +109,55 @@ func _rebucket_legacy_facilities(data: Dictionary) -> Dictionary:
 
 ## Per-corp partition layout
 
-Each corp's partition has a uniform shape:
+Each corp's partition has a uniform shape (step-2 reality — money is **not** per-corp yet):
 ```json
 {
-  "money": 50000,
-  "facilities": [...],
-  "machines": [...],
-  "routes": [...],
-  "vehicles": [...],
-  "research_internal": {...},
-  "contracts": [...]
+  "facilities": {...},
+  "machines": {...},
+  "connections": {...},
+  "vehicles": {...},
+  "research_internal": {"unlocked_techs": [], "current_tier": 1, "tier_deliveries": {}},
+  "contracts": [],
+  "production": {
+    "production_timers": {}, "production_outputs": {}, "machine_timers": {},
+    "machine_inventories": {}, "facility_stats": {}, "farmhouse_crop_types": {},
+    "field_production_targets": {}
+  }
 }
 ```
 
-Empty lists/dicts when a corp doesn't own that entity type. Never omit the field — uniform shape simplifies migration and querying.
+> **Note — money placement (step 2):** `money` is at `shared.money`, not on each corp partition. The technical doc §5.2 originally placed legacy money at `corps.business.money`; the step-2 plan (§0.1 of `plans/2026-05-18_phase8_step2_save_v3.md`) revised this: money stays in `shared.money` until the EconomyManager per-corp wallet refactor, which triggers a v3 → v4 schema bump with its own forward migration. Any reader seeing `corps.<corp>.money` in a future state is looking at post-v4 schema.
+
+Empty dicts/lists when a corp doesn't own that entity type. Never omit the field — uniform shape simplifies migration and querying.
+
+## Atomic write pattern (step 2+)
+
+`_write_save_file` uses a `.tmp` → rename pattern so a crash mid-write never corrupts the live save:
+
+```gdscript
+func _write_save_file(slot_name: String, data: Dictionary) -> bool:
+    var file_path := _get_save_path(slot_name)
+    var tmp_path := file_path + ".tmp"
+    var file := FileAccess.open(tmp_path, FileAccess.WRITE)
+    if not file:
+        push_error("Failed to open temp save file: %s" % tmp_path)
+        return false
+    file.store_string(JSON.stringify(data, "\t"))
+    file.close()
+    var dir := DirAccess.open(SAVE_DIR)
+    if dir == null:
+        push_error("Cannot open save dir for rename")
+        return false
+    if FileAccess.file_exists(file_path):
+        dir.remove(file_path)
+    var err := dir.rename(tmp_path, file_path)
+    if err != OK:
+        push_error("Failed to rename %s → %s (err %d)" % [tmp_path, file_path, err])
+        return false
+    return true
+```
+
+If the rename fails, the previous `.save` is intact. `.tmp` files left by a crash are safe to delete on next startup (they are incomplete writes, not valid saves).
 
 ## Auto-save and slot management
 

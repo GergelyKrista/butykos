@@ -57,7 +57,7 @@ func load_state(data: Dictionary) -> void: ...
 
 - **Every owned entity gets `corp_id: String`.** Facilities, machines, routes, vehicles, contracts, research nodes, irrigation pipes, sales outlets, espionage outposts.
 - **Reserve `corp_id: "shared"`** for utilities, shared research, neutral roads. World tiles are unowned by default (no field).
-- **Pre-MP migration:** existing single-player saves get `corp_id: "single"` on load, then a migration script bumps each entity to one of the four corps based on building type. This is a save-schema break (v2 → v3).
+- **Pre-MP migration:** existing single-player saves (v1) load with entities defaulting to `corp_id: "single"`, then a migration script rebuckets each entity into one of the four corps based on building type. This is a save-schema break (v1 → v3 — v2 was intentionally skipped to leave headroom). **Shipped in step 2 (2026-05-18).** Money stays at `shared.money` until the EconomyManager per-corp wallet refactor (v3 → v4 bump).
 - **Validation lives in the manager**, not in UI. UI calls `can_<action>(corp_id, ...)` to grey out buttons; manager rejects with reason if called anyway. Managers don't silently filter — always reject explicitly.
 
 ## 4. Action pipe

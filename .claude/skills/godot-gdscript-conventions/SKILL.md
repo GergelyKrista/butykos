@@ -148,6 +148,30 @@ Bump `version` when schema changes. Always provide a migration. JSON, not binary
 - `class_name` only on classes that get instantiated multiple times. Singletons don't need it.
 - Use `assert(condition, "message")` in dev for invariants — they get stripped in release builds.
 
+## Variant-inference gotcha with `:=` and `Dictionary.get()`
+
+`Dictionary.get()` returns `Variant`. Using `:=` infers the type as `Variant`, not the expected type. This bit step 1 of the Phase 8 corp_id refactor:
+
+```gdscript
+# WRONG — infers Variant; downstream String ops may fail or produce wrong types
+var corp_id := entity.get("corp_id", "single")
+
+# RIGHT — explicit type; the Variant is coerced at assignment
+var corp_id: String = entity.get("corp_id", "single")
+```
+
+The same applies to any typed context where you pull from a Dictionary:
+
+```gdscript
+# WRONG
+var money := shared.get("money", 0)          # Variant, not int
+
+# RIGHT
+var money: int = shared.get("money", 0)      # int
+```
+
+Rule: **never use `:=` when the right-hand side is a `Dictionary.get()` call** unless the type is genuinely `Variant`. Always annotate the expected type explicitly.
+
 ## What to avoid
 
 - Don't `await get_tree().process_frame` in tick code — breaks determinism.

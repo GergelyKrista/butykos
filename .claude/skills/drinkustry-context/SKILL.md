@@ -40,9 +40,9 @@ In order:
 ## Refactor ordering (Phase 8 onwards)
 
 Order matters — wrong order = redo:
-1. Ownership layer (`corp_id` field everywhere)
-2. Save schema v3 + migration
-3. `submit_action(corp_id, action_type, payload)` skeleton
+1. ~~Ownership layer (`corp_id` field everywhere)~~ — **shipped** (step 1, 2026-05-18; alias cleanup as step 0.5 prior)
+2. ~~Save schema v3 + migration~~ — **shipped** (step 2, 2026-05-18; `shared.money` for now; per-corp wallets are v3→v4 in a later commit)
+3. `submit_action(corp_id, action_type, payload)` skeleton — **next** (step 3)
 4. Tech-tree two-layer refactor
 5. UtilityManager (water/power/sewage — one manager, three named graphs)
 6. CatchmentManager replacing direct routes
