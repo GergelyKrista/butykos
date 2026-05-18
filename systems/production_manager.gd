@@ -763,7 +763,7 @@ func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
 				_track_revenue(facility_id, revenue)
 
 				# Add money and emit product_sold signal for market tracking
-				EconomyManager.add_money(revenue, "Market Outlet: %s" % product)
+				EconomyManager.earn_money(GameManager.CORP_SINGLE, revenue, "Market Outlet: %s" % product)
 				EventBus.product_sold.emit(product, transfer_amount, revenue)
 
 				print("Market Outlet: Sold %d %s for $%d ($%d/unit)" % [

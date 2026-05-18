@@ -274,7 +274,7 @@ func research(tech_id: String) -> bool:
 
 	# Deduct cost (skip in dev mode)
 	if not dev_mode:
-		EconomyManager.subtract_money(cost, "Research: %s" % tech.get("name", tech_id))
+		EconomyManager.spend_money(GameManager.CORP_SINGLE, cost, "Research: %s" % tech.get("name", tech_id))
 
 	# Unlock tech
 	unlocked_techs[tech_id] = true

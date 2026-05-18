@@ -363,7 +363,7 @@ func _complete_contract(contract: Dictionary) -> void:
 	contract.status = "completed"
 
 	# Pay reward
-	EconomyManager.add_money(contract.reward, "Contract: %d %s" % [contract.quantity, contract.product])
+	EconomyManager.earn_money(GameManager.CORP_SINGLE, contract.reward, "Contract: %d %s" % [contract.quantity, contract.product])
 
 	contract_completed.emit(contract)
 	print("Contract completed! Reward: $%d" % contract.reward)

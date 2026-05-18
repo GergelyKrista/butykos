@@ -269,9 +269,11 @@ func _remove_field_for_road(facility_id: String, grid_pos: Vector2i) -> void:
 				break
 
 	if is_part_of_facility:
-		# Give partial refund (50%)
-		var facility_def = DataManager.get_facility_data(facility.type)
-		EconomyManager.refund_facility(facility.type, 0.5)
+		# Give partial refund (50%) — internal compositional call, stays direct per action-pipe §0.4
+		var facility_def: Dictionary = DataManager.get_facility_data(facility.type)
+		var refund_cost: int = int(facility_def.get("cost", 0) * 0.5)
+		var refund_name: String = facility_def.get("name", facility.type)
+		EconomyManager.earn_money(GameManager.CORP_SINGLE, refund_cost, "Removed %s" % refund_name)
 
 		# Unregister from farmhouse if applicable
 		if field_parents.has(facility_id):

@@ -64,8 +64,8 @@ func _process(delta: float) -> void:
 # MONEY MANAGEMENT
 # ========================================
 
-func add_money(amount: int, reason: String = "") -> void:
-	"""Add money to player account"""
+func earn_money(corp_id: String, amount: int, reason: String = "") -> void:
+	"""Add money to the shared wallet. corp_id prefigures per-corp wallets (v4); ignored in v1."""
 	if amount <= 0:
 		push_warning("Trying to add non-positive amount: %d" % amount)
 		return
@@ -79,14 +79,12 @@ func add_money(amount: int, reason: String = "") -> void:
 	print("Money added: +$%d (%s) | Total: $%d" % [amount, reason, money])
 
 
-func subtract_money(amount: int, reason: String = "") -> bool:
-	"""Subtract money from player account. Returns false if insufficient funds."""
-	if amount <= 0:
-		push_warning("Trying to subtract non-positive amount: %d" % amount)
-		return false
-
-	if money < amount:
-		push_warning("Insufficient funds: need $%d, have $%d" % [amount, money])
+func spend_money(corp_id: String, amount: int, reason: String = "") -> bool:
+	"""Subtract money from the shared wallet. Returns false if insufficient funds.
+	corp_id prefigures per-corp wallets (v4); ignored in v1."""
+	var check: Dictionary = can_spend_money(corp_id, amount)
+	if not check.ok:
+		push_warning("spend_money rejected: %s" % check.reason)
 		return false
 
 	money -= amount
@@ -99,9 +97,32 @@ func subtract_money(amount: int, reason: String = "") -> bool:
 	return true
 
 
+func can_spend_money(corp_id: String, amount: int) -> Dictionary:
+	"""Predicate for spend_money. v1: single shared wallet; corp_id ignored.
+	v4 (per-corp wallets): reads money_by_corp[corp_id]."""
+	if amount <= 0:
+		return { "ok": false, "reason": "Amount must be positive" }
+	if money < amount:
+		return { "ok": false, "reason": "Insufficient funds: need $%d, have $%d" % [amount, money] }
+	return { "ok": true, "reason": "" }
+
+
 func can_afford(amount: int) -> bool:
-	"""Check if player has enough money"""
-	return money >= amount
+	"""Deprecated wrapper kept for UI preview call sites that are rewired in sub-commit C.
+	TODO(sub-commit-C): delete after all can_afford call sites in scenes/ are removed."""
+	return can_spend_money(GameManager.CORP_SINGLE, amount).ok
+
+
+func add_money(amount: int, reason: String = "") -> void:
+	"""Deprecated wrapper kept for UI call sites rewired in sub-commit C.
+	TODO(sub-commit-C): delete after factory_interior.gd:682 and world_map.gd:1071 are rewired."""
+	earn_money(GameManager.CORP_SINGLE, amount, reason)
+
+
+func subtract_money(amount: int, reason: String = "") -> bool:
+	"""Deprecated wrapper kept for UI call sites rewired in sub-commit C.
+	TODO(sub-commit-C): delete after factory_interior.gd:288, world_map.gd:1207, :1322, :1658 are rewired."""
+	return spend_money(GameManager.CORP_SINGLE, amount, reason)
 
 
 func set_money(amount: int) -> void:
@@ -132,33 +153,38 @@ func reset_economy() -> void:
 # FACILITY TRANSACTIONS
 # ========================================
 
-func purchase_facility(facility_id: String) -> bool:
-	"""Purchase a facility. Returns true if successful."""
-	var facility_def = DataManager.get_facility_data(facility_id)
+func _purchase_facility(corp_id: String, facility_id: String) -> bool:
+	"""Private helper: charge for a facility. Called only from ACTION_PLACE_FACILITY handler.
+	Not pipe-exposed as a standalone action — always part of a composite."""
+	var facility_def: Dictionary = DataManager.get_facility_data(facility_id)
 	if facility_def.is_empty():
 		push_error("Unknown facility: %s" % facility_id)
 		return false
 
-	var cost = facility_def.get("cost", 0)
-	var name = facility_def.get("name", facility_id)
+	var cost: int = facility_def.get("cost", 0)
+	var facility_name: String = facility_def.get("name", facility_id)
 
-	if subtract_money(cost, "Built %s" % name):
-		return true
-
-	return false
+	return spend_money(corp_id, cost, "Built %s" % facility_name)
 
 
-func refund_facility(facility_id: String, refund_percent: float = 0.5) -> void:
-	"""Refund money when removing a facility (default 50%)"""
-	var facility_def = DataManager.get_facility_data(facility_id)
+func purchase_facility(facility_id: String) -> bool:
+	"""Deprecated wrapper kept for UI call sites rewired in sub-commit C.
+	TODO(sub-commit-C): delete after world_map.gd:440 and :577 are rewired to submit_action."""
+	return _purchase_facility(GameManager.CORP_SINGLE, facility_id)
+
+
+func _refund_facility(corp_id: String, facility_id: String, refund_percent: float = 0.5) -> void:
+	"""Private helper: refund money when removing a facility. Called only from demolish handlers.
+	Not pipe-exposed as a standalone action — always part of a composite."""
+	var facility_def: Dictionary = DataManager.get_facility_data(facility_id)
 	if facility_def.is_empty():
 		return
 
-	var cost = facility_def.get("cost", 0)
-	var refund = int(cost * refund_percent)
-	var name = facility_def.get("name", facility_id)
+	var cost: int = facility_def.get("cost", 0)
+	var refund: int = int(cost * refund_percent)
+	var facility_name: String = facility_def.get("name", facility_id)
 
-	add_money(refund, "Removed %s" % name)
+	earn_money(corp_id, refund, "Removed %s" % facility_name)
 
 
 # ========================================
@@ -166,9 +192,9 @@ func refund_facility(facility_id: String, refund_percent: float = 0.5) -> void:
 # ========================================
 
 func sell_product(product_id: String, quantity: int, price_per_unit: int) -> void:
-	"""Record revenue from selling products"""
-	var revenue = quantity * price_per_unit
-	add_money(revenue, "Sold %d %s" % [quantity, product_id])
+	"""Record revenue from selling products. Internal — called from production tick, not user input."""
+	var revenue: int = quantity * price_per_unit
+	earn_money(GameManager.CORP_SINGLE, revenue, "Sold %d %s" % [quantity, product_id])
 	EventBus.product_sold.emit(product_id, quantity, revenue)
 
 
@@ -213,7 +239,7 @@ func _collect_maintenance() -> void:
 	if total_cost > 0:
 		if money >= total_cost:
 			# Pay all maintenance
-			subtract_money(total_cost, "Maintenance (%d facilities)" % details.size())
+			spend_money(GameManager.CORP_SINGLE, total_cost, "Maintenance (%d facilities)" % details.size())
 			total_maintenance_paid += total_cost
 			last_maintenance_cost = total_cost
 
@@ -277,7 +303,7 @@ func _handle_maintenance_shortfall(total_cost: int, details: Array) -> void:
 	# Pay whatever we can
 	var affordable = total_cost - shortfall + remaining_to_disable
 	if affordable > 0 and money >= affordable:
-		subtract_money(affordable, "Partial maintenance")
+		spend_money(GameManager.CORP_SINGLE, affordable, "Partial maintenance")
 		total_maintenance_paid += affordable
 
 	if facilities_disabled_this_cycle.size() > 0:
@@ -350,8 +376,8 @@ func pay_maintenance(facility_id: String) -> bool:
 	if cost == 0:
 		return true
 
-	var name = facility_def.get("name", facility_id)
-	return subtract_money(cost, "Maintenance: %s" % name)
+	var facility_name: String = facility_def.get("name", facility_id)
+	return spend_money(GameManager.CORP_SINGLE, cost, "Maintenance: %s" % facility_name)
 
 
 # ========================================
