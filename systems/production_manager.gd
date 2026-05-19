@@ -441,6 +441,18 @@ func remove_item_from_facility(facility_id: String, product: String, quantity: i
 # FARMHOUSE MANAGEMENT
 # ========================================
 
+func can_set_farmhouse_crop(corp_id: String, farmhouse_id: String, crop_type: String) -> Dictionary:
+	"""Predicate for ACTION_SET_FARMHOUSE_CROP."""
+	var facility: Dictionary = WorldManager.get_facility(farmhouse_id)
+	if facility.is_empty():
+		return { "ok": false, "reason": "Farmhouse not found" }
+	var facility_def: Dictionary = DataManager.get_facility_data(facility.type)
+	var supported: Array = facility_def.get("supported_crops", [])
+	if crop_type not in supported:
+		return { "ok": false, "reason": "Crop %s not supported by %s" % [crop_type, facility.type] }
+	return { "ok": true, "reason": "" }
+
+
 func set_farmhouse_crop_type(farmhouse_id: String, crop_type: String) -> void:
 	"""Set the crop type for a farmhouse"""
 	farmhouse_crop_types[farmhouse_id] = crop_type

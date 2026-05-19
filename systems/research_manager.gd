@@ -205,32 +205,32 @@ func deliver_product(product_type: String, quantity: int) -> bool:
 func is_unlocked(tech_id: String) -> bool:
 	return unlocked_techs.has(tech_id)
 
-## Check if a technology can be researched (tier unlocked, prerequisites met, has funds)
-func can_research(tech_id: String) -> bool:
+## Check if a technology can be researched — full predicate returning Dictionary.
+func can_research_v2(corp_id: String, tech_id: String) -> Dictionary:
+	"""Predicate for ACTION_RESEARCH_TECH. v1: corp_id unused; Phase 10 adds per-corp tech gating."""
 	if is_unlocked(tech_id):
-		return false
-
-	var tech = research_tree.get(tech_id)
-	if not tech:
-		return false
-
-	# Check tier requirement (skip in dev mode)
-	var tech_tier = tech.get("tier", 1)
+		return { "ok": false, "reason": "Already researched" }
+	var tech: Dictionary = research_tree.get(tech_id, {})
+	if tech.is_empty():
+		return { "ok": false, "reason": "Unknown tech: %s" % tech_id }
+	var tech_tier: int = tech.get("tier", 1)
 	if not dev_mode and tech_tier > current_tier:
-		return false
-
-	# Check prerequisites
+		return { "ok": false, "reason": "Tier %d not unlocked (current: %d)" % [tech_tier, current_tier] }
 	for prereq in tech.get("prerequisites", []):
 		if not is_unlocked(prereq):
-			return false
+			return { "ok": false, "reason": "Missing prerequisite: %s" % prereq }
+	if not dev_mode:
+		var cost: int = tech.get("cost", 0)
+		var afford: Dictionary = EconomyManager.can_spend_money(corp_id, cost)
+		if not afford.ok:
+			return { "ok": false, "reason": afford.reason }
+	return { "ok": true, "reason": "" }
 
-	# Dev mode bypasses money requirements
-	if dev_mode:
-		return true
 
-	# Check funds
-	var cost = tech.get("cost", 0)
-	return EconomyManager.money >= cost
+## Check if a technology can be researched (bool wrapper — used by UI grey-out logic).
+# TODO(phase-10): delete after corp-switcher UI lands and UI calls can_research_v2 directly.
+func can_research(tech_id: String) -> bool:
+	return can_research_v2(GameManager.active_corp_id, tech_id).ok
 
 ## Get list of missing prerequisites for a tech
 func get_missing_prerequisites(tech_id: String) -> Array:

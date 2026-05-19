@@ -93,11 +93,11 @@ func _initialize_interior_grid() -> Array:
 # MACHINE PLACEMENT
 # ========================================
 
-func can_place_machine(facility_id: String, grid_pos: Vector2i, machine_size: Vector2i = Vector2i(1, 1)) -> bool:
-	"""Check if a machine can be placed at the given interior grid position"""
+func _can_place_machine_geometry(facility_id: String, grid_pos: Vector2i, machine_size: Vector2i = Vector2i(1, 1)) -> bool:
+	"""Geometry-only occupancy check for machine placement. Used by UI preview and can_place_machine_v2."""
 
-	var interior = get_factory_interior(facility_id)
-	var grid = interior.grid
+	var interior: Dictionary = get_factory_interior(facility_id)
+	var grid: Array = interior.grid
 
 	# Check bounds
 	if grid_pos.x < 0 or grid_pos.y < 0:
@@ -116,6 +116,58 @@ func can_place_machine(facility_id: String, grid_pos: Vector2i, machine_size: Ve
 	return true
 
 
+func can_place_machine_v2(corp_id: String, facility_id: String, machine_type: String, grid_pos: Vector2i, machine_size: Vector2i) -> Dictionary:
+	"""Predicate for ACTION_PLACE_MACHINE. v1: corp check trivially passes."""
+	if WorldManager.get_facility(facility_id).is_empty():
+		return { "ok": false, "reason": "Parent facility not found" }
+	if not _can_place_machine_geometry(facility_id, grid_pos, machine_size):
+		return { "ok": false, "reason": "Invalid machine placement: out of bounds or tile occupied" }
+	var machine_def: Dictionary = DataManager.get_machine_data(machine_type)
+	if machine_def.is_empty():
+		return { "ok": false, "reason": "Unknown machine type: %s" % machine_type }
+	if not ResearchManager.is_machine_unlocked(machine_type):
+		return { "ok": false, "reason": "Machine locked: research required" }
+	return { "ok": true, "reason": "" }
+
+
+func can_remove_machine(corp_id: String, facility_id: String, machine_id: String) -> Dictionary:
+	"""Predicate for ACTION_DEMOLISH_MACHINE."""
+	var interior: Dictionary = get_factory_interior(facility_id)
+	if not interior.machines.has(machine_id):
+		return { "ok": false, "reason": "Machine not found" }
+	return { "ok": true, "reason": "" }
+
+
+func can_create_machine_connection(corp_id: String, facility_id: String, from_machine_id: String, to_machine_id: String) -> Dictionary:
+	"""Predicate for ACTION_CREATE_MACHINE_CONNECTION."""
+	var interior: Dictionary = get_factory_interior(facility_id)
+	if not interior.machines.has(from_machine_id):
+		return { "ok": false, "reason": "Source machine not found" }
+	if not interior.machines.has(to_machine_id):
+		return { "ok": false, "reason": "Destination machine not found" }
+	if from_machine_id == to_machine_id:
+		return { "ok": false, "reason": "Cannot connect machine to itself" }
+	for conn in interior.connections:
+		if conn.from == from_machine_id and conn.to == to_machine_id:
+			return { "ok": false, "reason": "Connection already exists" }
+	return { "ok": true, "reason": "" }
+
+
+func can_remove_machine_connection(corp_id: String, facility_id: String, from_machine_id: String, to_machine_id: String) -> Dictionary:
+	"""Predicate for ACTION_REMOVE_MACHINE_CONNECTION."""
+	var interior: Dictionary = get_factory_interior(facility_id)
+	for conn in interior.connections:
+		if conn.from == from_machine_id and conn.to == to_machine_id:
+			return { "ok": true, "reason": "" }
+	return { "ok": false, "reason": "Connection not found" }
+
+
+# Keep old public name for UI preview call sites until sub-commit C rewires them.
+# TODO(sub-commit-C): delete after factory_interior.gd preview call sites are rewired.
+func can_place_machine(facility_id: String, grid_pos: Vector2i, machine_size: Vector2i = Vector2i(1, 1)) -> bool:
+	return _can_place_machine_geometry(facility_id, grid_pos, machine_size)
+
+
 func place_machine(facility_id: String, machine_type: String, grid_pos: Vector2i, machine_data: Dictionary = {}, corp_id: String = "") -> String:
 	"""Place a machine in factory interior. Returns machine_id or empty string on failure.
 	corp_id defaults to parent facility's corp_id (inherits). Pass explicit value only when
@@ -132,7 +184,7 @@ func place_machine(facility_id: String, machine_type: String, grid_pos: Vector2i
 
 	var size = machine_data.get("size", Vector2i(1, 1))
 
-	if not can_place_machine(facility_id, grid_pos, size):
+	if not _can_place_machine_geometry(facility_id, grid_pos, size):
 		push_error("Cannot place machine at position %s" % grid_pos)
 		return ""
 

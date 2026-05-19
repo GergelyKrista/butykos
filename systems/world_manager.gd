@@ -70,8 +70,9 @@ func _initialize_road_grid() -> void:
 # FACILITY PLACEMENT
 # ========================================
 
-func can_place_facility(grid_pos: Vector2i, facility_size: Vector2i = Vector2i(1, 1)) -> bool:
-	"""Check if a facility can be placed at the given grid position"""
+func _can_place_facility_geometry(grid_pos: Vector2i, facility_size: Vector2i = Vector2i(1, 1)) -> bool:
+	"""Geometry-only occupancy check. Used by UI preview (world_map.gd tile highlighting) and
+	by can_place_facility_v2. Does NOT check corp or research unlock."""
 
 	# Check bounds
 	if grid_pos.x < 0 or grid_pos.y < 0:
@@ -95,12 +96,45 @@ func can_place_facility(grid_pos: Vector2i, facility_size: Vector2i = Vector2i(1
 	return true
 
 
+func can_place_facility_v2(corp_id: String, facility_type: String, grid_pos: Vector2i, facility_size: Vector2i) -> Dictionary:
+	"""Predicate for ACTION_PLACE_FACILITY. v1: corp check trivially passes (single corp).
+	Phase 10 fills in per-corp build-menu permissions."""
+	if not _can_place_facility_geometry(grid_pos, facility_size):
+		return { "ok": false, "reason": "Invalid placement: out of bounds or tile occupied" }
+	var facility_def: Dictionary = DataManager.get_facility_data(facility_type)
+	if facility_def.is_empty():
+		return { "ok": false, "reason": "Unknown facility type: %s" % facility_type }
+	if not ResearchManager.is_facility_unlocked(facility_type):
+		return { "ok": false, "reason": "Facility locked: research required" }
+	# Corp permission — v1 trivially passes; Phase 10 reads data/facilities.json `corp` field.
+	return { "ok": true, "reason": "" }
+
+
+func can_remove_facility(corp_id: String, facility_id: String) -> Dictionary:
+	"""Predicate for ACTION_DEMOLISH_FACILITY. v1: trivially ok if facility exists."""
+	if not facilities.has(facility_id):
+		return { "ok": false, "reason": "Facility not found: %s" % facility_id }
+	# v1: corp ownership not gated. Phase 10 adds:
+	# var facility = facilities[facility_id]
+	# if facility.corp_id != corp_id and facility.corp_id != GameManager.CORP_SHARED:
+	#     return { "ok": false, "reason": "Corp %s does not own %s" % [corp_id, facility_id] }
+	return { "ok": true, "reason": "" }
+
+
+# Keep the old public name as a passthrough so UI preview code in world_map.gd that calls
+# can_place_facility(grid_pos, size) for tile highlighting still compiles until sub-commit C
+# rewires those call sites.
+# TODO(sub-commit-C): delete after world_map.gd preview call sites are rewired.
+func can_place_facility(grid_pos: Vector2i, facility_size: Vector2i = Vector2i(1, 1)) -> bool:
+	return _can_place_facility_geometry(grid_pos, facility_size)
+
+
 func place_facility(facility_type: String, grid_pos: Vector2i, facility_data: Dictionary = {}, corp_id: String = GameManager.CORP_SINGLE) -> String:
 	"""Place a facility on the world map. Returns facility_id or empty string on failure."""
 
 	var size = facility_data.get("size", Vector2i(1, 1))
 
-	if not can_place_facility(grid_pos, size):
+	if not _can_place_facility_geometry(grid_pos, size):
 		push_error("Cannot place facility at position %s" % grid_pos)
 		return ""
 
@@ -213,8 +247,8 @@ func get_all_facilities() -> Array[Dictionary]:
 # ROAD MANAGEMENT
 # ========================================
 
-func can_place_road(grid_pos: Vector2i) -> bool:
-	"""Check if a road can be placed at the given position"""
+func _can_place_road_geometry(grid_pos: Vector2i) -> bool:
+	"""Geometry-only road placement check. Used by UI preview and can_place_road predicate."""
 	if not is_valid_grid_position(grid_pos):
 		return false
 
@@ -222,11 +256,12 @@ func can_place_road(grid_pos: Vector2i) -> bool:
 	if road_grid[grid_pos.x][grid_pos.y] != null:
 		return false
 
-	# Check if there's a building (non-field facility)
+	# Check if there's a building (non-field facility).
+	# grid[x][y] stores facility_id (String) when occupied, null when empty — keep the var untyped.
 	var facility_id = grid[grid_pos.x][grid_pos.y]
 	if facility_id != null:
-		var facility = facilities.get(facility_id, {})
-		var facility_def = DataManager.get_facility_data(facility.get("type", ""))
+		var facility: Dictionary = facilities.get(facility_id, {})
+		var facility_def: Dictionary = DataManager.get_facility_data(facility.get("type", ""))
 		# Allow placing road over fields only (will destroy the field with refund)
 		if not facility_def.get("is_field", false):
 			return false
@@ -234,9 +269,32 @@ func can_place_road(grid_pos: Vector2i) -> bool:
 	return true
 
 
+func can_place_road_v2(corp_id: String, grid_pos: Vector2i) -> Dictionary:
+	"""Predicate for ACTION_PLACE_ROAD. Roads are CORP_SHARED; corp check trivially passes in v1."""
+	if not _can_place_road_geometry(grid_pos):
+		return { "ok": false, "reason": "Cannot place road: out of bounds, occupied by building, or already a road" }
+	return { "ok": true, "reason": "" }
+
+
+# Legacy UI preview call sites use `can_place_road(grid_pos) -> bool` (single-arg, bool return).
+# Keep this compat wrapper until sub-commit C rewires those sites to _can_place_road_geometry.
+# TODO(sub-commit-C): delete after world_map.gd road-preview call sites are rewired.
+func can_place_road(grid_pos: Vector2i) -> bool:
+	return _can_place_road_geometry(grid_pos)
+
+
+func can_remove_road(corp_id: String, grid_pos: Vector2i) -> Dictionary:
+	"""Predicate for ACTION_REMOVE_ROAD."""
+	if not is_valid_grid_position(grid_pos):
+		return { "ok": false, "reason": "Out of bounds" }
+	if road_grid[grid_pos.x][grid_pos.y] == null:
+		return { "ok": false, "reason": "No road at position" }
+	return { "ok": true, "reason": "" }
+
+
 func place_road(grid_pos: Vector2i, road_type: String = "dirt_road") -> bool:
 	"""Place a road tile. Returns true on success."""
-	if not can_place_road(grid_pos):
+	if not _can_place_road_geometry(grid_pos):
 		return false
 
 	# If there's a field here, remove it first (with partial refund)
@@ -372,7 +430,7 @@ func can_place_field_for_farmhouse(grid_pos: Vector2i, field_size: Vector2i, far
 		return false
 
 	# Check basic placement validity
-	if not can_place_facility(grid_pos, field_size):
+	if not _can_place_facility_geometry(grid_pos, field_size):
 		return false
 
 	# Check no roads in the way

@@ -337,6 +337,30 @@ func get_active_contracts() -> Array[Dictionary]:
 	return active_contracts.filter(func(c): return c.status == "active")
 
 
+func can_deliver_to_contract(corp_id: String, contract_id: int, product: String, quantity: int) -> Dictionary:
+	"""Predicate for ACTION_DELIVER_TO_CONTRACT."""
+	for contract in active_contracts:
+		if contract.id == contract_id:
+			if contract.status != "active":
+				return { "ok": false, "reason": "Contract is not active (status: %s)" % contract.status }
+			if contract.product != product:
+				return { "ok": false, "reason": "Contract is for %s, not %s" % [contract.product, product] }
+			if quantity <= 0:
+				return { "ok": false, "reason": "Quantity must be positive" }
+			return { "ok": true, "reason": "" }
+	return { "ok": false, "reason": "Contract not found" }
+
+
+func can_cancel_contract(corp_id: String, contract_id: int) -> Dictionary:
+	"""Predicate for ACTION_CANCEL_CONTRACT."""
+	for contract in active_contracts:
+		if contract.id == contract_id:
+			if contract.status != "active":
+				return { "ok": false, "reason": "Contract is not active" }
+			return { "ok": true, "reason": "" }
+	return { "ok": false, "reason": "Contract not found" }
+
+
 func deliver_to_contract(contract_id: int, product: String, quantity: int) -> int:
 	"""Deliver products to a contract. Returns quantity actually delivered."""
 	for contract in active_contracts:

@@ -172,6 +172,40 @@ func _has_loading_vehicle(connection_id: String) -> bool:
 # ROUTE MANAGEMENT
 # ========================================
 
+func can_create_connection(corp_id: String, source_id: String, destination_id: String, product: String) -> Dictionary:
+	"""Predicate for ACTION_CREATE_LOGISTICS_CONNECTION.
+	Note: includes A* road-path check — expensive but necessary to surface 'no road' rejection
+	before the mutator runs. See plan §4.3 for rationale."""
+	if WorldManager.get_facility(source_id).is_empty():
+		return { "ok": false, "reason": "Source facility not found" }
+	if WorldManager.get_facility(destination_id).is_empty():
+		return { "ok": false, "reason": "Destination facility not found" }
+	if source_id == destination_id:
+		return { "ok": false, "reason": "Cannot connect facility to itself" }
+	var path: Array[Vector2i] = WorldManager.find_road_path(source_id, destination_id)
+	if path.is_empty():
+		return { "ok": false, "reason": "No road path between facilities" }
+	for conn_id in connections:
+		var conn: Dictionary = connections[conn_id]
+		if conn.source_id == source_id and conn.destination_id == destination_id:
+			return { "ok": false, "reason": "Connection already exists" }
+	return { "ok": true, "reason": "" }
+
+
+func can_remove_connection(corp_id: String, connection_id: String) -> Dictionary:
+	"""Predicate for ACTION_REMOVE_LOGISTICS_CONNECTION."""
+	if not connections.has(connection_id):
+		return { "ok": false, "reason": "Connection not found" }
+	return { "ok": true, "reason": "" }
+
+
+func can_toggle_connection_active(corp_id: String, connection_id: String) -> Dictionary:
+	"""Predicate for ACTION_TOGGLE_CONNECTION_ACTIVE."""
+	if not connections.has(connection_id):
+		return { "ok": false, "reason": "Connection not found" }
+	return { "ok": true, "reason": "" }
+
+
 func create_connection(source_id: String, destination_id: String, product: String, corp_id: String = GameManager.CORP_LOGISTICS) -> String:
 	"""Create a connection between two facilities for a specific product.
 	Per technical-architecture A7: Logistics owns transport routes in v1.

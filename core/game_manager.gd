@@ -220,15 +220,38 @@ func submit_action(corp_id: String, action_type: String, payload: Dictionary) ->
 			return _action_earn_money(corp_id, payload)
 		ACTION_CHEAT_ADD_MONEY:
 			return _action_cheat_add_money(corp_id, payload)
-		ACTION_PLACE_FACILITY, ACTION_PLACE_FIELD, ACTION_DEMOLISH_FACILITY, \
-		ACTION_PLACE_ROAD, ACTION_REMOVE_ROAD, ACTION_PLACE_MACHINE, \
-		ACTION_DEMOLISH_MACHINE, ACTION_CREATE_MACHINE_CONNECTION, \
-		ACTION_REMOVE_MACHINE_CONNECTION, ACTION_CREATE_LOGISTICS_CONNECTION, \
-		ACTION_REMOVE_LOGISTICS_CONNECTION, ACTION_TOGGLE_CONNECTION_ACTIVE, \
-		ACTION_DELIVER_TO_CONTRACT, ACTION_CANCEL_CONTRACT, \
-		ACTION_RESEARCH_TECH, ACTION_SET_FARMHOUSE_CROP:
-			push_error("submit_action: action_type '%s' is not yet wired — arrives in sub-commit B" % action_type)
-			return false
+		ACTION_PLACE_FACILITY:
+			return _action_place_facility(corp_id, payload)
+		ACTION_PLACE_FIELD:
+			return _action_place_field(corp_id, payload)
+		ACTION_DEMOLISH_FACILITY:
+			return _action_demolish_facility(corp_id, payload)
+		ACTION_PLACE_ROAD:
+			return _action_place_road(corp_id, payload)
+		ACTION_REMOVE_ROAD:
+			return _action_remove_road(corp_id, payload)
+		ACTION_PLACE_MACHINE:
+			return _action_place_machine(corp_id, payload)
+		ACTION_DEMOLISH_MACHINE:
+			return _action_demolish_machine(corp_id, payload)
+		ACTION_CREATE_MACHINE_CONNECTION:
+			return _action_create_machine_connection(corp_id, payload)
+		ACTION_REMOVE_MACHINE_CONNECTION:
+			return _action_remove_machine_connection(corp_id, payload)
+		ACTION_CREATE_LOGISTICS_CONNECTION:
+			return _action_create_logistics_connection(corp_id, payload)
+		ACTION_REMOVE_LOGISTICS_CONNECTION:
+			return _action_remove_logistics_connection(corp_id, payload)
+		ACTION_TOGGLE_CONNECTION_ACTIVE:
+			return _action_toggle_connection_active(corp_id, payload)
+		ACTION_DELIVER_TO_CONTRACT:
+			return _action_deliver_to_contract(corp_id, payload)
+		ACTION_CANCEL_CONTRACT:
+			return _action_cancel_contract(corp_id, payload)
+		ACTION_RESEARCH_TECH:
+			return _action_research_tech(corp_id, payload)
+		ACTION_SET_FARMHOUSE_CROP:
+			return _action_set_farmhouse_crop(corp_id, payload)
 		_:
 			push_error("submit_action: action_type '%s' is in VALID_ACTION_TYPES but has no dispatch handler — code bug" % action_type)
 			return false
@@ -244,7 +267,8 @@ func _validate_action_payload(action_type: String, payload: Dictionary) -> bool:
 
 
 # ============================================================
-# ACTION HANDLERS — money actions (sub-commit A). Other handlers arrive in sub-commit B.
+# ACTION HANDLERS — one per ACTION_* constant. Pattern: predicate → mutate → return bool.
+# Money handlers wired in sub-commit A; all others wired in sub-commit B.
 # ============================================================
 
 func _action_spend_money(corp_id: String, payload: Dictionary) -> bool:
@@ -258,6 +282,246 @@ func _action_earn_money(corp_id: String, payload: Dictionary) -> bool:
 
 func _action_cheat_add_money(corp_id: String, payload: Dictionary) -> bool:
 	EconomyManager.cheat_add_money(int(payload.amount))
+	return true
+
+
+func _action_place_facility(corp_id: String, payload: Dictionary) -> bool:
+	var facility_type: String = payload.facility_type
+	var grid_pos: Vector2i = payload.grid_pos
+	var size: Vector2i = payload.size
+
+	var place_check: Dictionary = WorldManager.can_place_facility_v2(corp_id, facility_type, grid_pos, size)
+	if not place_check.ok:
+		push_warning("ACTION_PLACE_FACILITY rejected: %s" % place_check.reason)
+		return false
+
+	var facility_def: Dictionary = DataManager.get_facility_data(facility_type)
+	var cost: int = facility_def.get("cost", 0)
+	var afford_check: Dictionary = EconomyManager.can_spend_money(corp_id, cost)
+	if not afford_check.ok:
+		push_warning("ACTION_PLACE_FACILITY rejected: %s" % afford_check.reason)
+		return false
+
+	# Charge first; unwind if place fails.
+	if not EconomyManager.spend_money(corp_id, cost, "Built %s" % facility_def.get("name", facility_type)):
+		push_error("ACTION_PLACE_FACILITY: predicate said ok but spend failed; possible bug")
+		return false
+
+	var facility_id: String = WorldManager.place_facility(facility_type, grid_pos, {"size": size}, corp_id)
+	if facility_id.is_empty():
+		EconomyManager.earn_money(corp_id, cost, "Refund: failed place_facility")
+		push_error("ACTION_PLACE_FACILITY: place mutator failed after predicate ok; bug")
+		return false
+
+	WorldManager.complete_construction(facility_id)
+	return true
+
+
+func _action_place_field(corp_id: String, payload: Dictionary) -> bool:
+	var field_type: String = payload.field_type
+	var grid_pos: Vector2i = payload.grid_pos
+	var farmhouse_id: String = payload.farmhouse_id
+	var size: Vector2i = Vector2i(1, 1)  # Fields are 1x1 per existing convention
+
+	if not WorldManager.can_place_field_for_farmhouse(grid_pos, size, farmhouse_id):
+		push_warning("ACTION_PLACE_FIELD rejected: invalid position for farmhouse")
+		return false
+
+	var field_def: Dictionary = DataManager.get_facility_data(field_type)
+	var cost: int = field_def.get("cost", 100)
+	var afford: Dictionary = EconomyManager.can_spend_money(corp_id, cost)
+	if not afford.ok:
+		push_warning("ACTION_PLACE_FIELD rejected: %s" % afford.reason)
+		return false
+
+	if not EconomyManager.spend_money(corp_id, cost, "Field placement"):
+		push_error("ACTION_PLACE_FIELD: spend failed after predicate ok")
+		return false
+
+	var field_id: String = WorldManager.place_facility(field_type, grid_pos, {"size": size}, corp_id)
+	if field_id.is_empty():
+		EconomyManager.earn_money(corp_id, cost, "Refund: failed place_field")
+		push_error("ACTION_PLACE_FIELD: place mutator failed")
+		return false
+
+	WorldManager.complete_construction(field_id)
+	WorldManager.register_field_with_farmhouse(field_id, farmhouse_id)
+	ProductionManager.register_field_with_farmhouse(field_id, farmhouse_id)
+	return true
+
+
+func _action_demolish_facility(corp_id: String, payload: Dictionary) -> bool:
+	var facility_id: String = payload.facility_id
+	var check: Dictionary = WorldManager.can_remove_facility(corp_id, facility_id)
+	if not check.ok:
+		push_warning("ACTION_DEMOLISH_FACILITY rejected: %s" % check.reason)
+		return false
+
+	var facility: Dictionary = WorldManager.get_facility(facility_id)
+	var facility_def: Dictionary = DataManager.get_facility_data(facility.type)
+	var refund: int = int(facility_def.get("cost", 0) * 0.5)
+	if refund > 0:
+		EconomyManager.earn_money(corp_id, refund, "Demolished %s" % facility_def.get("name", facility.type))
+
+	var ok: bool = WorldManager.remove_facility(facility_id)
+	if not ok:
+		push_error("ACTION_DEMOLISH_FACILITY: predicate ok but mutator failed")
+	return ok
+
+
+func _action_place_road(corp_id: String, payload: Dictionary) -> bool:
+	var grid_pos: Vector2i = payload.grid_pos
+	var road_type: String = payload.road_type
+	var check: Dictionary = WorldManager.can_place_road_v2(corp_id, grid_pos)
+	if not check.ok:
+		push_warning("ACTION_PLACE_ROAD rejected: %s" % check.reason)
+		return false
+
+	var road_def: Dictionary = DataManager.get_road_data(road_type)
+	var cost: int = road_def.get("cost", 25)
+	var afford: Dictionary = EconomyManager.can_spend_money(corp_id, cost)
+	if not afford.ok:
+		push_warning("ACTION_PLACE_ROAD rejected: %s" % afford.reason)
+		return false
+
+	if not EconomyManager.spend_money(corp_id, cost, "Road placement"):
+		return false
+
+	var ok: bool = WorldManager.place_road(grid_pos, road_type)
+	if not ok:
+		EconomyManager.earn_money(corp_id, cost, "Refund: failed place_road")
+	return ok
+
+
+func _action_remove_road(corp_id: String, payload: Dictionary) -> bool:
+	var grid_pos: Vector2i = payload.grid_pos
+	var check: Dictionary = WorldManager.can_remove_road(corp_id, grid_pos)
+	if not check.ok:
+		push_warning("ACTION_REMOVE_ROAD rejected: %s" % check.reason)
+		return false
+	return WorldManager.remove_road(grid_pos)
+
+
+func _action_place_machine(corp_id: String, payload: Dictionary) -> bool:
+	var facility_id: String = payload.facility_id
+	var machine_type: String = payload.machine_type
+	var grid_pos: Vector2i = payload.grid_pos
+	var size: Vector2i = payload.size
+
+	var check: Dictionary = FactoryManager.can_place_machine_v2(corp_id, facility_id, machine_type, grid_pos, size)
+	if not check.ok:
+		push_warning("ACTION_PLACE_MACHINE rejected: %s" % check.reason)
+		return false
+
+	var machine_def: Dictionary = DataManager.get_machine_data(machine_type)
+	var cost: int = machine_def.get("cost", 0)
+	var afford: Dictionary = EconomyManager.can_spend_money(corp_id, cost)
+	if not afford.ok:
+		push_warning("ACTION_PLACE_MACHINE rejected: %s" % afford.reason)
+		return false
+
+	if not EconomyManager.spend_money(corp_id, cost, "Machine: %s" % machine_def.get("name", machine_type)):
+		return false
+
+	var machine_id: String = FactoryManager.place_machine(facility_id, machine_type, grid_pos, {"size": size}, corp_id)
+	if machine_id.is_empty():
+		EconomyManager.earn_money(corp_id, cost, "Refund: failed place_machine")
+		return false
+	return true
+
+
+func _action_demolish_machine(corp_id: String, payload: Dictionary) -> bool:
+	var facility_id: String = payload.facility_id
+	var machine_id: String = payload.machine_id
+
+	var check: Dictionary = FactoryManager.can_remove_machine(corp_id, facility_id, machine_id)
+	if not check.ok:
+		push_warning("ACTION_DEMOLISH_MACHINE rejected: %s" % check.reason)
+		return false
+
+	var machine: Dictionary = FactoryManager.get_machine(facility_id, machine_id)
+	var machine_def: Dictionary = DataManager.get_machine_data(machine.type)
+	var refund: int = int(machine_def.get("cost", 0) * 0.5)
+	if refund > 0:
+		EconomyManager.earn_money(corp_id, refund, "Demolished machine %s" % machine.type)
+
+	return FactoryManager.remove_machine(facility_id, machine_id)
+
+
+func _action_create_machine_connection(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = FactoryManager.can_create_machine_connection(corp_id, payload.facility_id, payload.from_machine_id, payload.to_machine_id)
+	if not check.ok:
+		push_warning("ACTION_CREATE_MACHINE_CONNECTION rejected: %s" % check.reason)
+		return false
+	return FactoryManager.create_connection(payload.facility_id, payload.from_machine_id, payload.to_machine_id)
+
+
+func _action_remove_machine_connection(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = FactoryManager.can_remove_machine_connection(corp_id, payload.facility_id, payload.from_machine_id, payload.to_machine_id)
+	if not check.ok:
+		push_warning("ACTION_REMOVE_MACHINE_CONNECTION rejected: %s" % check.reason)
+		return false
+	return FactoryManager.remove_connection(payload.facility_id, payload.from_machine_id, payload.to_machine_id)
+
+
+func _action_create_logistics_connection(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = LogisticsManager.can_create_connection(corp_id, payload.source_id, payload.destination_id, payload.product)
+	if not check.ok:
+		push_warning("ACTION_CREATE_LOGISTICS_CONNECTION rejected: %s" % check.reason)
+		EventBus.notification_posted.emit(check.reason, "warning")  # Preserve existing UX path
+		return false
+	# Logistics is the broker — default corp is CORP_LOGISTICS regardless of actor corp in v1.
+	var conn_id: String = LogisticsManager.create_connection(payload.source_id, payload.destination_id, payload.product)
+	return not conn_id.is_empty()
+
+
+func _action_remove_logistics_connection(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = LogisticsManager.can_remove_connection(corp_id, payload.connection_id)
+	if not check.ok:
+		push_warning("ACTION_REMOVE_LOGISTICS_CONNECTION rejected: %s" % check.reason)
+		return false
+	return LogisticsManager.remove_connection(payload.connection_id)
+
+
+func _action_toggle_connection_active(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = LogisticsManager.can_toggle_connection_active(corp_id, payload.connection_id)
+	if not check.ok:
+		push_warning("ACTION_TOGGLE_CONNECTION_ACTIVE rejected: %s" % check.reason)
+		return false
+	return LogisticsManager.toggle_connection_active(payload.connection_id)
+
+
+func _action_deliver_to_contract(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = MarketManager.can_deliver_to_contract(corp_id, int(payload.contract_id), String(payload.product), int(payload.quantity))
+	if not check.ok:
+		push_warning("ACTION_DELIVER_TO_CONTRACT rejected: %s" % check.reason)
+		return false
+	var delivered: int = MarketManager.deliver_to_contract(int(payload.contract_id), String(payload.product), int(payload.quantity))
+	return delivered > 0
+
+
+func _action_cancel_contract(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = MarketManager.can_cancel_contract(corp_id, int(payload.contract_id))
+	if not check.ok:
+		push_warning("ACTION_CANCEL_CONTRACT rejected: %s" % check.reason)
+		return false
+	return MarketManager.cancel_contract(int(payload.contract_id))
+
+
+func _action_research_tech(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = ResearchManager.can_research_v2(corp_id, String(payload.tech_id))
+	if not check.ok:
+		push_warning("ACTION_RESEARCH_TECH rejected: %s" % check.reason)
+		return false
+	return ResearchManager.research(String(payload.tech_id))
+
+
+func _action_set_farmhouse_crop(corp_id: String, payload: Dictionary) -> bool:
+	var check: Dictionary = ProductionManager.can_set_farmhouse_crop(corp_id, String(payload.farmhouse_id), String(payload.crop_type))
+	if not check.ok:
+		push_warning("ACTION_SET_FARMHOUSE_CROP rejected: %s" % check.reason)
+		return false
+	ProductionManager.set_farmhouse_crop_type(String(payload.farmhouse_id), String(payload.crop_type))
 	return true
 
 
