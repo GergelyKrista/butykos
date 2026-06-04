@@ -21,6 +21,11 @@ extends CanvasLayer
 @onready var routes_close_button: Button = $HUD/RoutesPanel/MarginContainer/VBoxContainer/HeaderHBox/CloseButton
 @onready var route_list: VBoxContainer = $HUD/RoutesPanel/MarginContainer/VBoxContainer/ScrollContainer/RouteList
 
+# Dev corp-switcher (programmatically created — see _create_corp_switcher).
+# Remove when per-corp UI lands and hot-seat switching has a real driver.
+var corp_switcher_panel: PanelContainer = null
+var corp_switcher_dropdown: OptionButton = null
+
 # ========================================
 # SIGNALS
 # ========================================
@@ -65,6 +70,10 @@ func _ready() -> void:
 	EventBus.connection_created.connect(_on_connection_changed)
 	EventBus.connection_removed.connect(_on_connection_removed)
 	EventBus.connection_updated.connect(_on_connection_changed)
+
+	# Dev: corp switcher (top-right). Exercises corp_id propagation through
+	# the action pipe before per-corp build menus / gating land.
+	_create_corp_switcher()
 
 
 func _process(_delta: float) -> void:
@@ -113,6 +122,82 @@ func _handle_navbar_scroll(event: InputEventMouseButton) -> void:
 	elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 		# Scroll right
 		build_scroll_container.scroll_horizontal += int(scroll_amount)
+
+
+# ========================================
+# DEV: CORP SWITCHER (TEMP — DELETE WITH PER-CORP UI)
+# ========================================
+
+func _create_corp_switcher() -> void:
+	# Dev-only widget. Lets the tester swap active_corp_id at runtime so we can
+	# verify corp_id propagation through the action pipe before per-corp build
+	# menus and gating predicates land. Visible payoff is quiet for now.
+	var hud: Node = get_node_or_null("HUD")
+	if hud == null:
+		return
+
+	corp_switcher_panel = PanelContainer.new()
+	corp_switcher_panel.name = "CorpSwitcherDev"
+	corp_switcher_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15, 0.92)
+	style.border_color = Color(0.95, 0.6, 0.2)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	corp_switcher_panel.add_theme_stylebox_override("panel", style)
+
+	# Anchor top-right. Top-left is taken by money/date/maintenance labels.
+	corp_switcher_panel.anchor_left = 1.0
+	corp_switcher_panel.anchor_right = 1.0
+	corp_switcher_panel.anchor_top = 0.0
+	corp_switcher_panel.anchor_bottom = 0.0
+	corp_switcher_panel.offset_left = -260
+	corp_switcher_panel.offset_right = -16
+	corp_switcher_panel.offset_top = 16
+	corp_switcher_panel.offset_bottom = 88
+	hud.add_child(corp_switcher_panel)
+
+	var vbox := VBoxContainer.new()
+	corp_switcher_panel.add_child(vbox)
+
+	var label := Label.new()
+	label.text = "DEV — Active corp"
+	label.add_theme_color_override("font_color", Color(0.95, 0.6, 0.2))
+	label.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(label)
+
+	corp_switcher_dropdown = OptionButton.new()
+	corp_switcher_dropdown.add_theme_font_size_override("font_size", 13)
+	for corp_id in GameManager.VALID_CORP_IDS:
+		corp_switcher_dropdown.add_item(corp_id)
+	var idx: int = GameManager.VALID_CORP_IDS.find(GameManager.active_corp_id)
+	if idx >= 0:
+		corp_switcher_dropdown.select(idx)
+	corp_switcher_dropdown.item_selected.connect(_on_corp_switcher_selected)
+	vbox.add_child(corp_switcher_dropdown)
+
+	# Keep dropdown in sync if active_corp_id is changed elsewhere (e.g. console).
+	EventBus.active_corp_changed.connect(_on_active_corp_changed_dev)
+
+
+func _on_corp_switcher_selected(index: int) -> void:
+	if index < 0 or index >= GameManager.VALID_CORP_IDS.size():
+		return
+	var corp_id: String = GameManager.VALID_CORP_IDS[index]
+	GameManager.set_active_corp(corp_id)
+
+
+func _on_active_corp_changed_dev(_old_corp_id: String, new_corp_id: String) -> void:
+	if corp_switcher_dropdown == null:
+		return
+	var idx: int = GameManager.VALID_CORP_IDS.find(new_corp_id)
+	if idx >= 0 and corp_switcher_dropdown.selected != idx:
+		corp_switcher_dropdown.select(idx)
 
 
 # ========================================
