@@ -8,6 +8,83 @@
 
 ---
 
+# 🎮 Post-Pivot Playtest Findings
+
+> Reactivated **2026-06-04** by Ambrus (artist) for ongoing post-pivot playtest notes.
+> Pre-pivot entries (below this section) remain as historical reference; new findings live here.
+> Add a new dated section each playtest session — latest on top — and reuse the entry template at the bottom of this file (`🐛 Bug Reporting Template`).
+
+## 🗓 2026-06-04 — Phase 8 step 3c smoke test session
+
+**Tested on branch:** `feature/phase8-step3c-ui-rewire` (action-pipe UI rewire)
+**Tester:** Ambrus
+**Result:** Action pipe verified — no regressions on the rewired flows (place / demolish / route create / route pause / route delete / machine place / machine connect / machine delete / research / set crop). Findings below are **pre-existing** issues uncovered during the smoke test, not caused by step 3c.
+
+### 🚨 Critical
+- [ ] **Brewery interior machines connect but nothing transports** — Placed mash tun + fermentation vat inside brewery interior, connected them via the connect tool, no product moved between them.
+  - **Impact:** Blocks the slice-1 ale chain at the tactical (factory-interior) layer. Players can build the chain but it doesn't actually produce anything.
+  - **Reproduce:** Enter brewery interior. Place an Input Hopper, Mash Tun, Fermentation Vat, Output Depot. Connect them in order. Observe (no movement).
+  - **Fix:** Investigate machine-machine transfer logic and machine IO config. May be missing recipes (`data/recipes.json` is empty per CLAUDE.md) or broken transfer cycle.
+  - **Phase:** Pre-Phase 10 (needed before slice-1 chain is validatable)
+  - **File:** `systems/factory_manager.gd`, `systems/production_manager.gd`, `data/machines.json`, `data/recipes.json`
+
+### ⚠️ High Priority
+- [ ] **Money death-spiral — no recovery once broke** — When the player runs out of money, the game effectively ends. No income source bootstraps recovery (Market Outlet requires already having a production chain).
+  - **Impact:** Soft game-over with no exit; player must reset to main menu.
+  - **Fix:** Income floor, starting loans, bankruptcy mechanic, or guaranteed bootstrap revenue. Design decision needed.
+  - **Phase:** Phase 10 (economy / Business-corp work)
+  - **File:** `systems/economy_manager.gd`
+
+- [ ] **Cannot remove road tiles with the demolish tool** — Demolish mode targets facilities and machines but does not detect road tiles. `ACTION_REMOVE_ROAD` exists in the action pipe but has no UI driver yet (plan §6 noted this gap).
+  - **Impact:** Players can't undo road placement mistakes; the road network becomes permanent terrain.
+  - **Fix:** In demolish-mode click handler, detect road tile at the clicked position and submit `ACTION_REMOVE_ROAD`.
+  - **Phase:** Pre-Phase 10
+  - **File:** `scenes/world_map/world_map.gd` (demolish-mode click handler)
+
+### 📋 Medium Priority
+- [ ] **Production overview panel: nodes are unlabeled colored squares with no input/output hints** — User can't tell which node represents which building, and any node visually accepts any input, implying universal compatibility.
+  - **Impact:** Production overview panel is unusable as a planning tool.
+  - **Fix:** Show building name on each node (matching world-map labels). Show accepted inputs / outputs as tags or tooltip. Color-code connectors by product type.
+  - **Phase:** Phase 9 (art look-dev) or sooner if blocking
+  - **File:** `scenes/ui/network_view.gd`, `scenes/ui/logistics_network_panel.gd`
+
+- [ ] **Demolish brush 2-tile preview rotates with cursor movement** — While demolish mode is active, the 2-tile preview rotates as the cursor moves around the map, instead of staying grid-aligned.
+  - **Impact:** Confusing visual feedback; misleads players about which tiles will be demolished.
+  - **Reproduce:** Activate demolish mode, move cursor in circles. Watch preview orientation.
+  - **Fix:** Lock preview orientation to grid; remove cursor-direction-based rotation.
+  - **Phase:** Phase 7B-leftover polish
+  - **File:** `scenes/world_map/world_map.gd` (demolish preview rendering)
+
+- [ ] **Build-preview hover renders behind farm tiles** — In placement mode, the hover ghost renders below already-placed farm-tile sprites, hiding where the new building will land.
+  - **Impact:** Player can't see exactly where a building will be placed when hovering over farms.
+  - **Fix:** Bump placement preview `z_index` above farm-tile rendering layer.
+  - **Phase:** Pre-Phase 10
+  - **File:** `scenes/world_map/world_map.gd` (placement preview rendering)
+
+- [ ] **Cannot build on farm-field tiles** — Engine rejects placing buildings on land occupied by farm fields.
+  - **Impact:** Forces players to plan farm placement separately from production buildings; reduces layout flexibility. User (artist) feels this constraint is unnecessary.
+  - **Fix:** Design decision. Either allow placement (auto-demolish field with refund) or keep constraint with clearer UX. Worth discussing with Gergely.
+  - **Phase:** Design review needed
+  - **File:** `systems/world_manager.gd` (`can_place_facility` / `can_place_field_for_farmhouse`)
+
+### 🔧 Low Priority / Design Open Questions
+- [ ] **Demolish refund UX feels off** — Currently a flat 50% refund any time, including immediately after placement. User suggests: full refund within a short undo window OR no refund once the building has been used.
+  - **Impact:** Either accidental placement is unforgiving (current — only 50% back), or refund-cycling could be exploited if too generous.
+  - **Fix:** Design decision. Options: (a) time-windowed full-refund undo, (b) full-refund-when-fresh-and-unused, (c) keep current as baseline.
+  - **Phase:** Phase 10 (economy tuning)
+  - **File:** `core/game_manager.gd` (`_action_demolish_facility`, `_action_demolish_machine` handlers)
+
+- [ ] **Machine connection deletion clicks endpoints, not the line** — Player enters delete-connection mode and clicks both machines to delete a connection. User suggests clicking the connection line directly would be more intuitive.
+  - **Note:** Likely becomes moot when the conveyor/pipe system arrives — under that system, conveyors carry solids and pipes carry liquids, and the player would interact with conveyor/pipe segments directly (place, delete, plan).
+  - **Phase:** Defer to Industrial-corp signature work / conveyor system design
+  - **File:** `scenes/factory_interior/factory_interior.gd`
+
+### ✅ Investigated this session, NOT a bug
+- ✅ **Malt house → brewery logistics route can't be created** — Verified: data is correct (`grain_mill` outputs `malt`, `brewery` accepts `malt`). Rejection comes from `LogisticsManager.can_create_connection` because there is **no road path between the two facilities** — routes require a connecting road (auto-connect within 2 tiles). Fix is to build roads connecting source and destination first. A "No road connection!" notification is emitted via EventBus but may be easy to miss. **Latent UX issue logged separately:** consider stronger feedback for route-creation rejections (modal, persistent banner, or highlight road-gap on map).
+- ✅ **Road drag-place** — Reported initially as broken; confirmed working on retest. No action.
+
+---
+
 ## 🚨 Critical (Fix ASAP)
 *Bugs that prevent development or break core gameplay*
 
