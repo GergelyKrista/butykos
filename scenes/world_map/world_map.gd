@@ -400,11 +400,11 @@ func _update_placement_preview_validity() -> void:
 	var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
 
 	var can_place = WorldManager.can_place_facility(mouse_grid_pos, size)
-	var can_afford = EconomyManager.can_afford(facility_def.get("cost", 0))
+	var can_pay = EconomyManager.can_spend_money(GameManager.active_corp_id, facility_def.get("cost", 0)).ok
 
 	# Set color: green if valid, red if invalid
 	var base_color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
-	if can_place and can_afford:
+	if can_place and can_pay:
 		modulate_preview(Color(0.5, 1.0, 0.5, 0.7))
 	else:
 		modulate_preview(Color(1.0, 0.3, 0.3, 0.7))
@@ -424,28 +424,12 @@ func _try_place_facility() -> void:
 	"""Attempt to place facility at current mouse position"""
 	var facility_def = DataManager.get_facility_data(placement_facility_id)
 	var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
-	var cost = facility_def.get("cost", 0)
 
-	# Check placement validity
-	if not WorldManager.can_place_facility(mouse_grid_pos, size):
-		print("Cannot place facility: invalid location")
-		return
-
-	# Check if player can afford
-	if not EconomyManager.can_afford(cost):
-		print("Cannot place facility: insufficient funds")
-		return
-
-	# Purchase and place facility
-	if EconomyManager.purchase_facility(placement_facility_id):
-		var facility_id = WorldManager.place_facility(placement_facility_id, mouse_grid_pos, {
-			"size": size
-		}, GameManager.active_corp_id)
-
-		if facility_id:
-			# Mark as constructed immediately for now (no construction time in MVP)
-			WorldManager.complete_construction(facility_id)
-			print("Facility placed successfully: %s" % facility_id)
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_PLACE_FACILITY, {
+		"facility_type": placement_facility_id,
+		"grid_pos": mouse_grid_pos,
+		"size": size,
+	})
 
 
 func _cancel_placement() -> void:
@@ -491,7 +475,7 @@ func _update_drag_previews() -> void:
 
 			# Check if can place
 			var can_place = WorldManager.can_place_facility(grid_pos, size)
-			var can_afford = EconomyManager.can_afford(cost)
+			var can_pay = EconomyManager.can_spend_money(GameManager.active_corp_id, cost).ok
 
 			# Create preview node
 			var preview = Node2D.new()
@@ -523,7 +507,7 @@ func _update_drag_previews() -> void:
 					])
 
 					# Set color based on validity (green if valid, red if not)
-					if can_place and can_afford:
+					if can_place and can_pay:
 						polygon.color = Color(0.5, 1.0, 0.5, 0.5)  # Semi-transparent green
 					else:
 						polygon.color = Color(1.0, 0.3, 0.3, 0.5)  # Semi-transparent red
@@ -556,32 +540,35 @@ func _complete_drag_placement() -> void:
 	var size = Vector2i(facility_def.get("size", [1, 1])[0], facility_def.get("size", [1, 1])[1])
 	var cost = facility_def.get("cost", 0)
 
-	# Track placed facilities for timer synchronization
-	var placed_facilities: Array[String] = []
+	# Snapshot existing facility IDs so we can diff after placement
+	# to find the newly placed ones (submit_action returns bool, not the id).
+	var ids_before: Array = WorldManager.facilities.keys()
 
 	# Place all valid facilities
+	var out_of_money: bool = false
 	for grid_x in range(min_x, max_x + 1):
 		for grid_y in range(min_y, max_y + 1):
 			var grid_pos = Vector2i(grid_x, grid_y)
 
-			# Check if can place
-			if not WorldManager.can_place_facility(grid_pos, size):
-				continue
-
-			# Check if can afford
-			if not EconomyManager.can_afford(cost):
+			# Break early if out of money to avoid spamming the pipe with rejects.
+			if not EconomyManager.can_spend_money(GameManager.active_corp_id, cost).ok:
 				print("Not enough money to place all fields")
+				out_of_money = true
 				break
 
-			# Purchase and place
-			if EconomyManager.purchase_facility(placement_facility_id):
-				var facility_id = WorldManager.place_facility(placement_facility_id, grid_pos, {
-					"size": size
-				}, GameManager.active_corp_id)
+			GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_PLACE_FACILITY, {
+				"facility_type": placement_facility_id,
+				"grid_pos": grid_pos,
+				"size": size,
+			})
+		if out_of_money:
+			break
 
-				if facility_id:
-					WorldManager.complete_construction(facility_id)
-					placed_facilities.append(facility_id)
+	# Diff to recover newly placed facility ids for production-timer sync.
+	var placed_facilities: Array[String] = []
+	for fid in WorldManager.facilities.keys():
+		if fid not in ids_before:
+			placed_facilities.append(fid)
 
 	# Synchronize production timers for all placed fields
 	if placed_facilities.size() > 0:
@@ -879,11 +866,12 @@ func _select_facility_for_route(facility_id: String) -> void:
 		_cancel_route_mode()
 		return
 
-	# Routes are Logistics-owned in v1 (technical-architecture A7); omit corp_id to take the default.
-	var connection_id = LogisticsManager.create_connection(route_source_id, route_destination_id, product)
-
-	if not connection_id.is_empty():
-		print("Connection created: %s" % connection_id)
+	# Routes are Logistics-owned in v1 (technical-architecture A7).
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_CREATE_LOGISTICS_CONNECTION, {
+		"source_id": route_source_id,
+		"destination_id": route_destination_id,
+		"product": product,
+	})
 
 	_cancel_route_mode()
 
@@ -1056,22 +1044,10 @@ func start_demolish_mode() -> void:
 
 
 func _demolish_facility(facility_id: String) -> void:
-	"""Demolish a facility and refund partial cost"""
-	var facility = WorldManager.get_facility(facility_id)
-	if facility.is_empty():
-		return
-
-	var facility_def = DataManager.get_facility_data(facility.type)
-	var refund = facility_def.get("cost", 0) / 2  # Refund 50% of cost
-
-	print("Demolishing facility: %s (refund: $%d)" % [facility_id, refund])
-
-	# Refund money
-	if refund > 0:
-		EconomyManager.add_money(refund)
-
-	# Remove facility from WorldManager (this will emit facility_removed signal)
-	WorldManager.remove_facility(facility_id)
+	"""Demolish a facility (refund handled inside ACTION_DEMOLISH_FACILITY handler)."""
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_DEMOLISH_FACILITY, {
+		"facility_id": facility_id,
+	})
 
 	# Hide tooltip if it was showing for this facility
 	if hovered_facility_id == facility_id:
@@ -1178,11 +1154,11 @@ func _update_road_preview() -> void:
 
 	# Update color based on validity
 	var can_place = WorldManager.can_place_road(mouse_grid_pos)
-	var can_afford = EconomyManager.can_afford(cost)
+	var can_pay = EconomyManager.can_spend_money(GameManager.active_corp_id, cost).ok
 
 	var polygon = road_preview.get_child(0) as Polygon2D
 	if polygon:
-		if can_place and can_afford:
+		if can_place and can_pay:
 			polygon.color = Color(0.5, 1.0, 0.5, 0.6)  # Green
 		else:
 			polygon.color = Color(1.0, 0.3, 0.3, 0.6)  # Red
@@ -1190,23 +1166,10 @@ func _update_road_preview() -> void:
 
 func _try_place_road() -> void:
 	"""Attempt to place road at current mouse position"""
-	var road_def = DataManager.get_road_data(road_type)
-	var cost = road_def.get("cost", 25)
-
-	# Check placement validity
-	if not WorldManager.can_place_road(mouse_grid_pos):
-		print("Cannot place road: invalid location")
-		return
-
-	# Check if player can afford
-	if not EconomyManager.can_afford(cost):
-		print("Cannot place road: insufficient funds")
-		return
-
-	# Deduct cost and place road
-	EconomyManager.subtract_money(cost, "road_placement")
-	WorldManager.place_road(mouse_grid_pos, road_type)
-	print("Road placed at %s" % mouse_grid_pos)
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_PLACE_ROAD, {
+		"grid_pos": mouse_grid_pos,
+		"road_type": road_type,
+	})
 
 
 func _cancel_road_mode() -> void:
@@ -1259,7 +1222,7 @@ func _update_road_line_preview() -> void:
 		var can_place = WorldManager.can_place_road(pos)
 		if can_place:
 			running_cost += cost
-		var can_afford = EconomyManager.can_afford(running_cost) if can_place else false
+		var can_pay = EconomyManager.can_spend_money(GameManager.active_corp_id, running_cost).ok if can_place else false
 
 		# Create preview node
 		var preview = Node2D.new()
@@ -1284,7 +1247,7 @@ func _update_road_line_preview() -> void:
 		])
 
 		# Set color based on validity
-		if can_place and can_afford:
+		if can_place and can_pay:
 			polygon.color = Color(0.5, 1.0, 0.5, 0.6)  # Green
 		else:
 			polygon.color = Color(1.0, 0.3, 0.3, 0.6)  # Red
@@ -1309,19 +1272,16 @@ func _complete_road_placement() -> void:
 	var placed_count = 0
 
 	for pos in positions:
-		# Check validity
-		if not WorldManager.can_place_road(pos):
-			continue
-
-		# Check affordability
-		if not EconomyManager.can_afford(cost):
+		# Break early if out of money to avoid spamming the pipe with rejects.
+		if not EconomyManager.can_spend_money(GameManager.active_corp_id, cost).ok:
 			print("Not enough money to place more roads")
 			break
 
-		# Purchase and place
-		EconomyManager.subtract_money(cost, "road_placement")
-		WorldManager.place_road(pos, road_type)
-		placed_count += 1
+		if GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_PLACE_ROAD, {
+			"grid_pos": pos,
+			"road_type": road_type,
+		}):
+			placed_count += 1
 
 	print("Placed %d road tiles" % placed_count)
 	_clear_road_previews()
@@ -1501,7 +1461,7 @@ func _update_field_previews() -> void:
 			var can_place = grid_pos in valid_positions
 			if can_place:
 				running_cost += cost
-			var can_afford = EconomyManager.can_afford(running_cost) if can_place else false
+			var can_pay = EconomyManager.can_spend_money(GameManager.active_corp_id, running_cost).ok if can_place else false
 
 			# Create preview node
 			var preview = Node2D.new()
@@ -1525,7 +1485,7 @@ func _update_field_previews() -> void:
 			])
 
 			# Set color based on validity
-			if can_place and can_afford:
+			if can_place and can_pay:
 				polygon.color = Color(0.5, 1.0, 0.5, 0.5)  # Green
 			else:
 				polygon.color = Color(1.0, 0.3, 0.3, 0.5)  # Red
@@ -1644,33 +1604,22 @@ func _complete_field_placement() -> void:
 			for grid_y in range(min_y, max_y + 1):
 				var grid_pos = Vector2i(grid_x, grid_y)
 
-				# Check validity
-				if not WorldManager.can_place_field_for_farmhouse(grid_pos, Vector2i(1, 1), field_farmhouse_id):
-					continue
-
-				# Check affordability
-				if not EconomyManager.can_afford(cost):
+				# Affordability pre-check breaks the loop early to avoid spamming the pipe.
+				if not EconomyManager.can_spend_money(GameManager.active_corp_id, cost).ok:
 					print("Not enough money to place more fields")
 					out_of_money = true
 					break
 
-				# Purchase and place
-				EconomyManager.subtract_money(cost, "field_placement")
+				# Validity check stays so we only submit at known-valid positions
+				# (and skip already-occupied tiles during the iterative re-scan).
+				if not WorldManager.can_place_field_for_farmhouse(grid_pos, Vector2i(1, 1), field_farmhouse_id):
+					continue
 
-				print("DEBUG: Placing field at %s with size (1, 1)" % grid_pos)
-				var field_id = WorldManager.place_facility(field_type, grid_pos, {
-					"size": Vector2i(1, 1)
-				}, GameManager.active_corp_id)
-
-				if field_id:
-					var placed_facility = WorldManager.facilities[field_id]
-					print("DEBUG: Field %s placed with size %s" % [field_id, placed_facility.size])
-					WorldManager.complete_construction(field_id)
-
-					# Register field with farmhouse
-					WorldManager.register_field_with_farmhouse(field_id, field_farmhouse_id)
-					ProductionManager.register_field_with_farmhouse(field_id, field_farmhouse_id)
-
+				if GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_PLACE_FIELD, {
+					"field_type": field_type,
+					"grid_pos": grid_pos,
+					"farmhouse_id": field_farmhouse_id,
+				}):
 					placed_count += 1
 					placed_new = true
 
@@ -2220,14 +2169,9 @@ func _hide_mode_display() -> void:
 
 func _delete_facility(facility_id: String) -> void:
 	"""Delete a facility (for testing/debugging)"""
-	var facility = WorldManager.get_facility(facility_id)
-	if facility.is_empty():
-		return
-
-	print("Deleting facility: %s" % facility_id)
-
-	# Remove from WorldManager (this will emit facility_removed signal)
-	WorldManager.remove_facility(facility_id)
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_DEMOLISH_FACILITY, {
+		"facility_id": facility_id,
+	})
 
 	# Hide tooltip if it was showing for this facility
 	if hovered_facility_id == facility_id:
@@ -2280,7 +2224,9 @@ func _setup_visual_research_tree() -> void:
 
 func _on_visual_research_requested(tech_id: String) -> void:
 	"""Handle click on visual tree node"""
-	var success = ResearchManager.research(tech_id)
+	var success = GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_RESEARCH_TECH, {
+		"tech_id": tech_id,
+	})
 	if success:
 		_setup_visual_research_tree()
 		_update_money_display()
@@ -2574,7 +2520,9 @@ func _create_tech_item(tech: Dictionary) -> HBoxContainer:
 
 func _on_research_button_pressed(tech_id: String) -> void:
 	"""Handle research button press"""
-	var success = ResearchManager.research(tech_id)
+	var success = GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_RESEARCH_TECH, {
+		"tech_id": tech_id,
+	})
 	if success:
 		_update_research_panel()
 		_update_money_display()

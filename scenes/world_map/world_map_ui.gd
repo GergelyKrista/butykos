@@ -612,11 +612,15 @@ func _create_route_entry(route: Dictionary) -> void:
 
 func _on_route_pause_pressed(connection_id: String) -> void:
 	"""Toggle connection pause state"""
-	LogisticsManager.toggle_connection_active(connection_id)
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_TOGGLE_CONNECTION_ACTIVE, {
+		"connection_id": connection_id,
+	})
 	_update_routes_panel()
 
 
 func _on_route_delete_pressed(connection_id: String) -> void:
 	"""Delete a connection"""
-	LogisticsManager.remove_connection(connection_id)
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_REMOVE_LOGISTICS_CONNECTION, {
+		"connection_id": connection_id,
+	})
 	_update_routes_panel()

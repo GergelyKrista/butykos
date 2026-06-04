@@ -107,24 +107,6 @@ func can_spend_money(corp_id: String, amount: int) -> Dictionary:
 	return { "ok": true, "reason": "" }
 
 
-func can_afford(amount: int) -> bool:
-	"""Deprecated wrapper kept for UI preview call sites that are rewired in sub-commit C.
-	TODO(sub-commit-C): delete after all can_afford call sites in scenes/ are removed."""
-	return can_spend_money(GameManager.CORP_SINGLE, amount).ok
-
-
-func add_money(amount: int, reason: String = "") -> void:
-	"""Deprecated wrapper kept for UI call sites rewired in sub-commit C.
-	TODO(sub-commit-C): delete after factory_interior.gd:682 and world_map.gd:1071 are rewired."""
-	earn_money(GameManager.CORP_SINGLE, amount, reason)
-
-
-func subtract_money(amount: int, reason: String = "") -> bool:
-	"""Deprecated wrapper kept for UI call sites rewired in sub-commit C.
-	TODO(sub-commit-C): delete after factory_interior.gd:288, world_map.gd:1207, :1322, :1658 are rewired."""
-	return spend_money(GameManager.CORP_SINGLE, amount, reason)
-
-
 func set_money(amount: int) -> void:
 	"""Set money directly (used for loading saves or cheats)"""
 	var delta = amount - money
@@ -165,12 +147,6 @@ func _purchase_facility(corp_id: String, facility_id: String) -> bool:
 	var facility_name: String = facility_def.get("name", facility_id)
 
 	return spend_money(corp_id, cost, "Built %s" % facility_name)
-
-
-func purchase_facility(facility_id: String) -> bool:
-	"""Deprecated wrapper kept for UI call sites rewired in sub-commit C.
-	TODO(sub-commit-C): delete after world_map.gd:440 and :577 are rewired to submit_action."""
-	return _purchase_facility(GameManager.CORP_SINGLE, facility_id)
 
 
 func _refund_facility(corp_id: String, facility_id: String, refund_percent: float = 0.5) -> void:

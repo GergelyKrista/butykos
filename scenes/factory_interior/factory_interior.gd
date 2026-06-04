@@ -66,6 +66,11 @@ func _ready() -> void:
 	# Load existing machines
 	_load_existing_machines()
 
+	# Reactive visual updates — new machines created/removed via the action pipe
+	# fire these signals; the listener filters by our facility_id.
+	EventBus.machine_placed.connect(_on_machine_placed_event)
+	EventBus.machine_removed.connect(_on_machine_removed_event)
+
 	# Create connections renderer
 	connections_renderer = Node2D.new()
 	connections_renderer.name = "ConnectionsRenderer"
@@ -193,10 +198,10 @@ func _update_placement_preview_validity() -> void:
 	var size = Vector2i(machine_def.get("size", [1, 1])[0], machine_def.get("size", [1, 1])[1])
 
 	var can_place = FactoryManager.can_place_machine(facility_id, mouse_grid_pos, size)
-	var can_afford = EconomyManager.can_afford(machine_def.get("cost", 0))
+	var can_pay = EconomyManager.can_spend_money(GameManager.active_corp_id, machine_def.get("cost", 0)).ok
 
 	# Set color: green if valid, red if invalid
-	if can_place and can_afford:
+	if can_place and can_pay:
 		_modulate_preview(Color(0.5, 1.0, 0.5, 0.7))
 	else:
 		_modulate_preview(Color(1.0, 0.3, 0.3, 0.7))
@@ -269,34 +274,17 @@ func _create_placement_preview(machine_def: Dictionary) -> void:
 
 
 func _try_place_machine() -> void:
-	"""Attempt to place machine at current mouse position"""
+	"""Attempt to place machine at current mouse position.
+	Visual is created reactively via EventBus.machine_placed."""
 	var machine_def = DataManager.get_machine_data(placement_machine_id)
 	var size = Vector2i(machine_def.get("size", [1, 1])[0], machine_def.get("size", [1, 1])[1])
-	var cost = machine_def.get("cost", 0)
 
-	# Check placement validity
-	if not FactoryManager.can_place_machine(facility_id, mouse_grid_pos, size):
-		print("Cannot place machine: invalid location")
-		return
-
-	# Check if player can afford
-	if not EconomyManager.can_afford(cost):
-		print("Cannot place machine: insufficient funds (need $%d)" % cost)
-		return
-
-	# Purchase machine (subtract money)
-	if not EconomyManager.subtract_money(cost, "Machine: %s" % machine_def.get("name", placement_machine_id)):
-		print("Cannot place machine: purchase failed")
-		return
-
-	# Machine corp_id is inherited from the parent facility — no need to pass active_corp_id.
-	var machine_id = FactoryManager.place_machine(facility_id, placement_machine_id, mouse_grid_pos, {
-		"size": size
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_PLACE_MACHINE, {
+		"facility_id": facility_id,
+		"machine_type": placement_machine_id,
+		"grid_pos": mouse_grid_pos,
+		"size": size,
 	})
-
-	if not machine_id.is_empty():
-		print("Machine placed successfully: %s (cost: $%d)" % [machine_id, cost])
-		_create_machine_visual(machine_id)
 
 
 func _cancel_placement() -> void:
@@ -357,11 +345,11 @@ func _on_connection_mode_click() -> void:
 			return
 
 		# Create connection
-		var success = FactoryManager.create_connection(
-			facility_id,
-			connection_source_machine_id,
-			destination_machine_id
-		)
+		var success = GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_CREATE_MACHINE_CONNECTION, {
+			"facility_id": facility_id,
+			"from_machine_id": connection_source_machine_id,
+			"to_machine_id": destination_machine_id,
+		})
 
 		if success:
 			print("Connection created: %s → %s" % [connection_source_machine_id, destination_machine_id])
@@ -457,11 +445,11 @@ func _on_delete_connection_click() -> void:
 		var destination_machine_id = clicked_machine_id
 
 		# Try to remove connection
-		var success = FactoryManager.remove_connection(
-			facility_id,
-			connection_source_machine_id,
-			destination_machine_id
-		)
+		var success = GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_REMOVE_MACHINE_CONNECTION, {
+			"facility_id": facility_id,
+			"from_machine_id": connection_source_machine_id,
+			"to_machine_id": destination_machine_id,
+		})
 
 		if success:
 			print("Connection deleted: %s → %s" % [connection_source_machine_id, destination_machine_id])
@@ -500,6 +488,22 @@ func _load_existing_machines() -> void:
 
 	for machine in machines:
 		_create_machine_visual(machine.id)
+
+
+func _on_machine_placed_event(factory_id: String, machine_data: Dictionary) -> void:
+	"""Reactive: create the visual when a machine is added to our factory."""
+	if factory_id != facility_id:
+		return
+	_create_machine_visual(machine_data.get("id", ""))
+
+
+func _on_machine_removed_event(factory_id: String, machine_id: String) -> void:
+	"""Reactive: tear down the visual when a machine is removed from our factory."""
+	if factory_id != facility_id:
+		return
+	var machine_node = machines_container.get_node_or_null(machine_id)
+	if machine_node:
+		machine_node.queue_free()
 
 
 func _create_machine_visual(machine_id: String) -> void:
@@ -667,27 +671,12 @@ func _on_demolish_click() -> void:
 
 
 func _demolish_machine(machine_id: String) -> void:
-	"""Demolish a machine and refund partial cost"""
-	var machine = FactoryManager.get_machine(facility_id, machine_id)
-	if machine.is_empty():
-		return
-
-	var machine_def = DataManager.get_machine_data(machine.type)
-	var refund = machine_def.get("cost", 0) / 2  # Refund 50% of cost
-
-	print("Demolishing machine: %s (refund: $%d)" % [machine_id, refund])
-
-	# Refund money
-	if refund > 0:
-		EconomyManager.add_money(refund)
-
-	# Remove machine visual
-	var machine_node = machines_container.get_node_or_null(machine_id)
-	if machine_node:
-		machine_node.queue_free()
-
-	# Remove machine from FactoryManager (this will also remove connections)
-	FactoryManager.remove_machine(facility_id, machine_id)
+	"""Demolish a machine. Refund + visual teardown happen inside the action handler
+	and the EventBus.machine_removed reactive listener."""
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_DEMOLISH_MACHINE, {
+		"facility_id": facility_id,
+		"machine_id": machine_id,
+	})
 
 
 func _cancel_demolish_mode() -> void:

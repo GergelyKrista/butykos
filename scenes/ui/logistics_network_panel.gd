@@ -83,16 +83,22 @@ func _on_drag_ended(target_facility_id: String) -> void:
 		_drag_source = ""
 		return
 
-	# Routes are Logistics-owned in v1 (technical-architecture A7); omit corp_id to take the default.
-	var conn_id = LogisticsManager.create_connection(_drag_source, target_facility_id, product)
-	if not conn_id.is_empty():
+	# Routes are Logistics-owned in v1 (technical-architecture A7).
+	var ok := GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_CREATE_LOGISTICS_CONNECTION, {
+		"source_id": _drag_source,
+		"destination_id": target_facility_id,
+		"product": product,
+	})
+	if ok:
 		EventBus.notification_posted.emit("Connection: %s" % product.capitalize(), "info")
 
 	_drag_source = ""
 
 
 func _on_connection_delete(connection_id: String) -> void:
-	LogisticsManager.remove_connection(connection_id)
+	GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_REMOVE_LOGISTICS_CONNECTION, {
+		"connection_id": connection_id,
+	})
 
 
 func _on_logistics_changed(_data = null) -> void:

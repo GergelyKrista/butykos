@@ -116,7 +116,10 @@ func _populate_crop_selector() -> void:
 	var current_crop = ProductionManager.get_farmhouse_crop_type(current_farmhouse_id)
 	if current_crop.is_empty() and supported_crops.size() > 0:
 		current_crop = supported_crops[0]
-		ProductionManager.set_farmhouse_crop_type(current_farmhouse_id, current_crop)
+		GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_SET_FARMHOUSE_CROP, {
+			"farmhouse_id": current_farmhouse_id,
+			"crop_type": current_crop,
+		})
 
 	# Find and select the current crop
 	for i in range(supported_crops.size()):
@@ -165,6 +168,9 @@ func _on_crop_selected(index: int) -> void:
 	"""Handle crop type selection change"""
 	if index >= 0 and index < supported_crops.size():
 		var crop_type = supported_crops[index]
-		ProductionManager.set_farmhouse_crop_type(current_farmhouse_id, crop_type)
+		GameManager.submit_action(GameManager.active_corp_id, GameManager.ACTION_SET_FARMHOUSE_CROP, {
+			"farmhouse_id": current_farmhouse_id,
+			"crop_type": crop_type,
+		})
 		crop_type_changed.emit(current_farmhouse_id, crop_type)
 		EventBus.farmhouse_crop_changed.emit(current_farmhouse_id, crop_type)
