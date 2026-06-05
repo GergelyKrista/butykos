@@ -79,6 +79,12 @@ var hovered_facility_id: String = ""
 # placement mode and on farmhouse click. Cleared when leaving those modes.
 var farmhouse_overlays_container: Node2D = null
 
+# Right-click crop-selector popup for placed farm_field entities.
+# Created in _ready. `crop_selector_target_field_id` remembers which field
+# the popup is currently editing (set on show, cleared on pick).
+var crop_selector_popup: PopupMenu = null
+var crop_selector_target_field_id: String = ""
+
 # ========================================
 # INITIALIZATION
 # ========================================
@@ -125,6 +131,17 @@ func _ready() -> void:
 	farmhouse_overlays_container.z_index = 5
 	add_child(farmhouse_overlays_container)
 
+	# Right-click crop selector for farm_field. Two crops in slice 1
+	# (barley, hops) plus a "no crop" option to take a field offline.
+	crop_selector_popup = PopupMenu.new()
+	crop_selector_popup.name = "CropSelectorPopup"
+	crop_selector_popup.add_item("Barley", 0)
+	crop_selector_popup.add_item("Hops", 1)
+	crop_selector_popup.add_separator()
+	crop_selector_popup.add_item("(No crop — leave field idle)", 2)
+	crop_selector_popup.id_pressed.connect(_on_crop_selector_item_picked)
+	add_child(crop_selector_popup)
+
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
 
@@ -143,6 +160,11 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouse:
 		var world_pos = camera.get_global_mouse_position()
 		mouse_grid_pos = WorldManager.world_to_grid(world_pos)
+
+	# Snapshot mode state BEFORE the mode-specific branches run — used by the
+	# bare-board right-click crop-selector check below so that a right-click
+	# that cancels a mode does not also fire the popup.
+	var was_in_any_mode: bool = placement_mode or route_mode or demolish_mode or road_mode or field_mode
 
 	# Placement mode input
 	if placement_mode:
@@ -224,6 +246,20 @@ func _input(event: InputEvent) -> void:
 						field_drag_active = false
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_field_mode()
+
+	# Right-click on a placed farm_field (with no mode active) opens the crop
+	# selector. Uses the start-of-frame mode snapshot so that right-clicks
+	# which CANCELLED a mode above don't also fire the popup.
+	if event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_RIGHT \
+			and event.pressed \
+			and not was_in_any_mode \
+			and not _is_mouse_over_ui():
+		var clicked_facility: Dictionary = WorldManager.get_facility_at_position(mouse_grid_pos)
+		if not clicked_facility.is_empty():
+			var clicked_def: Dictionary = DataManager.get_facility_data(clicked_facility.type)
+			if clicked_def.get("is_farm_field", false):
+				_show_crop_selector_for_field(clicked_facility.id)
 
 	# Cancel panels/modes with Escape - only open pause menu if nothing was active
 	if event.is_action_pressed("ui_cancel"):
@@ -532,6 +568,42 @@ func _show_all_farmhouse_overlays(fill: Color) -> void:
 	_clear_farmhouse_overlays()
 	for fh_id in WorldManager.get_all_farmhouse_ids():
 		_draw_farmhouse_overlay(fh_id, fill)
+
+
+# ========================================
+# RIGHT-CLICK CROP SELECTOR (farm_field)
+# ========================================
+
+func _show_crop_selector_for_field(field_id: String) -> void:
+	"""Open the right-click crop popup over `field_id`. The popup pre-checks
+	the field's current crop so the player can see what's already assigned."""
+	crop_selector_target_field_id = field_id
+	# Sync the check marks to the current crop so the player can see assignment.
+	var current_crop: String = ProductionManager.field_crop_types.get(field_id, "")
+	crop_selector_popup.set_item_checked(crop_selector_popup.get_item_index(0), current_crop == "barley")
+	crop_selector_popup.set_item_checked(crop_selector_popup.get_item_index(1), current_crop == "hops")
+	# Position popup at the current mouse position in viewport space.
+	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+	crop_selector_popup.position = Vector2i(mouse_pos)
+	crop_selector_popup.popup()
+
+
+func _on_crop_selector_item_picked(id: int) -> void:
+	"""Handle a crop choice from the right-click popup."""
+	if crop_selector_target_field_id.is_empty():
+		return
+	var crop: String = ""
+	match id:
+		0:
+			crop = "barley"
+		1:
+			crop = "hops"
+		2:
+			crop = ""  # explicit "no crop" — field goes idle
+		_:
+			return
+	ProductionManager.set_field_crop_type(crop_selector_target_field_id, crop)
+	crop_selector_target_field_id = ""
 
 
 func _update_drag_previews() -> void:
