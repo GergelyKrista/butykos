@@ -14,6 +14,32 @@
 > Pre-pivot entries (below this section) remain as historical reference; new findings live here.
 > Add a new dated section each playtest session — latest on top — and reuse the entry template at the bottom of this file (`🐛 Bug Reporting Template`).
 
+## 🗓 2026-06-05 — Farm fields playtest session
+
+**Tested on branch:** `testing/farmhouse+corp-switcher` (carries `feature/farmhouse-rectangle-and-farm-fields` + `feature/corp-switcher-debug-ui`)
+**Tester:** Ambrus
+**Result:** New farm-field flow works end-to-end. Most findings were resolved within the session via follow-up commits on the same branch; one new pre-existing bug surfaced (brewery world-map production runs without interior machinery — separate from the already-logged interior-doesn't-transport bug).
+
+### 🚨 Critical
+- [ ] **Brewery world-map `production` block runs independently of the brewery interior** — The brewery has a JSON `production: { input: malt, output: ale, ... }` block on its data definition. The world-map `ProductionManager` cycles this every 5s whenever malt is in the brewery's facility inventory, completely separately from the interior machine system. Result: an empty brewery (no Input Hopper, no Mash Tun, no Bottling Line placed inside) still produces ale as long as malt arrives via logistics.
+  - **Impact:** The brewery interior is currently decorative — the world-map production block is what actually produces. Slice-1 design expects the interior chain (Mill → Grist → Mash Tun → … → Bottling Line) to be the actual production path. Two systems doing the same job hides the interior bug and confuses the player about what they're supposed to build.
+  - **Reproduce:** Build farmhouse + barley fields + grain mill + brewery + logistics route brewery ← malt. Wait. Brewery produces ale without ever entering the interior. Inventory shows `Ale: N`.
+  - **Fix:** Once the new brewery chain (per `design_docs/2026-06-05_*.md` §3) lands, **remove** the world-map `production` block from `brewery` in `data/facilities.json`. The interior becomes the SOLE production path. Similar cleanup for `lager_brewery`, `distillery`, `whiskey_distillery`, etc.
+  - **Phase:** Pre-Phase 10 (entangled with the new brewery chain work in design doc §3)
+  - **File:** `data/facilities.json` (brewery + related entries), `systems/production_manager.gd` (`_complete_production_cycle`)
+
+### ✅ Investigated and resolved within this session
+- ✅ **Farm fields had no visual indicator of crop assignment / state** — Player couldn't tell which fields were idle vs producing. Added crop-aware tint (golden=barley, green=hops, gray=unassigned) + a centered crop label (`B` / `H` / `?`) on each field. Throttled idle-reason console messages so it's clear WHY a field isn't producing (`no crop assigned`, `no tile inside any farmhouse's working area`). Commit `1f6ded8`.
+- ✅ **Field crop indicators disappeared after entering and leaving a brewery interior** — `_load_existing_facilities` was rebuilding the world-map facility nodes on scene re-entry but not re-applying the per-field visual update. Added the same hook from `_on_facility_placed` to the loader. Commit `ee9d50e`.
+- ✅ **Click-drag placed N separate 1×1 fields instead of one multi-tile field** — User expectation was "one drag = one rectangular farm-field entity I can crop-assign as a whole." Reworked `_complete_drag_placement` to branch on farm_field and call a new `_complete_farm_field_drag` that shrinks the drag rectangle to its largest fully-clear sub-rect (option B "shrink-on-overlap" from the 2026-06-05 design call), then places ONE multi-tile facility of that size. Cost scales by tile count. Production output also scales by the number of tiles inside any farmhouse's working rect (per-tile yield rule from the same design call). Commits `6be46ba` + `62d010d`.
+- ✅ **Working area was the wrong shape** — Initial implementation used `working_area: [w, h]` (absolute total dimensions); design intent was "radius from farmhouse." Switched data to `working_radius: 5` meaning "5 tiles beyond the footprint in each direction" — a 3×3 farmhouse now gets a 13×13 catchment, 160 productive tiles. Commit `62d010d`.
+
+### 📋 Confirmed pre-existing (already logged)
+- 📋 **Logistics network panel: nodes are unlabeled colored squares** — already logged in 2026-06-04 session, still unfixed.
+- 📋 **Brewery interior machines don't transport between each other** — already logged in 2026-06-04 session as Critical. Distinct from the new "world-map production runs without interior" bug above but related: the interior machine system needs work, AND the world-map shadow-production needs removing.
+
+---
+
 ## 🗓 2026-06-05 — Corp switcher smoke test session
 
 **Tested on branch:** `feature/corp-switcher-debug-ui` (dev-mode corp dropdown)
