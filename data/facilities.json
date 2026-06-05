@@ -2,9 +2,16 @@
 	"farmhouse": {
 		"id": "farmhouse",
 		"name": "Farmhouse",
-		"description": "Central hub for managing crop fields. Place fields via the farmhouse UI.",
+		"description": "Central hub for crops. Pickup point for logistics. Farm fields produce only when inside this farmhouse's working area AND either touching the farmhouse or connected via Farm Road.",
 		"category": "agriculture",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
+		"working_area": [
+			10,
+			8
+		],
 		"cost": 1500,
 		"construction_time": 5.0,
 		"maintenance_cost": 25,
@@ -12,8 +19,6 @@
 		"production": {},
 		"storage_capacity": 200,
 		"has_farmhouse_ui": true,
-		"max_field_distance": 10,
-		"supported_crops": ["barley", "wheat"],
 		"visual": {
 			"color": "#8b4513",
 			"icon": ""
@@ -24,7 +29,10 @@
 		"name": "Barley Field",
 		"description": "Grows barley for brewing. The foundation of your alcohol empire.",
 		"category": "agriculture",
-		"size": [1, 1],
+		"size": [
+			1,
+			1
+		],
 		"cost": 100,
 		"construction_time": 1.0,
 		"maintenance_cost": 5,
@@ -46,7 +54,10 @@
 		"name": "Malt House",
 		"description": "Processes barley into malt for brewing.",
 		"category": "processing",
-		"size": [2, 2],
+		"size": [
+			2,
+			2
+		],
 		"cost": 800,
 		"construction_time": 5.0,
 		"maintenance_cost": 15,
@@ -70,7 +81,10 @@
 		"name": "Brewery",
 		"description": "Produces ale from malt. Your first alcohol production facility.",
 		"category": "production",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 1500,
 		"construction_time": 10.0,
 		"maintenance_cost": 30,
@@ -99,7 +113,10 @@
 		"name": "Wheat Field",
 		"description": "Grows wheat for distilling. Alternative grain source for spirits.",
 		"category": "agriculture",
-		"size": [1, 1],
+		"size": [
+			1,
+			1
+		],
 		"cost": 120,
 		"construction_time": 1.0,
 		"maintenance_cost": 6,
@@ -116,12 +133,36 @@
 		"hidden_from_build_menu": true,
 		"is_field": true
 	},
+	"farm_field": {
+		"id": "farm_field",
+		"name": "Farm Field",
+		"description": "Generic crop field. Right-click after placement to choose what to grow. Produces only when inside a farmhouse's working area AND either touching that farmhouse or connected to it via Farm Road. Output goes to the servicing farmhouse's inventory.",
+		"category": "agriculture",
+		"corp_id": "agri",
+		"size": [
+			1,
+			1
+		],
+		"cost": 50,
+		"construction_time": 1.0,
+		"maintenance_cost": 2,
+		"unlock_requirements": {},
+		"is_field": true,
+		"is_farm_field": true,
+		"visual": {
+			"color": "#a8c060",
+			"icon": ""
+		}
+	},
 	"distillery": {
 		"id": "distillery",
 		"name": "Distillery",
 		"description": "Produces spirits from grain. Requires wheat or barley input.",
 		"category": "production",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 2000,
 		"construction_time": 12.0,
 		"maintenance_cost": 40,
@@ -149,7 +190,10 @@
 		"name": "Packaging Plant",
 		"description": "Packages finished alcohol products for premium pricing.",
 		"category": "processing",
-		"size": [2, 3],
+		"size": [
+			2,
+			3
+		],
 		"cost": 1200,
 		"construction_time": 8.0,
 		"maintenance_cost": 25,
@@ -176,7 +220,10 @@
 		"name": "Storage Warehouse",
 		"description": "Stores large quantities of products. Buffers production chains.",
 		"category": "storage",
-		"size": [3, 2],
+		"size": [
+			3,
+			2
+		],
 		"cost": 900,
 		"construction_time": 6.0,
 		"maintenance_cost": 20,
@@ -195,12 +242,17 @@
 		"name": "Corn Field",
 		"description": "Grows corn for whiskey production. Unlocked via Crop Genetics research.",
 		"category": "agriculture",
-		"size": [2, 2],
+		"size": [
+			2,
+			2
+		],
 		"cost": 600,
 		"construction_time": 3.0,
 		"maintenance_cost": 12,
 		"unlock_requirements": {
-			"research": ["crop_genetics"]
+			"research": [
+				"crop_genetics"
+			]
 		},
 		"production": {
 			"output": "corn",
@@ -217,12 +269,17 @@
 		"name": "Hop Farm",
 		"description": "Grows hops for premium beers. Unlocked via Agricultural Science research.",
 		"category": "agriculture",
-		"size": [2, 2],
+		"size": [
+			2,
+			2
+		],
 		"cost": 700,
 		"construction_time": 4.0,
 		"maintenance_cost": 15,
 		"unlock_requirements": {
-			"research": ["agricultural_science"]
+			"research": [
+				"agricultural_science"
+			]
 		},
 		"production": {
 			"output": "hops",
@@ -239,12 +296,17 @@
 		"name": "Vineyard",
 		"description": "Grows grapes for wine production. Unlocked via Agricultural Science research.",
 		"category": "agriculture",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 1000,
 		"construction_time": 5.0,
 		"maintenance_cost": 20,
 		"unlock_requirements": {
-			"research": ["agricultural_science"]
+			"research": [
+				"agricultural_science"
+			]
 		},
 		"production": {
 			"output": "grapes",
@@ -261,12 +323,17 @@
 		"name": "Water Source",
 		"description": "Provides clean water for brewing and distilling. Essential for quality products.",
 		"category": "agriculture",
-		"size": [2, 2],
+		"size": [
+			2,
+			2
+		],
 		"cost": 400,
 		"construction_time": 2.0,
 		"maintenance_cost": 5,
 		"unlock_requirements": {
-			"research": ["fertilizers"]
+			"research": [
+				"fertilizers"
+			]
 		},
 		"production": {
 			"output": "water",
@@ -283,12 +350,17 @@
 		"name": "Industrial Mill",
 		"description": "High-capacity grain processing with steel roller mills. 40% more efficient.",
 		"category": "processing",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 2500,
 		"construction_time": 8.0,
 		"maintenance_cost": 35,
 		"unlock_requirements": {
-			"research": ["roller_mills"]
+			"research": [
+				"roller_mills"
+			]
 		},
 		"production": {
 			"input": "barley",
@@ -308,12 +380,17 @@
 		"name": "Lager Brewery",
 		"description": "Specialized cold-fermentation brewery for crisp, clean lagers.",
 		"category": "production",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 2500,
 		"construction_time": 12.0,
 		"maintenance_cost": 45,
 		"unlock_requirements": {
-			"research": ["lager_brewing"]
+			"research": [
+				"lager_brewing"
+			]
 		},
 		"production": {
 			"input": "malt",
@@ -333,12 +410,17 @@
 		"name": "Whiskey Distillery",
 		"description": "Double-distillation facility for premium whiskey production.",
 		"category": "production",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 3000,
 		"construction_time": 14.0,
 		"maintenance_cost": 50,
 		"unlock_requirements": {
-			"research": ["double_distillation"]
+			"research": [
+				"double_distillation"
+			]
 		},
 		"production": {
 			"input": "raw_spirit",
@@ -358,12 +440,17 @@
 		"name": "Vodka Distillery",
 		"description": "Column still facility for producing pure, neutral vodka.",
 		"category": "production",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 2800,
 		"construction_time": 12.0,
 		"maintenance_cost": 45,
 		"unlock_requirements": {
-			"research": ["column_stills"]
+			"research": [
+				"column_stills"
+			]
 		},
 		"production": {
 			"input": "raw_spirit",
@@ -383,12 +470,17 @@
 		"name": "Aging Cellar",
 		"description": "Climate-controlled cellar with charred oak barrels for spirit aging.",
 		"category": "storage",
-		"size": [3, 2],
+		"size": [
+			3,
+			2
+		],
 		"cost": 1800,
 		"construction_time": 8.0,
 		"maintenance_cost": 25,
 		"unlock_requirements": {
-			"research": ["charred_barrels"]
+			"research": [
+				"charred_barrels"
+			]
 		},
 		"production": {
 			"input": "raw_spirit",
@@ -408,12 +500,17 @@
 		"name": "Barrel House",
 		"description": "Solera-system aging facility for producing premium whiskey.",
 		"category": "storage",
-		"size": [4, 3],
+		"size": [
+			4,
+			3
+		],
 		"cost": 4000,
 		"construction_time": 15.0,
 		"maintenance_cost": 60,
 		"unlock_requirements": {
-			"research": ["solera_system"]
+			"research": [
+				"solera_system"
+			]
 		},
 		"production": {
 			"input": "whiskey",
@@ -433,12 +530,17 @@
 		"name": "Bottling Facility",
 		"description": "Glass bottle packaging for premium presentation and higher value.",
 		"category": "processing",
-		"size": [2, 3],
+		"size": [
+			2,
+			3
+		],
 		"cost": 1600,
 		"construction_time": 7.0,
 		"maintenance_cost": 30,
 		"unlock_requirements": {
-			"research": ["glass_bottles"]
+			"research": [
+				"glass_bottles"
+			]
 		},
 		"production": {
 			"input": "ale",
@@ -457,12 +559,17 @@
 		"name": "Distribution Depot",
 		"description": "High-capacity storage and distribution hub for efficient logistics.",
 		"category": "storage",
-		"size": [4, 4],
+		"size": [
+			4,
+			4
+		],
 		"cost": 2000,
 		"construction_time": 10.0,
 		"maintenance_cost": 35,
 		"unlock_requirements": {
-			"research": ["steam_wagons"]
+			"research": [
+				"steam_wagons"
+			]
 		},
 		"production": {},
 		"storage_capacity": 1000,
@@ -476,12 +583,17 @@
 		"name": "Rail Depot",
 		"description": "Railway station for massive cargo capacity and fast transport.",
 		"category": "storage",
-		"size": [5, 3],
+		"size": [
+			5,
+			3
+		],
 		"cost": 5000,
 		"construction_time": 20.0,
 		"maintenance_cost": 80,
 		"unlock_requirements": {
-			"research": ["rail_transport"]
+			"research": [
+				"rail_transport"
+			]
 		},
 		"production": {},
 		"storage_capacity": 2000,
@@ -495,12 +607,17 @@
 		"name": "Tavern",
 		"description": "Local establishment for direct retail sales at premium prices.",
 		"category": "production",
-		"size": [2, 2],
+		"size": [
+			2,
+			2
+		],
 		"cost": 800,
 		"construction_time": 5.0,
 		"maintenance_cost": 15,
 		"unlock_requirements": {
-			"research": ["local_markets"]
+			"research": [
+				"local_markets"
+			]
 		},
 		"production": {
 			"input": "ale",
@@ -521,12 +638,17 @@
 		"name": "Trade Office",
 		"description": "Generates lucrative trade contracts and improves market access.",
 		"category": "production",
-		"size": [2, 2],
+		"size": [
+			2,
+			2
+		],
 		"cost": 2500,
 		"construction_time": 8.0,
 		"maintenance_cost": 40,
 		"unlock_requirements": {
-			"research": ["trade_agreements"]
+			"research": [
+				"trade_agreements"
+			]
 		},
 		"production": {},
 		"generates_contracts": true,
@@ -541,12 +663,17 @@
 		"name": "Winery",
 		"description": "Produces wine from grapes. A premium alcohol product.",
 		"category": "production",
-		"size": [3, 3],
+		"size": [
+			3,
+			3
+		],
 		"cost": 2200,
 		"construction_time": 10.0,
 		"maintenance_cost": 40,
 		"unlock_requirements": {
-			"research": ["agricultural_science"]
+			"research": [
+				"agricultural_science"
+			]
 		},
 		"production": {
 			"input": "grapes",

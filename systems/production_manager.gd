@@ -64,13 +64,30 @@ var machine_timers: Dictionary = {}
 # Machines now have their own inventory instead of using facility inventory
 var machine_inventories: Dictionary = {}
 
-# Farmhouse crop type tracking
-# Dictionary of farmhouse crop types: { farmhouse_id: crop_type }
+# Farmhouse crop type tracking (LEGACY — pre per-field-crop model).
+# Kept so legacy barley_field / wheat_field facilities continue to function
+# until they are removed. New generic `farm_field` uses `field_crop_types` below.
 var farmhouse_crop_types: Dictionary = {}
 
-# Field production targets
-# Dictionary mapping field_id to parent farmhouse_id for inventory routing
+# Field production targets (LEGACY routing for crop-specific field types).
+# Dictionary mapping field_id to parent farmhouse_id for inventory routing.
+# `farm_field` entities skip this and use `WorldManager.find_servicing_farmhouse`
+# at production time instead — output routing is dynamic, not registry-driven.
 var field_production_targets: Dictionary = {}
+
+# Per-field crop assignment for the generic `farm_field` entity.
+# Dictionary { field_id: crop_type } — populated via the right-click crop selector.
+# Replaces the per-farmhouse `farmhouse_crop_types` model for new fields.
+var field_crop_types: Dictionary = {}
+
+# Per-crop production config for the generic `farm_field` entity.
+# Each crop maps to { output, quantity, cycle_time }. Research yield/cycle
+# multipliers are looked up by the OUTPUT product so existing
+# barley/hops research bonuses apply automatically.
+const FARM_FIELD_CROP_PRODUCTION: Dictionary = {
+	"barley": { "output": "barley", "quantity": 10, "cycle_time": 5.0 },
+	"hops":   { "output": "hops",   "quantity": 8,  "cycle_time": 6.0 },
+}
 
 # ========================================
 # CONFIGURATION
@@ -215,6 +232,12 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 
 	var facility_def = DataManager.get_facility_data(facility.type)
 	if facility_def.is_empty():
+		return
+
+	# Generic farm_field has no static `production` block — production is dynamic
+	# based on the per-field crop assignment + the field's servicing farmhouse.
+	if facility_def.get("is_farm_field", false):
+		_complete_farm_field_cycle(facility_id, facility, facility_def)
 		return
 
 	var production_data = facility_def.get("production", {})
@@ -454,14 +477,67 @@ func can_set_farmhouse_crop(corp_id: String, farmhouse_id: String, crop_type: St
 
 
 func set_farmhouse_crop_type(farmhouse_id: String, crop_type: String) -> void:
-	"""Set the crop type for a farmhouse"""
+	"""Set the crop type for a farmhouse (LEGACY model — still used by the
+	farmhouse UI for legacy barley_field/wheat_field entities)."""
 	farmhouse_crop_types[farmhouse_id] = crop_type
 	print("Farmhouse %s crop type set to: %s" % [farmhouse_id, crop_type])
 
 
 func get_farmhouse_crop_type(farmhouse_id: String) -> String:
-	"""Get the crop type for a farmhouse"""
+	"""Get the crop type for a farmhouse (LEGACY)."""
 	return farmhouse_crop_types.get(farmhouse_id, "")
+
+
+func set_field_crop_type(field_id: String, crop_type: String) -> void:
+	"""Assign a crop to a generic `farm_field`. The field will start producing
+	this crop on its next cycle, provided a farmhouse currently services it
+	(see `WorldManager.find_servicing_farmhouse`). Empty `crop_type` clears the
+	assignment (field returns to idle)."""
+	if crop_type.is_empty():
+		field_crop_types.erase(field_id)
+	else:
+		field_crop_types[field_id] = crop_type
+	# Reset the production timer so a freshly-assigned crop kicks in quickly
+	# (otherwise the field might idle for up to a full cycle before noticing).
+	if production_timers.has(field_id):
+		var cfg: Dictionary = FARM_FIELD_CROP_PRODUCTION.get(crop_type, {})
+		production_timers[field_id] = float(cfg.get("cycle_time", 5.0))
+	print("Field %s crop set to: %s" % [field_id, crop_type if not crop_type.is_empty() else "(none)"])
+	EventBus.farmhouse_crop_changed.emit(field_id, crop_type)
+
+
+func _complete_farm_field_cycle(facility_id: String, facility: Dictionary, _facility_def: Dictionary) -> void:
+	"""Cycle handler for the generic farm_field. Idles (resets timer, no output)
+	if no crop is assigned, no farmhouse services the field, or the crop is
+	unknown. Otherwise, produces into the servicing farmhouse's inventory."""
+	var crop: String = field_crop_types.get(facility_id, "")
+	if crop.is_empty():
+		production_timers[facility_id] = 5.0
+		return
+	var farmhouse_id: String = WorldManager.find_servicing_farmhouse(facility_id)
+	if farmhouse_id.is_empty():
+		# Field is placed but not connected/in-range — idle until the player
+		# fixes the topology (build a road, place a farmhouse, etc.).
+		production_timers[facility_id] = 5.0
+		return
+	var crop_cfg: Dictionary = FARM_FIELD_CROP_PRODUCTION.get(crop, {})
+	if crop_cfg.is_empty():
+		push_warning("farm_field %s has unknown crop '%s'" % [facility_id, crop])
+		production_timers[facility_id] = 5.0
+		return
+	var output_product: String = String(crop_cfg.get("output", ""))
+	var base_quantity: int = int(crop_cfg.get("quantity", 0))
+	var base_cycle: float = float(crop_cfg.get("cycle_time", 5.0))
+	# Research bonuses are keyed by output product (existing barley/hops bonuses
+	# still apply to farm_field outputs).
+	var yield_mult: float = _get_yield_multiplier(output_product)
+	var cycle_mult: float = _get_cycle_time_multiplier(output_product)
+	var output_quantity: int = int(base_quantity * yield_mult)
+	var cycle_time: float = base_cycle * cycle_mult
+	_add_to_inventory(farmhouse_id, output_product, output_quantity)
+	_track_production(facility_id, output_product, output_quantity)
+	production_timers[facility_id] = cycle_time
+	print("Farm field %s produced %d %s -> farmhouse %s" % [facility_id, output_quantity, output_product, farmhouse_id])
 
 
 func register_field_with_farmhouse(field_id: String, farmhouse_id: String) -> void:
@@ -906,6 +982,8 @@ func _on_facility_removed(facility_id: String) -> void:
 	"""Handle facility removal"""
 	production_timers.erase(facility_id)
 	production_outputs.erase(facility_id)
+	# Clean up per-field state for the generic farm_field.
+	field_crop_types.erase(facility_id)
 
 
 func _on_facility_constructed(facility_id: String) -> void:

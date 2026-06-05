@@ -74,6 +74,11 @@ var logistics_panel: Control = null
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 var hovered_facility_id: String = ""
 
+# Container for farmhouse working-area overlays (semi-transparent tile tints).
+# Created in _ready; populated by _show_farmhouse_overlays during farm_field
+# placement mode and on farmhouse click. Cleared when leaving those modes.
+var farmhouse_overlays_container: Node2D = null
+
 # ========================================
 # INITIALIZATION
 # ========================================
@@ -112,6 +117,13 @@ func _ready() -> void:
 
 	# Initialize logistics network panel
 	_setup_logistics_panel()
+
+	# Container for farmhouse working-area overlays. Sits behind facility
+	# sprites but above grid lines so the player can see the tinted area.
+	farmhouse_overlays_container = Node2D.new()
+	farmhouse_overlays_container.name = "FarmhouseWorkingAreaOverlays"
+	farmhouse_overlays_container.z_index = 5
+	add_child(farmhouse_overlays_container)
 
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
@@ -333,6 +345,11 @@ func start_placement_mode(facility_id: String) -> void:
 	# Create placement preview
 	_create_placement_preview(facility_def)
 
+	# When placing the generic farm_field, light up every farmhouse's working
+	# rectangle so the player can see where their drag will actually produce.
+	if facility_def.get("is_farm_field", false):
+		_show_all_farmhouse_overlays(Color(0.5, 0.85, 0.45, 0.22))
+
 	print("Placement mode started: %s (field: %s)" % [facility_def.name, is_field_type])
 
 
@@ -462,7 +479,59 @@ func _cancel_placement() -> void:
 	_clear_drag_previews()
 	drag_mode = false
 
+	# Clear any farmhouse working-area overlays from farm_field placement mode.
+	_clear_farmhouse_overlays()
+
 	print("Placement mode cancelled")
+
+
+# ========================================
+# FARMHOUSE WORKING-AREA OVERLAYS
+# ========================================
+
+func _clear_farmhouse_overlays() -> void:
+	"""Remove every farmhouse working-area overlay diamond from the map."""
+	if farmhouse_overlays_container == null:
+		return
+	for child in farmhouse_overlays_container.get_children():
+		child.queue_free()
+
+
+func _draw_farmhouse_overlay(farmhouse_id: String, fill: Color) -> void:
+	"""Render one farmhouse's working rectangle as a grid of semi-transparent
+	isometric diamonds inside farmhouse_overlays_container."""
+	if farmhouse_overlays_container == null:
+		return
+	var rect: Rect2i = WorldManager.get_farmhouse_working_rect(farmhouse_id)
+	if rect.size.x <= 0 or rect.size.y <= 0:
+		return
+	var half_w: float = WorldManager.TILE_WIDTH / 2.0
+	var half_h: float = WorldManager.TILE_HEIGHT / 2.0
+	for x in range(rect.position.x, rect.position.x + rect.size.x):
+		for y in range(rect.position.y, rect.position.y + rect.size.y):
+			# Skip tiles outside the playable grid.
+			if not WorldManager.is_valid_grid_position(Vector2i(x, y)):
+				continue
+			# Tile centers sit at half-integer cartesian coords (CLAUDE.md isometric rules §1).
+			var tile_center_cart := Vector2(x + 0.5, y + 0.5)
+			var tile_center_iso: Vector2 = WorldManager.cart_to_iso(tile_center_cart)
+			var poly := Polygon2D.new()
+			poly.polygon = PackedVector2Array([
+				tile_center_iso + Vector2(0, -half_h),
+				tile_center_iso + Vector2(half_w, 0),
+				tile_center_iso + Vector2(0, half_h),
+				tile_center_iso + Vector2(-half_w, 0),
+			])
+			poly.color = fill
+			farmhouse_overlays_container.add_child(poly)
+
+
+func _show_all_farmhouse_overlays(fill: Color) -> void:
+	"""Clear then redraw working-area overlays for every farmhouse on the map.
+	Called when entering farm_field placement mode."""
+	_clear_farmhouse_overlays()
+	for fh_id in WorldManager.get_all_farmhouse_ids():
+		_draw_farmhouse_overlay(fh_id, fill)
 
 
 func _update_drag_previews() -> void:
@@ -843,15 +912,18 @@ func _on_facility_clicked(_viewport: Node, event: InputEvent, _shape_idx: int, f
 			_select_facility_for_route(facility_id)
 			return
 
-		# Regular click on farmhouse: open farmhouse UI
+		# Regular click on farmhouse: open farmhouse UI + light up its working rect.
 		if event.pressed and facility_def.get("has_farmhouse_ui", false):
 			print("Opening farmhouse UI for: %s" % facility_id)
 			_open_farmhouse_ui(facility_id)
+			_clear_farmhouse_overlays()
+			_draw_farmhouse_overlay(facility_id, Color(0.5, 0.85, 0.45, 0.30))
 			return
 
-		# Clicked on non-farmhouse facility: hide farmhouse UI if open
+		# Clicked on non-farmhouse facility: hide farmhouse UI if open, clear overlay.
 		if event.pressed and farmhouse_ui and farmhouse_ui.visible:
 			farmhouse_ui.hide_ui()
+			_clear_farmhouse_overlays()
 
 
 func _select_facility_for_route(facility_id: String) -> void:
@@ -1395,9 +1467,8 @@ func _on_place_field_requested(farmhouse_id: String, crop_type: String) -> void:
 
 
 func _on_farmhouse_ui_closed() -> void:
-	"""Handle farmhouse UI close"""
-	# Nothing special to do here
-	pass
+	"""Handle farmhouse UI close — clear the working-area overlay."""
+	_clear_farmhouse_overlays()
 
 
 # ========================================

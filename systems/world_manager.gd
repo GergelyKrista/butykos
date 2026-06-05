@@ -423,6 +423,127 @@ func get_farmhouse_children(farmhouse_id: String) -> Array:
 	return get_fields_for_farmhouse(farmhouse_id)
 
 
+func get_farmhouse_working_rect(farmhouse_id: String) -> Rect2i:
+	"""Tile rectangle (in grid space) covered by a farmhouse's working area.
+	Centered on the farmhouse footprint; size from facility data's `working_area: [w, h]`.
+	A farm field tile produces only if it lies inside SOME farmhouse's working rect
+	AND that field is either edge-adjacent to that farmhouse or road-connected to it.
+	See `find_servicing_farmhouse` for the full rule."""
+	var farmhouse: Dictionary = facilities.get(farmhouse_id, {})
+	if farmhouse.is_empty():
+		return Rect2i()
+	var def: Dictionary = DataManager.get_facility_data(farmhouse.type)
+	var working_area: Array = def.get("working_area", [10, 8])
+	var w: int = int(working_area[0])
+	var h: int = int(working_area[1])
+	var fh_size: Vector2i = farmhouse.size
+	var fh_pos: Vector2i = farmhouse.grid_pos
+	# Center on the farmhouse footprint, snapped to grid.
+	var center_x: float = fh_pos.x + fh_size.x / 2.0
+	var center_y: float = fh_pos.y + fh_size.y / 2.0
+	var origin_x: int = int(round(center_x - w / 2.0))
+	var origin_y: int = int(round(center_y - h / 2.0))
+	return Rect2i(origin_x, origin_y, w, h)
+
+
+func get_all_farmhouse_ids() -> Array[String]:
+	"""Return every facility id that is a farmhouse, for overlay drawing
+	and field-servicing lookups."""
+	var result: Array[String] = []
+	for fid in facilities:
+		var f: Dictionary = facilities[fid]
+		if f.get("type", "") == "farmhouse":
+			result.append(fid)
+	return result
+
+
+func _is_field_edge_adjacent_to_facility(field_id: String, facility_id: String) -> bool:
+	"""True if any tile of the field is 4-direction-adjacent to any tile of the facility.
+	Field is typically 1x1 today (farm_field); generalized just in case."""
+	var field: Dictionary = facilities.get(field_id, {})
+	var facility: Dictionary = facilities.get(facility_id, {})
+	if field.is_empty() or facility.is_empty():
+		return false
+	# Build set of facility tile coords for quick lookup.
+	var facility_tiles: Dictionary = {}
+	for x in range(facility.size.x):
+		for y in range(facility.size.y):
+			facility_tiles[Vector2i(facility.grid_pos.x + x, facility.grid_pos.y + y)] = true
+	# For each field tile, check 4-neighbors.
+	for fx in range(field.size.x):
+		for fy in range(field.size.y):
+			var pos := Vector2i(field.grid_pos.x + fx, field.grid_pos.y + fy)
+			for neighbor in get_adjacent_positions(pos):
+				if facility_tiles.has(neighbor):
+					return true
+	return false
+
+
+func find_servicing_farmhouse(field_id: String) -> String:
+	"""Return the farmhouse id that services this field, or "" if none does.
+	Rule: the farmhouse F services this field iff
+	    (field is inside F's working rect)
+	  AND (field is edge-adjacent to F  OR  there is a road path from field to F).
+	When multiple farmhouses qualify, the closest farmhouse by center distance wins.
+	Production is gated on this — `ProductionManager` should skip cycles for fields
+	that return ""."""
+	var field: Dictionary = facilities.get(field_id, {})
+	if field.is_empty():
+		return ""
+	var field_center := Vector2(
+		field.grid_pos.x + field.size.x / 2.0,
+		field.grid_pos.y + field.size.y / 2.0,
+	)
+	var best_id: String = ""
+	var best_dist: float = INF
+	for fh_id in get_all_farmhouse_ids():
+		var rect: Rect2i = get_farmhouse_working_rect(fh_id)
+		# Field must intersect (any tile inside) the working rect.
+		var inside: bool = false
+		for fx in range(field.size.x):
+			for fy in range(field.size.y):
+				if rect.has_point(Vector2i(field.grid_pos.x + fx, field.grid_pos.y + fy)):
+					inside = true
+					break
+			if inside:
+				break
+		if not inside:
+			continue
+		# Connectivity: touching the farmhouse, OR there is a road path.
+		var connected: bool = _is_field_edge_adjacent_to_facility(field_id, fh_id)
+		if not connected:
+			var path: Array[Vector2i] = find_road_path(field_id, fh_id)
+			connected = not path.is_empty()
+		if not connected:
+			continue
+		# Tiebreak: closest farmhouse center.
+		var fh: Dictionary = facilities[fh_id]
+		var fh_center := Vector2(
+			fh.grid_pos.x + fh.size.x / 2.0,
+			fh.grid_pos.y + fh.size.y / 2.0,
+		)
+		var dist: float = field_center.distance_to(fh_center)
+		if dist < best_dist:
+			best_dist = dist
+			best_id = fh_id
+	return best_id
+
+
+func can_place_farm_field(grid_pos: Vector2i) -> bool:
+	"""Placement check for the generic `farm_field` entity. Fields may be placed
+	ANYWHERE on the map — no farmhouse required at placement time. Production
+	gating (see `find_servicing_farmhouse`) decides whether a placed field
+	actually produces. Returns false if the tile is off-grid, on a road, or
+	already occupied by another facility."""
+	if not is_valid_grid_position(grid_pos):
+		return false
+	if has_road_at(grid_pos):
+		return false
+	if not get_facility_at_position(grid_pos).is_empty():
+		return false
+	return true
+
+
 func can_place_field_for_farmhouse(grid_pos: Vector2i, field_size: Vector2i, farmhouse_id: String) -> bool:
 	"""Check if a field can be placed adjacent to a farmhouse or its fields"""
 	var farmhouse = facilities.get(farmhouse_id, {})
