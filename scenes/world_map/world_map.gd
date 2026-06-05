@@ -657,6 +657,8 @@ func _update_farm_field_visual(field_id: String) -> void:
 			label_text = "?"
 	(node as CanvasItem).modulate = tint
 	# Crop label as an Area2D-child Label. Created lazily on first call.
+	# Position scales with field size so the label sits above the multi-tile
+	# diamond rather than getting buried inside a large field.
 	var label: Label = node.get_node_or_null("CropLabel") as Label
 	if label == null:
 		label = Label.new()
@@ -665,12 +667,15 @@ func _update_farm_field_visual(field_id: String) -> void:
 		label.add_theme_color_override("font_color", Color.WHITE)
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
 		label.add_theme_constant_override("outline_size", 3)
-		# Crude centering offset — the iso tile center is at (0, 0) on the
-		# Area2D, so we nudge the label up and a bit left so the text sits
-		# above the diamond.
-		label.position = Vector2(-8, -22)
-		label.z_index = 100  # above the diamond polygon
+		label.z_index = 100  # above the diamond polygons
 		node.add_child(label)
+	# Recompute position from the field's current size — the entity may have
+	# been placed as a multi-tile rectangle, so the iso diamond's top vertex
+	# is `(size.x + size.y) * TILE_HEIGHT / 4` above the footprint center.
+	var facility: Dictionary = WorldManager.get_facility(field_id)
+	var size: Vector2i = facility.get("size", Vector2i(1, 1))
+	var top_y: float = -float(size.x + size.y) * WorldManager.TILE_HEIGHT / 4.0
+	label.position = Vector2(-8.0, top_y - 12.0)
 	label.text = label_text
 
 
@@ -698,14 +703,34 @@ func _update_drag_previews() -> void:
 	var cost = facility_def.get("cost", 0)
 	var color = Color(facility_def.get("visual", {}).get("color", "#ffffff"))
 
+	# farm_field is placed as ONE multi-tile entity equal to the largest clear
+	# sub-rectangle of the drag (option B). Pre-compute it so the preview can
+	# distinguish "will be placed" tiles from "will be excluded" tiles, instead
+	# of just per-tile validity.
+	var farm_field_clear_rect := Rect2i()
+	var farm_field_can_afford: bool = false
+	if placement_facility_id == "farm_field":
+		var outer := Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+		farm_field_clear_rect = WorldManager.find_largest_clear_rect_in(outer)
+		var total_cost: int = cost * farm_field_clear_rect.size.x * farm_field_clear_rect.size.y
+		farm_field_can_afford = EconomyManager.can_spend_money(GameManager.active_corp_id, total_cost).ok
+
 	# Create preview for each position in rectangle
 	for grid_x in range(min_x, max_x + 1):
 		for grid_y in range(min_y, max_y + 1):
 			var grid_pos = Vector2i(grid_x, grid_y)
 
 			# Check if can place
-			var can_place = WorldManager.can_place_facility(grid_pos, size)
-			var can_afford = EconomyManager.can_afford(cost)
+			var can_place: bool
+			var can_afford: bool
+			if placement_facility_id == "farm_field":
+				# farm_field-specific: highlight only the clear sub-rect; other
+				# in-drag tiles are excluded (shown red).
+				can_place = farm_field_clear_rect.has_point(grid_pos)
+				can_afford = farm_field_can_afford
+			else:
+				can_place = WorldManager.can_place_facility(grid_pos, size)
+				can_afford = EconomyManager.can_afford(cost)
 
 			# Create preview node
 			var preview = Node2D.new()
@@ -756,8 +781,16 @@ func _clear_drag_previews() -> void:
 
 
 func _complete_drag_placement() -> void:
-	"""Place all facilities in the drag area"""
+	"""Place facilities in the drag area.
+	farm_field has its own placement semantics: one drag = ONE multi-tile
+	field, shrunk to the largest clear sub-rectangle (per artist 2026-06-05).
+	All other agriculture facilities keep per-tile drag placement."""
 	if not drag_mode:
+		return
+
+	if placement_facility_id == "farm_field":
+		_complete_farm_field_drag()
+		_clear_drag_previews()
 		return
 
 	# Calculate drag rectangle
@@ -804,6 +837,51 @@ func _complete_drag_placement() -> void:
 
 	# Clear previews
 	_clear_drag_previews()
+
+
+func _complete_farm_field_drag() -> void:
+	"""Drag-place ONE multi-tile farm_field. Shrinks the drag rectangle to the
+	largest fully-clear sub-rectangle (option B per artist 2026-06-05). Cost
+	scales with tile count: $50 per tile (data/facilities.json `cost`). One
+	right-click on the result sets the crop for the whole field."""
+	var min_x: int = mini(drag_start_grid_pos.x, mouse_grid_pos.x)
+	var max_x: int = maxi(drag_start_grid_pos.x, mouse_grid_pos.x)
+	var min_y: int = mini(drag_start_grid_pos.y, mouse_grid_pos.y)
+	var max_y: int = maxi(drag_start_grid_pos.y, mouse_grid_pos.y)
+	var outer := Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+	var rect: Rect2i = WorldManager.find_largest_clear_rect_in(outer)
+	if rect.size.x <= 0 or rect.size.y <= 0:
+		print("Farm field placement: no clear sub-rectangle in the drag area")
+		return
+
+	var facility_def: Dictionary = DataManager.get_facility_data("farm_field")
+	var per_tile_cost: int = int(facility_def.get("cost", 50))
+	var total_tiles: int = rect.size.x * rect.size.y
+	var total_cost: int = per_tile_cost * total_tiles
+
+	if not EconomyManager.can_spend_money(GameManager.active_corp_id, total_cost).ok:
+		print("Farm field placement: insufficient funds (need $%d for %d tiles)" % [total_cost, total_tiles])
+		return
+
+	# Charge once for the whole field.
+	if not EconomyManager.spend_money(GameManager.active_corp_id, total_cost, "Built %dx%d Farm Field" % [rect.size.x, rect.size.y]):
+		return
+
+	var facility_id: String = WorldManager.place_facility(
+		"farm_field",
+		rect.position,
+		{"size": rect.size},
+		GameManager.active_corp_id,
+	)
+	if facility_id.is_empty():
+		# Unwind the charge if WorldManager refuses (shouldn't happen — we already
+		# verified the rect is clear — but covers any race).
+		EconomyManager.earn_money(GameManager.active_corp_id, total_cost, "Refund: failed farm_field place")
+		return
+	WorldManager.complete_construction(facility_id)
+	print("Placed farm_field %s as %dx%d (%d tiles, $%d). Right-click to choose a crop." % [
+		facility_id, rect.size.x, rect.size.y, total_tiles, total_cost
+	])
 
 
 # ========================================

@@ -10,8 +10,8 @@
 			3
 		],
 		"working_area": [
-			10,
-			8
+			5,
+			5
 		],
 		"cost": 1500,
 		"construction_time": 5.0,
@@ -141,7 +141,7 @@
 	"farm_field": {
 		"id": "farm_field",
 		"name": "Farm Field",
-		"description": "Generic crop field. Right-click after placement to choose what to grow. Produces only when inside a farmhouse's working area AND either touching that farmhouse or connected to it via Farm Road. Output goes to the servicing farmhouse's inventory.",
+		"description": "Generic crop field. Click-drag to draw a rectangle — placed as ONE multi-tile field. Right-click to choose what to grow (Barley/Hops). Only tiles inside a farmhouse's working area produce; out-of-area tiles sit idle. Output goes to the servicing farmhouse's inventory.",
 		"category": "agriculture",
 		"corp_id": "agri",
 		"size": [

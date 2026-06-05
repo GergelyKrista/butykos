@@ -527,13 +527,16 @@ func _complete_farm_field_cycle(facility_id: String, facility: Dictionary, _faci
 			print("Farm field %s idle: no crop assigned (right-click the field to choose)" % facility_id)
 		production_timers[facility_id] = 5.0
 		return
-	var farmhouse_id: String = WorldManager.find_servicing_farmhouse(facility_id)
-	if farmhouse_id.is_empty():
-		# Field is placed but not connected/in-range — idle until the player
-		# fixes the topology (build a road, place a farmhouse, etc.).
+	# Per artist 2026-06-05: tile is productive iff inside SOME farmhouse's working
+	# rect. Output scales with the tile count: a 9-tile field with 6 tiles inside
+	# the farmhouse rect produces 6/9 of full yield.
+	var service: Dictionary = WorldManager.find_servicing_farmhouse_with_tile_count(facility_id)
+	var farmhouse_id: String = String(service.get("farmhouse_id", ""))
+	var tile_count: int = int(service.get("tile_count", 0))
+	if farmhouse_id.is_empty() or tile_count == 0:
 		if _field_idle_reason.get(facility_id, "") != "no_farmhouse":
 			_field_idle_reason[facility_id] = "no_farmhouse"
-			print("Farm field %s idle: no servicing farmhouse (must be inside a farmhouse's working area AND touching it OR connected by road)" % facility_id)
+			print("Farm field %s idle: no tile inside any farmhouse's working area" % facility_id)
 		production_timers[facility_id] = 5.0
 		return
 	var crop_cfg: Dictionary = FARM_FIELD_CROP_PRODUCTION.get(crop, {})
@@ -542,20 +545,25 @@ func _complete_farm_field_cycle(facility_id: String, facility: Dictionary, _faci
 		production_timers[facility_id] = 5.0
 		return
 	var output_product: String = String(crop_cfg.get("output", ""))
-	var base_quantity: int = int(crop_cfg.get("quantity", 0))
+	var base_per_tile: int = int(crop_cfg.get("quantity", 0))
 	var base_cycle: float = float(crop_cfg.get("cycle_time", 5.0))
 	# Research bonuses are keyed by output product (existing barley/hops bonuses
 	# still apply to farm_field outputs).
 	var yield_mult: float = _get_yield_multiplier(output_product)
 	var cycle_mult: float = _get_cycle_time_multiplier(output_product)
-	var output_quantity: int = int(base_quantity * yield_mult)
+	var output_quantity: int = int(base_per_tile * tile_count * yield_mult)
 	var cycle_time: float = base_cycle * cycle_mult
 	_add_to_inventory(farmhouse_id, output_product, output_quantity)
 	_track_production(facility_id, output_product, output_quantity)
 	production_timers[facility_id] = cycle_time
 	# Successful production clears any prior idle-reason record for this field.
 	_field_idle_reason.erase(facility_id)
-	print("Farm field %s produced %d %s -> farmhouse %s" % [facility_id, output_quantity, output_product, farmhouse_id])
+	# Total tiles vs productive tiles helps the player tune placement.
+	var facility_size: Vector2i = facility.get("size", Vector2i(1, 1))
+	var total_tiles: int = facility_size.x * facility_size.y
+	print("Farm field %s produced %d %s -> farmhouse %s (%d/%d productive tiles)" % [
+		facility_id, output_quantity, output_product, farmhouse_id, tile_count, total_tiles
+	])
 
 
 func register_field_with_farmhouse(field_id: String, farmhouse_id: String) -> void:

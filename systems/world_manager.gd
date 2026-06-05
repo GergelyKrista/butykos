@@ -481,52 +481,105 @@ func _is_field_edge_adjacent_to_facility(field_id: String, facility_id: String) 
 
 func find_servicing_farmhouse(field_id: String) -> String:
 	"""Return the farmhouse id that services this field, or "" if none does.
-	Rule: the farmhouse F services this field iff
-	    (field is inside F's working rect)
-	  AND (field is edge-adjacent to F  OR  there is a road path from field to F).
-	When multiple farmhouses qualify, the closest farmhouse by center distance wins.
-	Production is gated on this — `ProductionManager` should skip cycles for fields
-	that return ""."""
+	Convenience wrapper around find_servicing_farmhouse_with_tile_count;
+	preserved for any callers that don't care about the productive tile count."""
+	return find_servicing_farmhouse_with_tile_count(field_id).get("farmhouse_id", "")
+
+
+func find_servicing_farmhouse_with_tile_count(field_id: String) -> Dictionary:
+	"""Return { farmhouse_id: String, tile_count: int } for the farmhouse that
+	services this field.
+	Rule (per artist 2026-06-05): a tile of the field is productive iff it sits
+	inside SOME farmhouse's working rect. The farmhouse with the most field
+	tiles inside its rect wins; ties broken by closest farmhouse center.
+	`tile_count` is the count of THIS field's tiles inside the chosen farmhouse's
+	rect — this is the productive-tile multiplier ProductionManager uses.
+	If no farmhouse covers any tile, returns { "", 0 }."""
 	var field: Dictionary = facilities.get(field_id, {})
 	if field.is_empty():
-		return ""
+		return {"farmhouse_id": "", "tile_count": 0}
 	var field_center := Vector2(
 		field.grid_pos.x + field.size.x / 2.0,
 		field.grid_pos.y + field.size.y / 2.0,
 	)
 	var best_id: String = ""
+	var best_count: int = 0
 	var best_dist: float = INF
 	for fh_id in get_all_farmhouse_ids():
 		var rect: Rect2i = get_farmhouse_working_rect(fh_id)
-		# Field must intersect (any tile inside) the working rect.
-		var inside: bool = false
+		# Count how many of this field's tiles fall inside this farmhouse's rect.
+		var count: int = 0
 		for fx in range(field.size.x):
 			for fy in range(field.size.y):
 				if rect.has_point(Vector2i(field.grid_pos.x + fx, field.grid_pos.y + fy)):
-					inside = true
-					break
-			if inside:
-				break
-		if not inside:
+					count += 1
+		if count == 0:
 			continue
-		# Connectivity: touching the farmhouse, OR there is a road path.
-		var connected: bool = _is_field_edge_adjacent_to_facility(field_id, fh_id)
-		if not connected:
-			var path: Array[Vector2i] = find_road_path(field_id, fh_id)
-			connected = not path.is_empty()
-		if not connected:
-			continue
-		# Tiebreak: closest farmhouse center.
 		var fh: Dictionary = facilities[fh_id]
 		var fh_center := Vector2(
 			fh.grid_pos.x + fh.size.x / 2.0,
 			fh.grid_pos.y + fh.size.y / 2.0,
 		)
 		var dist: float = field_center.distance_to(fh_center)
-		if dist < best_dist:
+		# Prefer farmhouse with more productive tiles; tie-break by closer center.
+		if count > best_count or (count == best_count and dist < best_dist):
+			best_count = count
 			best_dist = dist
 			best_id = fh_id
-	return best_id
+	return {"farmhouse_id": best_id, "tile_count": best_count}
+
+
+func find_largest_clear_rect_in(outer: Rect2i) -> Rect2i:
+	"""Largest axis-aligned sub-rectangle of `outer` whose every tile is
+	placeable (in-bounds, no facility, no road). Used to shrink a drag
+	rectangle that overlaps obstacles down to the biggest clear region
+	per the artist's "option B" overlap rule (2026-06-05).
+
+	Implementation: classic largest-rectangle-in-histogram. For each row
+	we build a histogram of consecutive clear cells in each column ending
+	at this row, then run the O(w) stack-based max-area-in-histogram per
+	row. Worst-case complexity O(w * h); for a 50x50 grid the upper bound
+	is ~2500 ops per call — trivial.
+
+	Returns an empty Rect2i (size 0) if no tile in `outer` is placeable."""
+	var w: int = outer.size.x
+	var h: int = outer.size.y
+	if w <= 0 or h <= 0:
+		return Rect2i()
+	var heights: Array[int] = []
+	for x in range(w):
+		heights.append(0)
+	var best_area: int = 0
+	var best_rect := Rect2i()
+	for y in range(h):
+		# Update column heights for this row.
+		for x in range(w):
+			var gp := Vector2i(outer.position.x + x, outer.position.y + y)
+			if can_place_farm_field(gp):
+				heights[x] += 1
+			else:
+				heights[x] = 0
+		# Largest rectangle in this row's histogram (stack-based).
+		var stack: Array[int] = []
+		for x in range(w + 1):
+			var cur_h: int = 0 if x == w else heights[x]
+			while not stack.is_empty() and heights[stack[stack.size() - 1]] > cur_h:
+				var top_idx: int = stack[stack.size() - 1]
+				stack.pop_back()
+				var top_h: int = heights[top_idx]
+				var left: int = -1 if stack.is_empty() else stack[stack.size() - 1]
+				var width: int = x - left - 1
+				var area: int = top_h * width
+				if area > best_area:
+					best_area = area
+					best_rect = Rect2i(
+						outer.position.x + left + 1,
+						outer.position.y + y - top_h + 1,
+						width,
+						top_h,
+					)
+			stack.append(x)
+	return best_rect
 
 
 func can_place_farm_field(grid_pos: Vector2i) -> bool:
