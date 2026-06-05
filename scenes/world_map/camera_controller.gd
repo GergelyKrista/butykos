@@ -228,6 +228,12 @@ func _is_mouse_over_ui() -> bool:
 	if tooltip and tooltip.visible and _is_point_in_control(mouse_pos, tooltip):
 		return true
 
+	# Check Logistics Network panel (programmatically added — sibling of HUD
+	# under UI rather than a child of HUD, hence the separate lookup).
+	var logistics_panel = ui.get_node_or_null("LogisticsNetworkPanel")
+	if logistics_panel and logistics_panel.visible and _is_point_in_control(mouse_pos, logistics_panel):
+		return true
+
 	return false
 
 
