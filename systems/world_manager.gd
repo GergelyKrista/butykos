@@ -425,25 +425,25 @@ func get_farmhouse_children(farmhouse_id: String) -> Array:
 
 func get_farmhouse_working_rect(farmhouse_id: String) -> Rect2i:
 	"""Tile rectangle (in grid space) covered by a farmhouse's working area.
-	Centered on the farmhouse footprint; size from facility data's `working_area: [w, h]`.
-	A farm field tile produces only if it lies inside SOME farmhouse's working rect
-	AND that field is either edge-adjacent to that farmhouse or road-connected to it.
-	See `find_servicing_farmhouse` for the full rule."""
+	Computed from facility data's `working_radius` field: the catchment
+	extends `radius` tiles beyond the footprint in every direction. For a
+	3x3 farmhouse with radius 5, the rect is (3 + 5 + 5) = 13x13.
+	A farm_field tile produces only if it sits inside SOME farmhouse's rect
+	(per the artist's 2026-06-05 design call). See
+	`find_servicing_farmhouse_with_tile_count` for the per-tile rule."""
 	var farmhouse: Dictionary = facilities.get(farmhouse_id, {})
 	if farmhouse.is_empty():
 		return Rect2i()
 	var def: Dictionary = DataManager.get_facility_data(farmhouse.type)
-	var working_area: Array = def.get("working_area", [10, 8])
-	var w: int = int(working_area[0])
-	var h: int = int(working_area[1])
+	var radius: int = int(def.get("working_radius", 5))
 	var fh_size: Vector2i = farmhouse.size
 	var fh_pos: Vector2i = farmhouse.grid_pos
-	# Center on the farmhouse footprint, snapped to grid.
-	var center_x: float = fh_pos.x + fh_size.x / 2.0
-	var center_y: float = fh_pos.y + fh_size.y / 2.0
-	var origin_x: int = int(round(center_x - w / 2.0))
-	var origin_y: int = int(round(center_y - h / 2.0))
-	return Rect2i(origin_x, origin_y, w, h)
+	return Rect2i(
+		fh_pos.x - radius,
+		fh_pos.y - radius,
+		fh_size.x + radius * 2,
+		fh_size.y + radius * 2,
+	)
 
 
 func get_all_farmhouse_ids() -> Array[String]:

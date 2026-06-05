@@ -9,10 +9,7 @@
 			3,
 			3
 		],
-		"working_area": [
-			5,
-			5
-		],
+		"working_radius": 5,
 		"cost": 1500,
 		"construction_time": 5.0,
 		"maintenance_cost": 25,
