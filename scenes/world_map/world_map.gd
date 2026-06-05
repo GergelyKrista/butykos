@@ -811,7 +811,11 @@ func _complete_drag_placement() -> void:
 # ========================================
 
 func _load_existing_facilities() -> void:
-	"""Load and visualize all existing facilities from WorldManager"""
+	"""Load and visualize all existing facilities from WorldManager.
+	Runs on scene reload (e.g. returning from brewery interior). Mirrors the
+	visual hooks in `_on_facility_placed` so per-facility tints/labels survive
+	the scene transition — without this, farm_field crop indicators would
+	disappear every time the player popped back to the world map."""
 	var facilities = WorldManager.get_all_facilities()
 
 	print("Loading %d existing facilities" % facilities.size())
@@ -819,6 +823,8 @@ func _load_existing_facilities() -> void:
 	for facility in facilities:
 		var facility_node = _create_facility_node(facility)
 		facilities_container.add_child(facility_node)
+		if facility.type == "farm_field":
+			_update_farm_field_visual(facility.id)
 
 
 func _on_facility_placed(facility: Dictionary) -> void:
