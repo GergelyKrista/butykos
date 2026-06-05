@@ -1,14 +1,25 @@
 extends PanelContainer
 
-## FarmhouseUI - Panel for managing farmhouse fields and crop selection
+## FarmhouseUI - Info panel for a farmhouse.
 ##
-## Displays crop type selector, field placement button, field count, and inventory.
+## Slice-1+ design (2026-06-05): the farmhouse has no settings of its own.
+## Crops are assigned per-field via right-click on a placed farm_field
+## (see scenes/world_map/world_map.gd:_show_crop_selector_for_field). Field
+## placement is its own build-menu tool, not driven from this panel.
+##
+## This panel now just shows the farmhouse's name, field count, and inventory.
+## The legacy crop-selector + place-field-button nodes live in the .tscn but
+## are hidden — kept in the scene so old saves and the existing signal
+## connections don't break, and so re-enabling for testing is a one-liner.
 
 # ========================================
 # SIGNALS
 # ========================================
 
+# Legacy — emitted by the now-hidden Place Field button. Kept for the
+# connection in world_map.gd but never fires under the new design.
 signal place_field_requested(farmhouse_id: String, crop_type: String)
+# Legacy — same as above for the now-hidden crop dropdown.
 signal crop_type_changed(farmhouse_id: String, crop_type: String)
 signal close_requested()
 
@@ -28,7 +39,6 @@ signal close_requested()
 # ========================================
 
 var current_farmhouse_id: String = ""
-var supported_crops: Array = []
 
 # ========================================
 # INITIALIZATION
@@ -36,8 +46,12 @@ var supported_crops: Array = []
 
 func _ready() -> void:
 	close_button.pressed.connect(_on_close_pressed)
-	place_field_button.pressed.connect(_on_place_field_pressed)
-	crop_selector.item_selected.connect(_on_crop_selected)
+
+	# Hide the legacy crop-selector + place-field row entirely. The whole
+	# CropSection container is hidden so its child labels/spacing collapse.
+	var crop_section: Node = get_node_or_null("MarginContainer/VBoxContainer/CropSection")
+	if crop_section and crop_section is CanvasItem:
+		(crop_section as CanvasItem).visible = false
 
 	# Set solid background
 	var style = StyleBoxFlat.new()
@@ -55,33 +69,20 @@ func _ready() -> void:
 # ========================================
 
 func show_for_farmhouse(farmhouse_id: String) -> void:
-	"""Show the UI for a specific farmhouse"""
+	"""Show the read-only info panel for a specific farmhouse."""
 	current_farmhouse_id = farmhouse_id
 
-	# Get farmhouse data
 	var facility = WorldManager.get_facility(farmhouse_id)
 	if facility.is_empty():
 		push_error("FarmhouseUI: Invalid farmhouse ID")
 		return
 
 	var facility_def = DataManager.get_facility_data(facility.type)
-
-	# Update title
 	title_label.text = facility_def.get("name", "Farmhouse")
 
-	# Get supported crops
-	supported_crops = facility_def.get("supported_crops", ["barley", "wheat"])
-
-	# Populate crop selector
-	_populate_crop_selector()
-
-	# Update stats
 	_update_stats()
-
-	# Show panel
 	visible = true
 
-	# Emit signal
 	EventBus.farmhouse_ui_opened.emit(farmhouse_id)
 
 
@@ -104,39 +105,29 @@ func refresh() -> void:
 # PRIVATE METHODS
 # ========================================
 
-func _populate_crop_selector() -> void:
-	"""Populate the crop type dropdown"""
-	crop_selector.clear()
-
-	for crop in supported_crops:
-		var crop_name = crop.capitalize()
-		crop_selector.add_item(crop_name)
-
-	# Select current crop type for this farmhouse
-	var current_crop = ProductionManager.get_farmhouse_crop_type(current_farmhouse_id)
-	if current_crop.is_empty() and supported_crops.size() > 0:
-		current_crop = supported_crops[0]
-		ProductionManager.set_farmhouse_crop_type(current_farmhouse_id, current_crop)
-
-	# Find and select the current crop
-	for i in range(supported_crops.size()):
-		if supported_crops[i] == current_crop:
-			crop_selector.select(i)
-			break
-
-
 func _update_stats() -> void:
-	"""Update field count and inventory display"""
-	# Get field count
-	var children = WorldManager.get_farmhouse_children(current_farmhouse_id)
-	field_count_label.text = "Fields: %d" % children.size()
+	"""Update field count and inventory display.
+	Field count counts both legacy registered fields and any farm_field that
+	currently lists this farmhouse as its servicing farmhouse — that way the
+	panel reflects the new field-discovery model."""
+	# Legacy registered children (barley_field/wheat_field placed via the
+	# old farmhouse-driven flow).
+	var legacy_children: Array = WorldManager.get_farmhouse_children(current_farmhouse_id)
+	var serviced_count: int = 0
+	for facility in WorldManager.get_all_facilities():
+		var def: Dictionary = DataManager.get_facility_data(facility.type)
+		if not def.get("is_farm_field", false):
+			continue
+		if WorldManager.find_servicing_farmhouse(facility.id) == current_farmhouse_id:
+			serviced_count += 1
+	field_count_label.text = "Fields: %d" % (legacy_children.size() + serviced_count)
 
-	# Get inventory
-	var inventory = ProductionManager.get_inventory(current_farmhouse_id)
+	# Inventory
+	var inventory: Dictionary = ProductionManager.get_inventory(current_farmhouse_id)
 	if inventory.is_empty():
 		inventory_label.text = "(empty)"
 	else:
-		var inv_text = ""
+		var inv_text: String = ""
 		for product in inventory:
 			var amount = inventory[product]
 			inv_text += "%s: %d\n" % [product.capitalize(), amount]
@@ -151,20 +142,3 @@ func _on_close_pressed() -> void:
 	"""Handle close button"""
 	hide_ui()
 	close_requested.emit()
-
-
-func _on_place_field_pressed() -> void:
-	"""Handle place field button"""
-	var selected_index = crop_selector.selected
-	if selected_index >= 0 and selected_index < supported_crops.size():
-		var crop_type = supported_crops[selected_index]
-		place_field_requested.emit(current_farmhouse_id, crop_type)
-
-
-func _on_crop_selected(index: int) -> void:
-	"""Handle crop type selection change"""
-	if index >= 0 and index < supported_crops.size():
-		var crop_type = supported_crops[index]
-		ProductionManager.set_farmhouse_crop_type(current_farmhouse_id, crop_type)
-		crop_type_changed.emit(current_farmhouse_id, crop_type)
-		EventBus.farmhouse_crop_changed.emit(current_farmhouse_id, crop_type)

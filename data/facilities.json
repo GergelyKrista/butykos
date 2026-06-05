@@ -2,12 +2,16 @@
 	"farmhouse": {
 		"id": "farmhouse",
 		"name": "Farmhouse",
-		"description": "Central hub for managing crop fields. Place fields via the farmhouse UI.",
+		"description": "Central hub for crops. Pickup point for logistics. Farm fields produce only when inside this farmhouse's working area AND either touching the farmhouse or connected via Farm Road.",
 		"category": "agriculture",
 		"corp_id": "agri",
 		"size": [
 			3,
 			3
+		],
+		"working_area": [
+			10,
+			8
 		],
 		"cost": 1500,
 		"construction_time": 5.0,
@@ -16,11 +20,6 @@
 		"production": {},
 		"storage_capacity": 200,
 		"has_farmhouse_ui": true,
-		"max_field_distance": 10,
-		"supported_crops": [
-			"barley",
-			"wheat"
-		],
 		"visual": {
 			"color": "#8b4513",
 			"icon": ""
@@ -138,6 +137,27 @@
 		},
 		"hidden_from_build_menu": true,
 		"is_field": true
+	},
+	"farm_field": {
+		"id": "farm_field",
+		"name": "Farm Field",
+		"description": "Generic crop field. Right-click after placement to choose what to grow. Produces only when inside a farmhouse's working area AND either touching that farmhouse or connected to it via Farm Road. Output goes to the servicing farmhouse's inventory.",
+		"category": "agriculture",
+		"corp_id": "agri",
+		"size": [
+			1,
+			1
+		],
+		"cost": 50,
+		"construction_time": 1.0,
+		"maintenance_cost": 2,
+		"unlock_requirements": {},
+		"is_field": true,
+		"is_farm_field": true,
+		"visual": {
+			"color": "#a8c060",
+			"icon": ""
+		}
 	},
 	"distillery": {
 		"id": "distillery",
