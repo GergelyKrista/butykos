@@ -89,6 +89,11 @@ func _ready() -> void:
 	EventBus.facility_removed.connect(_on_facility_removed)
 	EventBus.facility_selected.connect(_on_facility_selected)
 
+	# Hot-seat ergonomics: changing the active corp resets any in-progress tool
+	# (build / road / demolish / route / field) so the previous player's pending
+	# action does not leak into the new player's turn.
+	EventBus.active_corp_changed.connect(_on_active_corp_changed_reset_modes)
+
 	# Initialize UI
 	_update_money_display()
 	EventBus.money_changed.connect(_on_money_changed)
@@ -463,6 +468,23 @@ func _cancel_placement() -> void:
 	drag_mode = false
 
 	print("Placement mode cancelled")
+
+
+func _on_active_corp_changed_reset_modes(_old_corp_id: String, _new_corp_id: String) -> void:
+	"""Cancel any in-progress tool when the active corp changes.
+	Guards each cancel by its mode flag so the no-op case stays quiet (the
+	individual cancel functions print, which would otherwise spam the console
+	on every corp switch)."""
+	if placement_mode:
+		_cancel_placement()
+	if route_mode:
+		_cancel_route_mode()
+	if demolish_mode:
+		_cancel_demolish_mode()
+	if road_mode:
+		_cancel_road_mode()
+	if field_mode:
+		_cancel_field_mode()
 
 
 func _update_drag_previews() -> void:
