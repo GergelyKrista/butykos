@@ -43,8 +43,13 @@ signal facility_constructed(facility_id: String)
 ## Emitted when a field is placed for a farmhouse
 signal field_placed_for_farmhouse(field_id: String, farmhouse_id: String)
 
-## Emitted when farmhouse crop type changes
+## Emitted when farmhouse crop type changes (LEGACY per-farmhouse crop model)
 signal farmhouse_crop_changed(farmhouse_id: String, crop_type: String)
+
+## Emitted when a generic farm_field's crop assignment changes via the
+## right-click crop selector. Empty crop_type means the field was cleared
+## back to idle.
+signal field_crop_changed(field_id: String, crop_type: String)
 
 ## Emitted when farmhouse UI is opened
 signal farmhouse_ui_opened(farmhouse_id: String)

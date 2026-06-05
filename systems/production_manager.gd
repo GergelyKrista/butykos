@@ -503,7 +503,7 @@ func set_field_crop_type(field_id: String, crop_type: String) -> void:
 		var cfg: Dictionary = FARM_FIELD_CROP_PRODUCTION.get(crop_type, {})
 		production_timers[field_id] = float(cfg.get("cycle_time", 5.0))
 	print("Field %s crop set to: %s" % [field_id, crop_type if not crop_type.is_empty() else "(none)"])
-	EventBus.farmhouse_crop_changed.emit(field_id, crop_type)
+	EventBus.field_crop_changed.emit(field_id, crop_type)
 
 
 func _complete_farm_field_cycle(facility_id: String, facility: Dictionary, _facility_def: Dictionary) -> void:
