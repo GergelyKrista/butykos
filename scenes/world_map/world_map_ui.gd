@@ -75,6 +75,11 @@ func _ready() -> void:
 	# the action pipe before per-corp build menus / gating land.
 	_create_corp_switcher()
 
+	# Per-corp build menu: rebuild from the top whenever the active corp changes,
+	# so the previously-selected category (which may now be empty) doesn't trap
+	# the player in an empty submenu.
+	EventBus.active_corp_changed.connect(_on_active_corp_changed_refresh_menu)
+
 
 func _process(_delta: float) -> void:
 	# Update maintenance display periodically
@@ -315,6 +320,9 @@ func _show_categories() -> void:
 		# Skip hidden facilities in counts
 		if facility_def.get("hidden_from_build_menu", false):
 			continue
+		# Per-corp filter: only count facilities the active corp owns.
+		if not _is_visible_to_active_corp(facility_def):
+			continue
 		var category = facility_def.get("category", "other")
 		category_counts[category] = category_counts.get(category, 0) + 1
 
@@ -323,11 +331,30 @@ func _show_categories() -> void:
 		var cat_name = CATEGORY_NAMES.get(category, category.capitalize())
 		var count = category_counts.get(category, 0)
 
-		# Tools category is special - always show
+		# Tools category is special - always show (Demolish is always relevant).
 		if category == "tools":
 			_add_category_button(category, cat_name, -1)  # -1 means don't show count
 		elif count > 0:
 			_add_category_button(category, cat_name, count)
+
+
+func _is_visible_to_active_corp(def: Dictionary) -> bool:
+	"""Per-corp build-menu filter.
+	`active_corp_id == single` is the dev/legacy default — shows everything.
+	Otherwise, an entity is visible to the active corp when its corp_id matches
+	or is `shared` (cross-corp infra). Facilities and roads use the same field."""
+	var active: String = GameManager.active_corp_id
+	if active == GameManager.CORP_SINGLE:
+		return true
+	var owner: String = def.get("corp_id", GameManager.CORP_SINGLE)
+	return owner == active or owner == GameManager.CORP_SHARED
+
+
+func _on_active_corp_changed_refresh_menu(_old_corp_id: String, _new_corp_id: String) -> void:
+	"""Rebuild the build menu from the category view when the active corp
+	changes. The previously-selected category may now be empty, so always
+	pop back to the top-level category view."""
+	_show_categories()
 
 
 func _add_category_button(category: String, display_name: String, count: int) -> void:
@@ -415,60 +442,76 @@ func _on_back_clicked() -> void:
 
 
 func _add_tool_buttons() -> void:
-	"""Add tool buttons (Logistics Network, Create Route, Demolish, Roads)"""
+	"""Add tool buttons (Logistics Network, Create Route, Demolish, Roads).
+	Per-corp gating:
+	  - Logistics Network and Create Route: logistics (+ single dev fallback)
+	  - Demolish: every corp (ownership is enforced in the predicate)
+	  - Roads: filtered per road's corp_id"""
+	var active: String = GameManager.active_corp_id
+	var is_logistics_or_dev: bool = active == GameManager.CORP_LOGISTICS or active == GameManager.CORP_SINGLE
+
 	# Logistics Network button (node-based connection UI)
-	var logistics_button = Button.new()
-	logistics_button.text = "Logistics\nNetwork"
-	logistics_button.custom_minimum_size = Vector2(100, 60)
-	logistics_button.pressed.connect(_on_logistics_network_button_clicked)
-	# Style with green color for connections
-	var logistics_style = StyleBoxFlat.new()
-	logistics_style.bg_color = Color(0.2, 0.4, 0.3)
-	logistics_style.border_width_bottom = 4
-	logistics_style.border_color = Color(0.3, 0.7, 0.4)
-	logistics_style.corner_radius_top_left = 4
-	logistics_style.corner_radius_top_right = 4
-	logistics_style.corner_radius_bottom_left = 4
-	logistics_style.corner_radius_bottom_right = 4
-	logistics_button.add_theme_stylebox_override("normal", logistics_style)
-	var logistics_hover_style = logistics_style.duplicate()
-	logistics_hover_style.bg_color = Color(0.25, 0.5, 0.35)
-	logistics_button.add_theme_stylebox_override("hover", logistics_hover_style)
-	build_menu.add_child(logistics_button)
+	if is_logistics_or_dev:
+		var logistics_button = Button.new()
+		logistics_button.text = "Logistics\nNetwork"
+		logistics_button.custom_minimum_size = Vector2(100, 60)
+		logistics_button.pressed.connect(_on_logistics_network_button_clicked)
+		# Style with green color for connections
+		var logistics_style = StyleBoxFlat.new()
+		logistics_style.bg_color = Color(0.2, 0.4, 0.3)
+		logistics_style.border_width_bottom = 4
+		logistics_style.border_color = Color(0.3, 0.7, 0.4)
+		logistics_style.corner_radius_top_left = 4
+		logistics_style.corner_radius_top_right = 4
+		logistics_style.corner_radius_bottom_left = 4
+		logistics_style.corner_radius_bottom_right = 4
+		logistics_button.add_theme_stylebox_override("normal", logistics_style)
+		var logistics_hover_style = logistics_style.duplicate()
+		logistics_hover_style.bg_color = Color(0.25, 0.5, 0.35)
+		logistics_button.add_theme_stylebox_override("hover", logistics_hover_style)
+		build_menu.add_child(logistics_button)
 
-	var route_button = Button.new()
-	route_button.text = "Create\nRoute"
-	route_button.custom_minimum_size = Vector2(100, 60)
-	route_button.pressed.connect(_on_create_route_button_clicked)
-	build_menu.add_child(route_button)
+		var route_button = Button.new()
+		route_button.text = "Create\nRoute"
+		route_button.custom_minimum_size = Vector2(100, 60)
+		route_button.pressed.connect(_on_create_route_button_clicked)
+		build_menu.add_child(route_button)
 
+	# Demolish is available to every corp — each corp only demolishes what
+	# it owns (ownership predicate already exists in WorldManager).
 	var demolish_button = Button.new()
 	demolish_button.text = "Demolish"
 	demolish_button.custom_minimum_size = Vector2(100, 60)
 	demolish_button.pressed.connect(_on_demolish_button_clicked)
 	build_menu.add_child(demolish_button)
 
-	# Road separator
-	var road_sep = VSeparator.new()
-	road_sep.custom_minimum_size = Vector2(2, 50)
-	build_menu.add_child(road_sep)
-
-	# Road label
-	var road_label = Label.new()
-	road_label.text = "Roads:"
-	road_label.add_theme_font_size_override("font_size", 12)
-	road_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	build_menu.add_child(road_label)
-
-	# Add road buttons
+	# Add road buttons filtered by corp ownership. Skip the "Roads:" header
+	# entirely if no roads are visible to the active corp.
+	var visible_roads: Array = []
 	var roads = DataManager.get_all_roads()
 	for road_id in roads:
 		var road_def = roads[road_id]
-		_create_road_button(road_id, road_def)
+		if not _is_visible_to_active_corp(road_def):
+			continue
+		visible_roads.append([road_id, road_def])
+
+	if visible_roads.size() > 0:
+		var road_sep = VSeparator.new()
+		road_sep.custom_minimum_size = Vector2(2, 50)
+		build_menu.add_child(road_sep)
+
+		var road_label = Label.new()
+		road_label.text = "Roads:"
+		road_label.add_theme_font_size_override("font_size", 12)
+		road_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		build_menu.add_child(road_label)
+
+		for road_pair in visible_roads:
+			_create_road_button(road_pair[0], road_pair[1])
 
 
 func _add_category_buildings(category: String) -> void:
-	"""Add all unlocked buildings in a category"""
+	"""Add all unlocked buildings in a category, filtered by active corp."""
 	var facilities = DataManager.get_all_facilities()
 
 	for facility_id in facilities:
@@ -482,6 +525,10 @@ func _add_category_buildings(category: String) -> void:
 
 		# Only show unlocked facilities
 		if not ResearchManager.is_facility_unlocked(facility_id):
+			continue
+
+		# Per-corp filter
+		if not _is_visible_to_active_corp(facility_def):
 			continue
 
 		_create_build_button(facility_id, facility_def)

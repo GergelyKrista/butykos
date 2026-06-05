@@ -3,6 +3,7 @@
 		"id": "dirt_road",
 		"name": "Dirt Road",
 		"description": "Basic road for vehicle transport. Allows goods to be moved between facilities.",
+		"corp_id": "logistics",
 		"cost": 25,
 		"speed_multiplier": 1.0,
 		"visual": {
@@ -13,6 +14,7 @@
 		"id": "cobblestone_road",
 		"name": "Cobblestone Road",
 		"description": "Improved road with faster transport speed.",
+		"corp_id": "logistics",
 		"cost": 75,
 		"speed_multiplier": 1.5,
 		"unlock_requirements": {
@@ -20,6 +22,17 @@
 		},
 		"visual": {
 			"color": "#696969"
+		}
+	},
+	"agri_road_dirt": {
+		"id": "agri_road_dirt",
+		"name": "Farm Road",
+		"description": "Agricultural-only dirt road for connecting fields and orchards to the farmhouse and main logistics network. Built by Agri corp; functionality will diverge from standard roads (e.g. lower vehicle speed, no through-traffic) — to be specified.",
+		"corp_id": "agri",
+		"cost": 15,
+		"speed_multiplier": 0.8,
+		"visual": {
+			"color": "#A0826D"
 		}
 	}
 }
