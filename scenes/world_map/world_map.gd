@@ -99,6 +99,9 @@ func _ready() -> void:
 	EventBus.facility_placed.connect(_on_facility_placed)
 	EventBus.facility_removed.connect(_on_facility_removed)
 	EventBus.facility_selected.connect(_on_facility_selected)
+	# Refresh farm_field tint/label when its crop assignment changes
+	# (from the right-click crop selector).
+	EventBus.field_crop_changed.connect(_on_field_crop_changed_visual)
 
 	# Hot-seat ergonomics: changing the active corp resets any in-progress tool
 	# (build / road / demolish / route / field) so the previous player's pending
@@ -628,6 +631,54 @@ func _on_crop_selector_item_picked(id: int) -> void:
 	crop_selector_target_field_id = ""
 
 
+# ========================================
+# FARM_FIELD VISUAL STATE (tint + label)
+# ========================================
+
+func _update_farm_field_visual(field_id: String) -> void:
+	"""Refresh a farm_field's tint + crop label so the player can tell at a
+	glance which crop (if any) it's growing. Called once on placement and
+	again whenever EventBus.field_crop_changed fires."""
+	var node: Node = facilities_container.get_node_or_null(field_id)
+	if node == null or not node is CanvasItem:
+		return
+	var crop: String = ProductionManager.field_crop_types.get(field_id, "")
+	var tint: Color
+	var label_text: String
+	match crop:
+		"barley":
+			tint = Color(1.3, 1.1, 0.5)  # golden
+			label_text = "B"
+		"hops":
+			tint = Color(0.6, 1.4, 0.6)  # vibrant green
+			label_text = "H"
+		_:
+			tint = Color(0.65, 0.65, 0.65)  # desaturated — no crop
+			label_text = "?"
+	(node as CanvasItem).modulate = tint
+	# Crop label as an Area2D-child Label. Created lazily on first call.
+	var label: Label = node.get_node_or_null("CropLabel") as Label
+	if label == null:
+		label = Label.new()
+		label.name = "CropLabel"
+		label.add_theme_font_size_override("font_size", 14)
+		label.add_theme_color_override("font_color", Color.WHITE)
+		label.add_theme_color_override("font_outline_color", Color.BLACK)
+		label.add_theme_constant_override("outline_size", 3)
+		# Crude centering offset — the iso tile center is at (0, 0) on the
+		# Area2D, so we nudge the label up and a bit left so the text sits
+		# above the diamond.
+		label.position = Vector2(-8, -22)
+		label.z_index = 100  # above the diamond polygon
+		node.add_child(label)
+	label.text = label_text
+
+
+func _on_field_crop_changed_visual(field_id: String, _crop_type: String) -> void:
+	"""React to a per-field crop assignment change by refreshing the visual."""
+	_update_farm_field_visual(field_id)
+
+
 func _update_drag_previews() -> void:
 	"""Update drag placement previews for field facilities"""
 	if not drag_mode:
@@ -774,6 +825,10 @@ func _on_facility_placed(facility: Dictionary) -> void:
 	"""Create visual representation of a placed facility"""
 	var facility_node = _create_facility_node(facility)
 	facilities_container.add_child(facility_node)
+	# Generic farm_field gets a crop-aware tint + label so the player can see
+	# at a glance which fields have a crop assigned and which still need one.
+	if facility.type == "farm_field":
+		_update_farm_field_visual(facility.id)
 
 
 func _create_facility_node(facility: Dictionary) -> Area2D:

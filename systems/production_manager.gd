@@ -80,6 +80,12 @@ var field_production_targets: Dictionary = {}
 # Replaces the per-farmhouse `farmhouse_crop_types` model for new fields.
 var field_crop_types: Dictionary = {}
 
+# Per-field idle-reason log throttle. Maps field_id → last reason logged
+# ("no_crop" / "no_farmhouse" / ""). Prevents the tick loop from spamming
+# the console with the same message every 5 seconds — a reason is logged
+# once when it changes, then suppressed until the state changes again.
+var _field_idle_reason: Dictionary = {}
+
 # Per-crop production config for the generic `farm_field` entity.
 # Each crop maps to { output, quantity, cycle_time }. Research yield/cycle
 # multipliers are looked up by the OUTPUT product so existing
@@ -502,6 +508,8 @@ func set_field_crop_type(field_id: String, crop_type: String) -> void:
 	if production_timers.has(field_id):
 		var cfg: Dictionary = FARM_FIELD_CROP_PRODUCTION.get(crop_type, {})
 		production_timers[field_id] = float(cfg.get("cycle_time", 5.0))
+	# Clear any prior idle-reason record so the next cycle re-evaluates fresh.
+	_field_idle_reason.erase(field_id)
 	print("Field %s crop set to: %s" % [field_id, crop_type if not crop_type.is_empty() else "(none)"])
 	EventBus.field_crop_changed.emit(field_id, crop_type)
 
@@ -509,15 +517,23 @@ func set_field_crop_type(field_id: String, crop_type: String) -> void:
 func _complete_farm_field_cycle(facility_id: String, facility: Dictionary, _facility_def: Dictionary) -> void:
 	"""Cycle handler for the generic farm_field. Idles (resets timer, no output)
 	if no crop is assigned, no farmhouse services the field, or the crop is
-	unknown. Otherwise, produces into the servicing farmhouse's inventory."""
+	unknown. Otherwise, produces into the servicing farmhouse's inventory.
+	Idle reasons are logged ONCE per field (throttled via `_field_idle_reason`)
+	so the tick loop doesn't spam the console with the same message."""
 	var crop: String = field_crop_types.get(facility_id, "")
 	if crop.is_empty():
+		if _field_idle_reason.get(facility_id, "") != "no_crop":
+			_field_idle_reason[facility_id] = "no_crop"
+			print("Farm field %s idle: no crop assigned (right-click the field to choose)" % facility_id)
 		production_timers[facility_id] = 5.0
 		return
 	var farmhouse_id: String = WorldManager.find_servicing_farmhouse(facility_id)
 	if farmhouse_id.is_empty():
 		# Field is placed but not connected/in-range — idle until the player
 		# fixes the topology (build a road, place a farmhouse, etc.).
+		if _field_idle_reason.get(facility_id, "") != "no_farmhouse":
+			_field_idle_reason[facility_id] = "no_farmhouse"
+			print("Farm field %s idle: no servicing farmhouse (must be inside a farmhouse's working area AND touching it OR connected by road)" % facility_id)
 		production_timers[facility_id] = 5.0
 		return
 	var crop_cfg: Dictionary = FARM_FIELD_CROP_PRODUCTION.get(crop, {})
@@ -537,6 +553,8 @@ func _complete_farm_field_cycle(facility_id: String, facility: Dictionary, _faci
 	_add_to_inventory(farmhouse_id, output_product, output_quantity)
 	_track_production(facility_id, output_product, output_quantity)
 	production_timers[facility_id] = cycle_time
+	# Successful production clears any prior idle-reason record for this field.
+	_field_idle_reason.erase(facility_id)
 	print("Farm field %s produced %d %s -> farmhouse %s" % [facility_id, output_quantity, output_product, farmhouse_id])
 
 
@@ -984,6 +1002,7 @@ func _on_facility_removed(facility_id: String) -> void:
 	production_outputs.erase(facility_id)
 	# Clean up per-field state for the generic farm_field.
 	field_crop_types.erase(facility_id)
+	_field_idle_reason.erase(facility_id)
 
 
 func _on_facility_constructed(facility_id: String) -> void:
