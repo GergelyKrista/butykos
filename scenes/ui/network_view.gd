@@ -309,41 +309,49 @@ func _draw_connections() -> void:
 		var start_pos: Vector2 = endpoints[0]
 		var end_pos: Vector2 = endpoints[1]
 
-		# Broken connections (source no longer produces the product) render
-		# as dashed gray so the Logistics player can spot routes that need
-		# troubleshooting. Hover override (red) still wins for "delete me".
+		# Connection state has three visual modes besides "normal":
+		#  - broken: source no longer produces the routed product. Dashed,
+		#    gray, no arrows. Player needs to troubleshoot.
+		#  - paused: player manually paused via routes panel (connection.active
+		#    is false). Dashed, dim product color, no arrows. The route is
+		#    still there, just not flowing.
+		#  - normal: solid colored line, arrows. Marching arrows when at
+		#    least one vehicle is dispatched on this route.
+		# Hover override (red) wins over all three so "delete me" stays clear.
 		var broken: bool = _is_connection_broken(connection)
+		var is_active: bool = bool(connection.get("active", true))
+		var is_paused: bool = is_active == false and not broken
+		var product_color: Color = _socket_color_for(product)
 		var color: Color
 		if hovered_connection == connection.id:
 			color = CONNECTION_HOVER_COLOR
 		elif broken:
 			color = Color(0.6, 0.6, 0.6, 0.7)
+		elif is_paused:
+			# Dim the product color so the route reads as "off" while
+			# still hinting at what it would carry.
+			color = Color(product_color.r, product_color.g, product_color.b, 0.45)
 		else:
-			# Line color = the source's actually-carried product. Same hash
-			# palette as the sockets, so barley lines look barley etc.
-			color = _socket_color_for(product)
+			color = product_color
 
 		var line_w: float = 3.0 / canvas_zoom
-		if broken:
-			# `draw_dashed_line` makes the brokenness instantly readable.
+		if broken or is_paused:
+			# `draw_dashed_line` makes both off-states instantly readable.
 			draw_dashed_line(start_pos, end_pos, color, line_w, 8.0 / canvas_zoom, true)
 		else:
 			draw_line(start_pos, end_pos, color, line_w)
 
-		# Arrows. Two modes:
-		#  - Active traffic (a vehicle is dispatched on this connection):
-		#    marching arrows slide along the line in flow direction,
-		#    indicating "stuff is moving right now". The animation loops
-		#    forever as long as the panel is visible and the route has
-		#    traffic.
-		#  - Idle but valid: single mid-line arrow, same as before.
-		# Skipped entirely for broken connections.
-		if not broken:
+		# Arrows.
+		#  - Broken or paused: no arrows. The line style alone reads as
+		#    "nothing's moving here."
+		#  - Active traffic (a vehicle is dispatched on this route AND the
+		#    route is active): marching arrows slide along the line in flow
+		#    direction, looping while the panel is visible.
+		#  - Idle but valid: single mid-line arrow at t=0.7.
+		if not broken and not is_paused:
 			var direction: Vector2 = (end_pos - start_pos).normalized()
 			var arrow_size: float = 8.0 / canvas_zoom
-			if _connection_has_active_traffic(String(connection.id)):
-				# Marching arrows. The offset advances over time so each
-				# arrow walks from source → dest along the line.
+			if is_active and _connection_has_active_traffic(String(connection.id)):
 				var t_offset: float = fposmod(_animation_time * FLOW_ARROW_SPEED, FLOW_ARROW_SPACING)
 				var t: float = t_offset
 				while t < 1.0:
