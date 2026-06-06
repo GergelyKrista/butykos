@@ -468,30 +468,30 @@ func get_node_io(facility_id: String) -> Dictionary:
 			fh_outputs.append(String(product))
 		return {"inputs": [], "outputs": fh_outputs}
 
-	# Interior-having facility: gate sockets by Input Hopper / Output Depot
-	# presence in the factory interior.
+	# Interior-having facility: sockets derive from each Input Hopper's /
+	# Output Depot's `configured_product` (slice 3.2). An unconfigured
+	# machine contributes no socket. Multiple hoppers configured for the
+	# same product collapse to one socket on the node.
 	var has_interior: bool = bool(def.get("has_interior", false))
 	if has_interior and FactoryManager.has_interior(facility_id):
-		var has_input_machine: bool = false
-		var has_output_machine: bool = false
-		var machines: Array = FactoryManager.get_all_machines(facility_id)
-		for m in machines:
-			var m_def: Dictionary = DataManager.get_machine_data(m.type)
-			if m_def.get("is_input_node", false):
-				has_input_machine = true
-			if m_def.get("is_output_node", false):
-				has_output_machine = true
-		var production: Dictionary = def.get("production", {})
 		var gated_inputs: Array[String] = []
 		var gated_outputs: Array[String] = []
-		if has_input_machine:
-			var inp1: String = String(production.get("input", ""))
-			if not inp1.is_empty():
-				gated_inputs.append(inp1)
-		if has_output_machine:
-			var out1: String = String(production.get("output", ""))
-			if not out1.is_empty():
-				gated_outputs.append(out1)
+		var seen_inputs: Dictionary = {}
+		var seen_outputs: Dictionary = {}
+		var machines: Array = FactoryManager.get_all_machines(facility_id)
+		for m in machines:
+			var product: String = String(m.get("configured_product", ""))
+			if product.is_empty():
+				continue
+			var m_def: Dictionary = DataManager.get_machine_data(m.type)
+			if m_def.get("is_input_node", false):
+				if not seen_inputs.has(product):
+					gated_inputs.append(product)
+					seen_inputs[product] = true
+			elif m_def.get("is_output_node", false):
+				if not seen_outputs.has(product):
+					gated_outputs.append(product)
+					seen_outputs[product] = true
 		return {"inputs": gated_inputs, "outputs": gated_outputs}
 
 	# Default: static IO from the facility data.

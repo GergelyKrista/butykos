@@ -43,6 +43,11 @@ var demolish_mode: bool = false
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 
+# Per-machine product selector (slice 3.2): right-click an Input Hopper /
+# Output Depot to assign which product it carries. Built lazily on first use.
+var _machine_product_popup: PopupMenu = null
+var _machine_product_target_id: String = ""
+
 # ========================================
 # INITIALIZATION
 # ========================================
@@ -71,6 +76,10 @@ func _ready() -> void:
 	connections_renderer.name = "ConnectionsRenderer"
 	add_child(connections_renderer)
 	connections_renderer.z_index = -1  # Draw behind machines
+
+	# Slice 3.2: per-machine product selector + label refresh signal.
+	_build_machine_product_popup()
+	EventBus.machine_config_changed.connect(_on_machine_config_changed)
 
 	# Center camera
 	camera.position = Vector2(
@@ -137,6 +146,18 @@ func _input(event: InputEvent) -> void:
 				_on_demolish_click()
 			elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 				_cancel_demolish_mode()
+	# Idle (no mode active): right-click on an Input Hopper / Output Depot
+	# opens the product-selector popup (slice 3.2). Skipped if any mode is
+	# currently active — that case is handled above for cancel.
+	elif event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_RIGHT \
+			and event.pressed \
+			and not _is_mouse_over_ui():
+		var clicked: Dictionary = FactoryManager.get_machine_at_position(facility_id, mouse_grid_pos)
+		if not clicked.is_empty():
+			var m_def: Dictionary = DataManager.get_machine_data(clicked.type)
+			if m_def.get("is_input_node", false) or m_def.get("is_output_node", false):
+				_show_machine_product_selector(String(clicked.id))
 
 	# Cancel placement/connection/demolish with Escape
 	if event.is_action_pressed("ui_cancel"):
@@ -510,6 +531,90 @@ func _create_machine_visual(machine_id: String) -> void:
 
 	var machine_node = _create_machine_node(machine)
 	machines_container.add_child(machine_node)
+	# Slice 3.2: refresh the product label for IO machines.
+	_update_machine_config_label(machine_id)
+
+
+# ========================================
+# SLICE 3.2 — PER-MACHINE PRODUCT CONFIG
+# ========================================
+
+func _build_machine_product_popup() -> void:
+	"""Build the right-click product selector once. Items list is the
+	full products.json (sorted by display name) so the player can wire any
+	hopper to any product, plus a "(Clear)" option at the bottom."""
+	_machine_product_popup = PopupMenu.new()
+	_machine_product_popup.name = "MachineProductPopup"
+	# Sort by display name for predictability.
+	var entries: Array = []
+	for product_id in DataManager.products.keys():
+		var product_def: Dictionary = DataManager.products[product_id]
+		entries.append({"id": String(product_id), "name": String(product_def.get("name", product_id))})
+	entries.sort_custom(func(a, b): return a.name < b.name)
+	for e in entries:
+		_machine_product_popup.add_item(e.name)
+		# Stash the product id on the item so the picker can read it back.
+		_machine_product_popup.set_item_metadata(_machine_product_popup.item_count - 1, e.id)
+	_machine_product_popup.add_separator()
+	_machine_product_popup.add_item("(Clear)")
+	_machine_product_popup.set_item_metadata(_machine_product_popup.item_count - 1, "")
+	_machine_product_popup.index_pressed.connect(_on_machine_product_picked)
+	add_child(_machine_product_popup)
+
+
+func _show_machine_product_selector(machine_id: String) -> void:
+	_machine_product_target_id = machine_id
+	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+	_machine_product_popup.position = Vector2i(mouse_pos)
+	_machine_product_popup.popup()
+
+
+func _on_machine_product_picked(index: int) -> void:
+	if _machine_product_target_id.is_empty():
+		return
+	var product_id: String = String(_machine_product_popup.get_item_metadata(index))
+	FactoryManager.set_machine_configured_product(facility_id, _machine_product_target_id, product_id)
+	_machine_product_target_id = ""
+
+
+func _on_machine_config_changed(factory_id: String, machine_id: String) -> void:
+	"""Refresh the machine's product label so the change reads instantly."""
+	if factory_id != facility_id:
+		return
+	_update_machine_config_label(machine_id)
+
+
+func _update_machine_config_label(machine_id: String) -> void:
+	"""Render the configured product as a small label above the machine.
+	No-op for non-IO machines and for IO machines that haven't been
+	configured yet."""
+	var node: Node = machines_container.get_node_or_null(machine_id)
+	if node == null:
+		return
+	var machine: Dictionary = FactoryManager.get_machine(facility_id, machine_id)
+	if machine.is_empty():
+		return
+	var def: Dictionary = DataManager.get_machine_data(machine.type)
+	var is_io: bool = bool(def.get("is_input_node", false)) or bool(def.get("is_output_node", false))
+	# Find or create the label.
+	var label: Label = node.get_node_or_null("ConfigLabel") as Label
+	var product: String = String(machine.get("configured_product", ""))
+	if not is_io or product.is_empty():
+		if label != null:
+			label.queue_free()
+		return
+	if label == null:
+		label = Label.new()
+		label.name = "ConfigLabel"
+		label.add_theme_font_size_override("font_size", 12)
+		label.add_theme_color_override("font_color", Color.WHITE)
+		label.add_theme_color_override("font_outline_color", Color.BLACK)
+		label.add_theme_constant_override("outline_size", 2)
+		label.position = Vector2(0, -18)
+		label.z_index = 50
+		node.add_child(label)
+	var product_def: Dictionary = DataManager.products.get(product, {})
+	label.text = String(product_def.get("name", product))
 
 
 func _create_machine_node(machine: Dictionary) -> Node2D:

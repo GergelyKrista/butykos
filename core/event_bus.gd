@@ -71,6 +71,11 @@ signal machine_removed(factory_id: String, machine_id: String)
 ## Emitted when production starts/stops in a factory
 signal production_changed(factory_id: String, is_producing: bool)
 
+## Emitted when a machine's per-instance configuration changes (slice 3.2:
+## Input Hopper / Output Depot product assignment). Lets UI redraw and the
+## network panel re-derive IO sockets.
+signal machine_config_changed(factory_id: String, machine_id: String)
+
 # ========================================
 # LOGISTICS SIGNALS
 # ========================================

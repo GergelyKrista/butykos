@@ -269,6 +269,34 @@ func get_machine(facility_id: String, machine_id: String) -> Dictionary:
 	return interior.machines.get(machine_id, {})
 
 
+# ========================================
+# PER-MACHINE CONFIG (slice 3.2)
+# ========================================
+#
+# IO machines (Input Hopper, Output Depot) carry a `configured_product` field
+# set by the Industrial player via right-click. An unconfigured machine is a
+# no-op: no socket appears on the logistics network panel, and the IO
+# transfer logic skips it. This is what lets the brewery node "sprout" its
+# malt/water/hops/bottles input sockets only after the player has actually
+# placed and configured the hoppers inside.
+
+func get_machine_configured_product(facility_id: String, machine_id: String) -> String:
+	"""Empty string if not configured yet."""
+	return String(get_machine(facility_id, machine_id).get("configured_product", ""))
+
+
+func set_machine_configured_product(facility_id: String, machine_id: String, product: String) -> void:
+	"""Assign a product to an IO machine (Input Hopper / Output Depot).
+	Empty `product` clears the assignment. Emits machine_config_changed so
+	the factory interior + network panel can refresh."""
+	var interior: Dictionary = get_factory_interior(facility_id)
+	if not interior.machines.has(machine_id):
+		push_warning("set_machine_configured_product: machine %s not found in %s" % [machine_id, facility_id])
+		return
+	interior.machines[machine_id].configured_product = product
+	EventBus.machine_config_changed.emit(facility_id, machine_id)
+
+
 func get_machine_at_position(facility_id: String, grid_pos: Vector2i) -> Dictionary:
 	"""Get machine at a specific interior grid position"""
 	var interior = get_factory_interior(facility_id)
