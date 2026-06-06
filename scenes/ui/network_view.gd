@@ -88,37 +88,9 @@ const CONNECTION_COLOR: Color = Color(0.3, 0.7, 0.3, 0.8)
 const CONNECTION_HOVER_COLOR: Color = Color(0.8, 0.3, 0.3, 0.8)
 const DRAG_LINE_COLOR: Color = Color(0.5, 0.8, 0.5, 0.6)
 
-## Explicit per-product colors. Picked to match the farm-field tints from
-## the world map (barley golden, hops vibrant green) and to be visually
-## distinct from each other for at-a-glance flow tracing. Unknown products
-## fall through to a hash-derived hue so future content doesn't crash here.
-const PRODUCT_COLORS: Dictionary = {
-	# Raw crops
-	"barley": Color("#d4a017"),        # golden — matches farm field tint
-	"hops": Color("#5fb84a"),          # vibrant green — matches farm field tint
-	"wheat": Color("#deb054"),
-	"corn": Color("#f1c40f"),
-	"grapes": Color("#722f7a"),
-	"water": Color("#3498db"),
-	# Intermediates
-	"malt": Color("#a05a2c"),
-	"mash": Color("#7d5a3a"),
-	"fermented_wash": Color("#9c6b3a"),
-	"raw_spirit": Color("#dcdcdc"),
-	# Beers
-	"ale": Color("#c1853b"),
-	"packaged_ale": Color("#c1853b"),
-	"lager": Color("#e8c060"),
-	"wheat_beer": Color("#f0d080"),
-	"stout": Color("#3a2418"),
-	"porter": Color("#4a2e1d"),
-	# Spirits / aged
-	"whiskey": Color("#8b4513"),
-	"vodka": Color("#e8e8e8"),
-	"premium_whiskey": Color("#a0522d"),
-	"aged_spirit": Color("#9c6b3a"),
-	"wine": Color("#722f37"),
-}
+## Per-product colors live on DataManager.PRODUCT_COLORS — single source of
+## truth shared with the factory interior (connection lines + hopper config
+## popup icons). `_socket_color_for` delegates to DataManager.get_product_color.
 
 # Marching-arrows animation tuning.
 const FLOW_ARROW_SPACING: float = 0.18  # fraction of line length between arrows
@@ -599,16 +571,9 @@ func _is_connection_broken(connection: Dictionary) -> bool:
 
 
 func _socket_color_for(product: String) -> Color:
-	"""Stable color per product. Hits the curated PRODUCT_COLORS map for
-	all known slice-1 products (barley = golden, hops = green, etc.).
-	Falls back to a hash-derived hue for any product not yet listed —
-	when new content lands and the color matters, add it to the map."""
-	if product.is_empty():
-		return Color(0.5, 0.5, 0.5)
-	if PRODUCT_COLORS.has(product):
-		return PRODUCT_COLORS[product]
-	var h: float = float(absi(product.hash()) % 360) / 360.0
-	return Color.from_hsv(h, 0.55, 0.92)
+	"""Delegates to DataManager.get_product_color so the network view and
+	factory interior both render the same color for each product."""
+	return DataManager.get_product_color(product)
 
 
 func _connection_has_active_traffic(connection_id: String) -> bool:

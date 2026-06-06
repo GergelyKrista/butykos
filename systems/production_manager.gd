@@ -107,6 +107,21 @@ var io_node_transfer_amount: int = 10  # How much to transfer per cycle
 var io_node_timer: float = 0.0  # Timer for periodic IO node operations
 const IO_NODE_CYCLE_TIME: float = 2.0  # How often IO nodes transfer (seconds)
 
+# Per-product buffer cap for machines (Satisfactory-style backpressure). When a
+# machine's output buffer for a given product is full, the machine STALLS — it
+# stops consuming inputs and stops producing — so any downstream bottleneck
+# (severed connection, slower consumer) propagates back through the chain
+# instead of silently piling up. Storage-buffer machines override this with
+# their own `storage_capacity` field.
+const MACHINE_BUFFER_CAP_PER_PRODUCT: int = 16
+
+# State-change-only log throttle. Each producer / hopper / depot has a "last
+# message" string; `_log_once` only prints when the string changes. Eliminates
+# the old per-cycle spam ("Machine production blocked: Mill needs 4 malt"
+# fired every 3s) — now it prints once when the state changes and stays quiet
+# until something actually moves.
+var _last_log_message: Dictionary = {}
+
 # Product pricing - now uses MarketManager for dynamic prices
 # Fallback prices only used if MarketManager not available
 var _fallback_prices: Dictionary = {
@@ -123,6 +138,37 @@ func _get_product_price(product: String) -> int:
 	if MarketManager:
 		return MarketManager.get_price(product)
 	return _fallback_prices.get(product, default_sell_price)
+
+
+func _log_once(state_key: String, message: String) -> void:
+	"""Print `message` only if the state for this key differs from the last
+	logged message. Used so a stable state (e.g. "Mill blocked: needs malt")
+	prints once and stays quiet until it actually changes."""
+	if _last_log_message.get(state_key, "") != message:
+		_last_log_message[state_key] = message
+		print(message)
+
+
+func _get_machine_buffer_cap(machine_def: Dictionary) -> int:
+	"""Per-product buffer cap for one machine. Storage-buffer machines use
+	their data-defined `storage_capacity`; everything else uses the flat
+	default. Per-product means a Mash Tun can hold cap grist AND cap water
+	AND cap mash independently — like Satisfactory's per-slot stacks."""
+	if bool(machine_def.get("is_storage_buffer", false)):
+		return int(machine_def.get("storage_capacity", MACHINE_BUFFER_CAP_PER_PRODUCT))
+	return MACHINE_BUFFER_CAP_PER_PRODUCT
+
+
+func _machine_remaining_capacity(facility_id: String, machine_id: String, product: String) -> int:
+	"""How much more of `product` can fit in this machine's buffer before
+	hitting the cap. Returns 0 when full — callers skip the transfer."""
+	var machine: Dictionary = FactoryManager.get_machine(facility_id, machine_id)
+	if machine.is_empty():
+		return 0
+	var def: Dictionary = DataManager.get_machine_data(machine.type)
+	var cap: int = _get_machine_buffer_cap(def)
+	var current: int = get_machine_inventory_item(facility_id, machine_id, product)
+	return maxi(0, cap - current)
 
 
 # ========================================
@@ -264,53 +310,40 @@ func _complete_production_cycle(facility_id: String, facility: Dictionary) -> vo
 	var output_quantity = int(base_output_quantity * yield_mult)
 	var cycle_time = base_cycle_time * cycle_mult
 
-	# Check if facility requires inputs
-	var input_product = production_data.get("input", "")
-	var input_quantity = production_data.get("input_quantity", 0)
+	var facility_name = String(facility_def.get("name", facility.type))
+	var state_key = "facility:%s" % facility_id
+
+	# Input check.
+	var input_product = String(production_data.get("input", ""))
+	var input_quantity = int(production_data.get("input_quantity", 0))
 
 	if not input_product.is_empty() and input_quantity > 0:
-		# Check if we have enough input materials
 		var current_input = get_inventory_item(facility_id, input_product)
 		if current_input < input_quantity:
-			# Not enough inputs, can't produce
-			print("Production blocked: %s needs %d %s (has %d)" % [
-				facility_def.get("name", facility.type),
-				input_quantity,
-				input_product,
-				current_input
+			_log_once(state_key, "Facility blocked: %s needs %d %s (has %d)" % [
+				facility_name, input_quantity, input_product, current_input,
 			])
-			# Reset timer to try again (with research bonus)
 			production_timers[facility_id] = cycle_time
 			return
 
-		# Consume inputs
 		_remove_from_inventory(facility_id, input_product, input_quantity)
 		_track_consumption(facility_id, input_product, input_quantity)
-		print("Consumed %d %s for production" % [input_quantity, input_product])
 
-	# Check if this field should route output to a farmhouse
+	# Field routing.
 	var target_facility_id = facility_id
 	var farmhouse_id = field_production_targets.get(facility_id, "")
 	if not farmhouse_id.is_empty():
 		target_facility_id = farmhouse_id
 
-	# Add output to inventory (with yield bonus) - either field's or farmhouse's
 	_add_to_inventory(target_facility_id, output_product, output_quantity)
 	_track_production(facility_id, output_product, output_quantity)
-
-	# Reset timer (with cycle time bonus)
 	production_timers[facility_id] = cycle_time
 
-	# Show bonus info if any bonuses are active
 	var bonus_info = ""
 	if yield_mult != 1.0 or cycle_mult != 1.0:
 		bonus_info = " [Research: %.0f%% yield, %.0f%% speed]" % [(yield_mult - 1.0) * 100, (1.0 - cycle_mult) * 100]
-
-	print("Production complete: %s produced %d %s%s" % [
-		facility_def.get("name", facility.type),
-		output_quantity,
-		output_product,
-		bonus_info
+	_log_once(state_key, "Facility producing: %s (%d %s every %.1fs)%s" % [
+		facility_name, output_quantity, output_product, cycle_time, bonus_info,
 	])
 
 	# Auto-sell if enabled (only if this is a final product with no downstream use)
@@ -353,61 +386,145 @@ func _update_machine_production(delta: float) -> void:
 
 
 func _complete_machine_production_cycle(facility_id: String, machine_id: String, machine: Dictionary) -> void:
-	"""Complete a production cycle for a machine"""
+	"""Complete a production cycle for a machine. Two paths:
+	1. Recipe-based (slice 3.3): machine_def.recipe_id points into recipes.json.
+	   Supports multi-input + multi-output via {inputs:[{product, quantity}…],
+	   outputs:[{product, quantity}…], cycle_time}.
+	2. Legacy single-input: machine_def.production block with input/output
+	   keys. Pre-slice-3.3 machines stay on this path."""
 
 	var machine_def = DataManager.get_machine_data(machine.type)
 	if machine_def.is_empty():
 		return
 
+	var machine_key = "%s:%s" % [facility_id, machine_id]
+
+	# Recipe path (multi-input). Branch is taken when the machine_def has a
+	# recipe_id; the production block is ignored in that case.
+	var recipe_id: String = String(machine_def.get("recipe_id", ""))
+	if not recipe_id.is_empty():
+		_complete_machine_recipe_cycle(facility_id, machine_id, machine, machine_def, recipe_id, machine_key)
+		return
+
+	# Legacy single-input path with the same backpressure as the recipe path.
 	var production_data = machine_def.get("production", {})
 	if production_data.is_empty():
 		return
 
-	var output_product = production_data.get("output", "")
-	var output_quantity = production_data.get("quantity", 0)
-	var cycle_time = production_data.get("cycle_time", 5.0)
+	var output_product = String(production_data.get("output", ""))
+	var output_quantity = int(production_data.get("quantity", 0))
+	var cycle_time = float(production_data.get("cycle_time", 5.0))
 
 	if output_product.is_empty() or output_quantity == 0:
 		return
 
-	var machine_key = "%s:%s" % [facility_id, machine_id]
+	var machine_name = String(machine_def.get("name", machine.type))
+	var state_key = "machine:%s:%s" % [facility_id, machine_id]
 
-	# Check if machine requires inputs
-	var input_product = production_data.get("input", "")
-	var input_quantity = production_data.get("input_quantity", 0)
+	# 1. Input check (single-input machines).
+	var input_product = String(production_data.get("input", ""))
+	var input_quantity = int(production_data.get("input_quantity", 0))
 
 	if not input_product.is_empty() and input_quantity > 0:
-		# Check machine's own inventory for input materials
 		var current_input = get_machine_inventory_item(facility_id, machine_id, input_product)
 		if current_input < input_quantity:
-			# Not enough inputs, can't produce
-			print("Machine production blocked: %s needs %d %s (has %d)" % [
-				machine_def.get("name", machine.type),
-				input_quantity,
-				input_product,
-				current_input
+			_log_once(state_key, "Machine blocked: %s needs %d %s (has %d)" % [
+				machine_name, input_quantity, input_product, current_input,
 			])
-			# Reset timer to try again
 			machine_timers[machine_key] = cycle_time
 			return
 
-		# Consume inputs from machine's own inventory
-		_remove_from_machine_inventory(facility_id, machine_id, input_product, input_quantity)
-		print("Machine consumed %d %s from own inventory" % [input_quantity, input_product])
+	# 2. Output cap check.
+	var cap: int = _get_machine_buffer_cap(machine_def)
+	var current_output = get_machine_inventory_item(facility_id, machine_id, output_product)
+	if current_output + output_quantity > cap:
+		_log_once(state_key, "Machine blocked: %s output buffer full (%s: %d/%d)" % [
+			machine_name, output_product, current_output, cap,
+		])
+		machine_timers[machine_key] = cycle_time
+		return
 
-	# Add output to machine's own inventory
+	# 3. Atomic consume + produce.
+	if not input_product.is_empty() and input_quantity > 0:
+		_remove_from_machine_inventory(facility_id, machine_id, input_product, input_quantity)
 	_add_to_machine_inventory(facility_id, machine_id, output_product, output_quantity)
 
-	# Reset timer
-	machine_timers[machine_key] = cycle_time
-
-	print("Machine production complete: %s produced %d %s" % [
-		machine_def.get("name", machine.type),
-		output_quantity,
-		output_product
+	_log_once(state_key, "Machine producing: %s (%d %s every %.1fs)" % [
+		machine_name, output_quantity, output_product, cycle_time,
 	])
 
-	# Try to transfer output to adjacent machines
+	machine_timers[machine_key] = cycle_time
+	_try_transfer_to_adjacent(facility_id, machine_id, machine)
+
+
+func _complete_machine_recipe_cycle(
+	facility_id: String,
+	machine_id: String,
+	machine: Dictionary,
+	machine_def: Dictionary,
+	recipe_id: String,
+	machine_key: String,
+) -> void:
+	"""Slice 3.3 recipe execution with Satisfactory-style backpressure:
+	1. Verify every input is in the machine's buffer.
+	2. Verify every output has room in the machine's buffer before consuming.
+	   (If output is full, we don't consume inputs — the machine stalls
+	   cleanly and upstream can still buffer waiting for downstream to drain.)
+	3. Atomically consume inputs and produce outputs.
+
+	All state changes (blocked → producing, producing → blocked, blocked
+	reason changes) print once via _log_once. The old per-cycle prints are
+	gone — flow is visualized via marching arrows on connection lines."""
+	var recipe: Dictionary = DataManager.get_recipe_data(recipe_id)
+	if recipe.is_empty():
+		push_warning("Machine %s references unknown recipe '%s'" % [machine_id, recipe_id])
+		return
+
+	var inputs: Array = recipe.get("inputs", [])
+	var outputs: Array = recipe.get("outputs", [])
+	var cycle_time: float = float(recipe.get("cycle_time", 5.0))
+	var recipe_name: String = String(recipe.get("name", recipe_id))
+	var machine_name: String = String(machine_def.get("name", machine.type))
+	var state_key: String = "machine:%s:%s" % [facility_id, machine_id]
+
+	# 1. Input check — first shortage wins.
+	for input in inputs:
+		var product: String = String(input.get("product", ""))
+		var quantity: int = int(input.get("quantity", 0))
+		var current: int = get_machine_inventory_item(facility_id, machine_id, product)
+		if current < quantity:
+			_log_once(state_key, "Machine blocked: %s needs %d %s (has %d) for recipe '%s'" % [
+				machine_name, quantity, product, current, recipe_name,
+			])
+			machine_timers[machine_key] = cycle_time
+			return
+
+	# 2. Output cap check — first full output wins.
+	var cap: int = _get_machine_buffer_cap(machine_def)
+	for output in outputs:
+		var product: String = String(output.get("product", ""))
+		var quantity: int = int(output.get("quantity", 0))
+		var current_output: int = get_machine_inventory_item(facility_id, machine_id, product)
+		if current_output + quantity > cap:
+			_log_once(state_key, "Machine blocked: %s output buffer full (%s: %d/%d)" % [
+				machine_name, product, current_output, cap,
+			])
+			machine_timers[machine_key] = cycle_time
+			return
+
+	# 3. Atomic consume + produce.
+	for input in inputs:
+		var product: String = String(input.get("product", ""))
+		var quantity: int = int(input.get("quantity", 0))
+		_remove_from_machine_inventory(facility_id, machine_id, product, quantity)
+	for output in outputs:
+		var product: String = String(output.get("product", ""))
+		var quantity: int = int(output.get("quantity", 0))
+		_add_to_machine_inventory(facility_id, machine_id, product, quantity)
+
+	_log_once(state_key, "Machine producing: %s [%s]" % [machine_name, recipe_name])
+
+	machine_timers[machine_key] = cycle_time
 	_try_transfer_to_adjacent(facility_id, machine_id, machine)
 
 
@@ -639,25 +756,22 @@ func get_machine_inventory_item(facility_id: String, machine_id: String, product
 # ========================================
 
 func _try_transfer_to_adjacent(facility_id: String, machine_id: String, machine: Dictionary) -> void:
-	"""Try to transfer machine's output through manual connections"""
-
-	# Get machine's current inventory
+	"""Push this machine's output to connected destinations that accept it,
+	clamped by the destination's remaining buffer capacity. Per-cycle quiet
+	(no per-transfer prints) — the connection-line arrows visualize flow."""
 	var inventory = get_machine_inventory(facility_id, machine_id)
 	if inventory.is_empty():
 		return
 
-	# Get all connections FROM this machine
 	var connections = FactoryManager.get_connections_from(facility_id, machine_id)
 	if connections.is_empty():
 		return
 
-	# Try to transfer each product in our inventory
 	for product in inventory.keys():
 		var available_quantity = inventory[product]
 		if available_quantity <= 0:
 			continue
 
-		# Try each connection
 		for conn in connections:
 			var destination_machine_id = conn.get("to", "")
 			if destination_machine_id.is_empty():
@@ -667,34 +781,44 @@ func _try_transfer_to_adjacent(facility_id: String, machine_id: String, machine:
 			if destination_machine.is_empty():
 				continue
 
-			# Check if destination machine needs this product
-			if _machine_needs_product(destination_machine, product):
-				# Try to transfer (transfer up to half of available, min 1)
-				var transfer_amount = max(1, available_quantity / 2)
+			if not _machine_needs_product(destination_machine, product):
+				continue
 
-				if _remove_from_machine_inventory(facility_id, machine_id, product, transfer_amount):
-					_add_to_machine_inventory(facility_id, destination_machine_id, product, transfer_amount)
+			# Destination's remaining room clamps the transfer. With the
+			# per-product cap in place, the old "half of available" rule
+			# tops out at room available, so backpressure works correctly.
+			var room: int = _machine_remaining_capacity(facility_id, destination_machine_id, product)
+			if room <= 0:
+				continue
+			var transfer_amount: int = mini(maxi(1, available_quantity / 2), room)
 
-					print("Transferred %d %s: %s → %s" % [
-						transfer_amount,
-						product,
-						machine_id,
-						destination_machine_id
-					])
-
-					# Update available quantity for next transfer
-					available_quantity -= transfer_amount
-					if available_quantity <= 0:
-						break
+			if _remove_from_machine_inventory(facility_id, machine_id, product, transfer_amount):
+				_add_to_machine_inventory(facility_id, destination_machine_id, product, transfer_amount)
+				available_quantity -= transfer_amount
+				if available_quantity <= 0:
+					break
 
 
 func _machine_needs_product(machine: Dictionary, product: String) -> bool:
-	"""Check if a machine needs a specific product as input"""
+	"""Check if a machine needs a specific product as input. Recipe-based
+	machines match on ANY of the recipe's inputs (so e.g. a Brewer wants
+	both wort and hops); legacy single-input machines match the
+	production.input field."""
 
 	var machine_def = DataManager.get_machine_data(machine.type)
 	if machine_def.is_empty():
 		return false
 
+	# Recipe path — any input product matches.
+	var recipe_id: String = String(machine_def.get("recipe_id", ""))
+	if not recipe_id.is_empty():
+		var recipe: Dictionary = DataManager.get_recipe_data(recipe_id)
+		for input in recipe.get("inputs", []):
+			if String(input.get("product", "")) == product:
+				return true
+		return false
+
+	# Legacy single-input path.
 	var production_data = machine_def.get("production", {})
 	if production_data.is_empty():
 		return false
@@ -745,12 +869,13 @@ func _update_io_nodes(delta: float) -> void:
 
 
 func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
-	"""Input hopper pulls ITS configured product from facility inventory and
-	distributes to connected machines. Slice 3.2: hoppers are explicit about
-	what they carry — an unconfigured hopper is a no-op. (Old behavior was
-	to introspect the connected machine's `production.input`; that breaks
-	for multi-input machines and made the player powerless to pick what
-	flowed where.)"""
+	"""Pull the hopper's configured product from facility inventory and push
+	to connected machines, clamped by each destination's remaining buffer
+	capacity. Three observable states reported via _log_once:
+	  - flowing: at least one destination received product this tick
+	  - waiting: facility inventory is empty for this product
+	  - blocked: every destination's buffer is full (downstream backpressure)
+	Unconfigured hoppers are a no-op (slice 3.2)."""
 
 	var hopper_id: String = hopper.get("id", "")
 	var configured: String = String(hopper.get("configured_product", ""))
@@ -761,33 +886,41 @@ func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
 	if connections.is_empty():
 		return
 
-	# Push the configured product to each connected machine in turn until
-	# facility stock runs out for this cycle. The destination machine just
-	# accepts whatever it's given — if the player wired it wrong (hopper of
-	# hops feeding a machine that wants malt) the product piles up in the
-	# machine's inventory and the machine stays blocked, which is the
-	# correct "the player has work to do" feedback.
+	var state_key: String = "hopper:%s:%s" % [facility_id, hopper_id]
+	var any_transfer: bool = false
+	var any_room: bool = false
+
 	for conn in connections:
 		var destination_machine_id: String = conn.get("to", "")
 		if destination_machine_id.is_empty():
 			continue
+		var room: int = _machine_remaining_capacity(facility_id, destination_machine_id, configured)
+		if room <= 0:
+			continue
+		any_room = true
 		var facility_stock: int = get_inventory_item(facility_id, configured)
 		if facility_stock <= 0:
-			return
-		var transfer_amount: int = mini(io_node_transfer_amount, facility_stock)
+			break
+		var transfer_amount: int = mini(io_node_transfer_amount, mini(facility_stock, room))
+		if transfer_amount <= 0:
+			continue
 		if _remove_from_inventory(facility_id, configured, transfer_amount):
 			_add_to_machine_inventory(facility_id, destination_machine_id, configured, transfer_amount)
-			print("Input Hopper: %d %s (facility → %s)" % [
-				transfer_amount,
-				configured,
-				destination_machine_id,
-			])
+			any_transfer = true
+
+	if any_transfer:
+		_log_once(state_key, "Hopper flowing: %s (facility → machines)" % configured)
+	elif not any_room:
+		_log_once(state_key, "Hopper blocked: %s (every destination full)" % configured)
+	else:
+		_log_once(state_key, "Hopper waiting: %s (facility stock empty)" % configured)
 
 
 func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
-	"""Output depot pulls ITS configured product from connected source
-	machines and pushes it to the facility's inventory. Slice 3.2:
-	depots are explicit too. An unconfigured depot is a no-op."""
+	"""Pull the depot's configured product from connected source machines and
+	push to facility inventory (unbounded — trucks ship from there). Two
+	observable states via _log_once: flowing or waiting. Auto-sell stays
+	intact for final products. Unconfigured depots are a no-op (slice 3.2)."""
 
 	var depot_id: String = depot.get("id", "")
 	var configured: String = String(depot.get("configured_product", ""))
@@ -797,6 +930,9 @@ func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
 	var connections = FactoryManager.get_connections_to(facility_id, depot_id)
 	if connections.is_empty():
 		return
+
+	var state_key: String = "depot:%s:%s" % [facility_id, depot_id]
+	var any_transfer: bool = false
 
 	for conn in connections:
 		var source_machine_id: String = conn.get("from", "")
@@ -809,14 +945,14 @@ func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
 		var transfer_amount: int = mini(io_node_transfer_amount, quantity)
 		if _remove_from_machine_inventory(facility_id, source_machine_id, configured, transfer_amount):
 			_add_to_inventory(facility_id, configured, transfer_amount)
-			print("Output Depot: %d %s (%s → facility)" % [
-				transfer_amount,
-				configured,
-				source_machine_id,
-			])
-			# Auto-sell hook preserved.
+			any_transfer = true
 			if auto_sell_enabled and _should_auto_sell(configured):
 				_sell_product(facility_id, configured, transfer_amount)
+
+	if any_transfer:
+		_log_once(state_key, "Depot flowing: %s (machines → facility)" % configured)
+	else:
+		_log_once(state_key, "Depot waiting: %s (no source has stock)" % configured)
 
 
 func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
@@ -871,50 +1007,38 @@ func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
 
 
 func _process_storage_buffer(facility_id: String, storage: Dictionary) -> void:
-	"""Storage buffer actively transfers stored products to connected machines (like Market Outlet)"""
+	"""Storage buffer pushes its inventory to connected machines, clamped by
+	destination buffer room. Per-cycle quiet — arrows show flow."""
 
 	var storage_id = storage.get("id", "")
-
-	# Get storage's inventory
 	var storage_inventory = get_machine_inventory(facility_id, storage_id)
 	if storage_inventory.is_empty():
 		return
 
-	# Get all connections FROM this storage
 	var connections = FactoryManager.get_connections_from(facility_id, storage_id)
 	if connections.is_empty():
 		return
 
-	# Try to transfer each product to connected machines
 	for product in storage_inventory.keys():
 		var available_quantity = storage_inventory[product]
 		if available_quantity <= 0:
 			continue
 
-		# Try each connection
 		for conn in connections:
 			var destination_machine_id = conn.get("to", "")
 			if destination_machine_id.is_empty():
 				continue
-
 			var destination_machine = FactoryManager.get_machine(facility_id, destination_machine_id)
 			if destination_machine.is_empty():
 				continue
-
-			# Transfer up to io_node_transfer_amount
-			var transfer_amount = min(io_node_transfer_amount, available_quantity)
-
+			var room: int = _machine_remaining_capacity(facility_id, destination_machine_id, product)
+			if room <= 0:
+				continue
+			var transfer_amount: int = mini(io_node_transfer_amount, mini(available_quantity, room))
+			if transfer_amount <= 0:
+				continue
 			if _remove_from_machine_inventory(facility_id, storage_id, product, transfer_amount):
 				_add_to_machine_inventory(facility_id, destination_machine_id, product, transfer_amount)
-
-				print("Storage Buffer: Transferred %d %s (%s → %s)" % [
-					transfer_amount,
-					product,
-					storage_id,
-					destination_machine_id
-				])
-
-				# Update available quantity for next transfer
 				available_quantity -= transfer_amount
 				if available_quantity <= 0:
 					break
@@ -993,6 +1117,8 @@ func _on_facility_removed(facility_id: String) -> void:
 	# Clean up per-field state for the generic farm_field.
 	field_crop_types.erase(facility_id)
 	_field_idle_reason.erase(facility_id)
+	# Drop any cached log state so a re-placed facility doesn't inherit it.
+	_last_log_message.erase("facility:%s" % facility_id)
 
 
 func _on_facility_constructed(facility_id: String) -> void:
@@ -1026,7 +1152,24 @@ func _on_machine_placed(factory_id: String, machine_data: Dictionary) -> void:
 	# Initialize machine inventory (all machines have inventory)
 	machine_inventories[machine_key] = {}
 
-	# Initialize production timer if machine produces
+	# Initialize production timer. Recipe-based machines pull cycle_time
+	# from recipes.json; legacy machines use the production block.
+	var recipe_id: String = String(machine_def.get("recipe_id", ""))
+	if not recipe_id.is_empty():
+		var recipe: Dictionary = DataManager.get_recipe_data(recipe_id)
+		if recipe.is_empty():
+			push_warning("Machine %s references unknown recipe '%s'" % [machine_id, recipe_id])
+			return
+		var cycle_time: float = float(recipe.get("cycle_time", 5.0))
+		machine_timers[machine_key] = cycle_time
+		print("Machine production initialized: %s in facility %s (recipe: %s, cycle: %.1fs)" % [
+			machine_def.get("name", machine_type),
+			factory_id,
+			recipe.get("name", recipe_id),
+			cycle_time,
+		])
+		return
+
 	var production_data = machine_def.get("production", {})
 	if not production_data.is_empty():
 		var cycle_time = production_data.get("cycle_time", 5.0)
@@ -1045,11 +1188,16 @@ func _on_machine_placed(factory_id: String, machine_data: Dictionary) -> void:
 
 
 func _on_machine_removed(factory_id: String, machine_id: String) -> void:
-	"""Handle machine removal - cleanup timers and inventory"""
+	"""Handle machine removal - cleanup timers, inventory, and log state."""
 	var machine_key = "%s:%s" % [factory_id, machine_id]
 
 	machine_timers.erase(machine_key)
 	machine_inventories.erase(machine_key)
+	# A re-placed machine (or a new machine that happens to reuse the id)
+	# should start fresh — drop any stale state-change log key.
+	_last_log_message.erase("machine:%s:%s" % [factory_id, machine_id])
+	_last_log_message.erase("hopper:%s:%s" % [factory_id, machine_id])
+	_last_log_message.erase("depot:%s:%s" % [factory_id, machine_id])
 
 	print("Machine removed: %s from facility %s" % [machine_id, factory_id])
 

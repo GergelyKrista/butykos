@@ -345,6 +345,30 @@
 			"icon": ""
 		}
 	},
+	"water_pump": {
+		"id": "water_pump",
+		"name": "Water Pump",
+		"description": "Cheap pump that draws clean water from the ground. Always available, no input required. Feed it into a brewery's water hopper.",
+		"category": "agriculture",
+		"corp_id": "agri",
+		"size": [
+			2,
+			2
+		],
+		"cost": 200,
+		"construction_time": 1.0,
+		"maintenance_cost": 0,
+		"unlock_requirements": {},
+		"production": {
+			"output": "water",
+			"quantity": 20,
+			"cycle_time": 3.0
+		},
+		"visual": {
+			"color": "#3498db",
+			"icon": ""
+		}
+	},
 	"industrial_mill": {
 		"id": "industrial_mill",
 		"name": "Industrial Mill",

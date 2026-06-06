@@ -48,6 +48,14 @@ var mouse_grid_pos: Vector2i = Vector2i.ZERO
 var _machine_product_popup: PopupMenu = null
 var _machine_product_target_id: String = ""
 
+# Marching-arrows animation tuning for factory-interior connections —
+# mirrors network_view.gd so the two views read with the same visual
+# language. t in [0, 1] indexes a point along the connection line; arrows
+# slide along while a connection is "flowing" (source has the product to send).
+const FLOW_ARROW_SPACING: float = 0.18  # fraction of line length between arrows
+const FLOW_ARROW_SPEED: float = 0.3     # arrow positions per second
+var _animation_time: float = 0.0
+
 # ========================================
 # INITIALIZATION
 # ========================================
@@ -179,7 +187,11 @@ func _input(event: InputEvent) -> void:
 		_quick_load()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# Advance the marching-arrows animation accumulator. Used by
+	# _update_connections to slide arrows along active connection lines.
+	_animation_time += delta
+
 	# Update placement preview position
 	if placement_mode and placement_preview:
 		# Get machine size to properly center the preview
@@ -542,7 +554,9 @@ func _create_machine_visual(machine_id: String) -> void:
 func _build_machine_product_popup() -> void:
 	"""Build the right-click product selector once. Items list is the
 	full products.json (sorted by display name) so the player can wire any
-	hopper to any product, plus a "(Clear)" option at the bottom."""
+	hopper to any product, plus a "(Clear)" option at the bottom. Each
+	product entry is decorated with a small color swatch matching the
+	connection-line color so the hopper config visibly drives the flow."""
 	_machine_product_popup = PopupMenu.new()
 	_machine_product_popup.name = "MachineProductPopup"
 	# Sort by display name for predictability.
@@ -552,7 +566,8 @@ func _build_machine_product_popup() -> void:
 		entries.append({"id": String(product_id), "name": String(product_def.get("name", product_id))})
 	entries.sort_custom(func(a, b): return a.name < b.name)
 	for e in entries:
-		_machine_product_popup.add_item(e.name)
+		var swatch: Texture2D = _create_color_swatch(DataManager.get_product_color(e.id))
+		_machine_product_popup.add_icon_item(swatch, e.name)
 		# Stash the product id on the item so the picker can read it back.
 		_machine_product_popup.set_item_metadata(_machine_product_popup.item_count - 1, e.id)
 	_machine_product_popup.add_separator()
@@ -560,6 +575,21 @@ func _build_machine_product_popup() -> void:
 	_machine_product_popup.set_item_metadata(_machine_product_popup.item_count - 1, "")
 	_machine_product_popup.index_pressed.connect(_on_machine_product_picked)
 	add_child(_machine_product_popup)
+
+
+func _create_color_swatch(color: Color, px: int = 16) -> Texture2D:
+	"""Small solid-color square texture used as a popup-item icon. White
+	border edge keeps the swatch readable against any popup background."""
+	var image: Image = Image.create(px, px, false, Image.FORMAT_RGBA8)
+	image.fill(color)
+	# 1px white border for contrast.
+	for x in range(px):
+		image.set_pixel(x, 0, Color.WHITE)
+		image.set_pixel(x, px - 1, Color.WHITE)
+	for y in range(px):
+		image.set_pixel(0, y, Color.WHITE)
+		image.set_pixel(px - 1, y, Color.WHITE)
+	return ImageTexture.create_from_image(image)
 
 
 func _show_machine_product_selector(machine_id: String) -> void:
@@ -585,9 +615,9 @@ func _on_machine_config_changed(factory_id: String, machine_id: String) -> void:
 
 
 func _update_machine_config_label(machine_id: String) -> void:
-	"""Render the configured product as a small label above the machine.
-	No-op for non-IO machines and for IO machines that haven't been
-	configured yet."""
+	"""Render a small label above the machine. IO machines show their
+	configured product (or no label if unset); all other machines show
+	their type name so placed machinery is identifiable at a glance."""
 	var node: Node = machines_container.get_node_or_null(machine_id)
 	if node == null:
 		return
@@ -596,13 +626,22 @@ func _update_machine_config_label(machine_id: String) -> void:
 		return
 	var def: Dictionary = DataManager.get_machine_data(machine.type)
 	var is_io: bool = bool(def.get("is_input_node", false)) or bool(def.get("is_output_node", false))
-	# Find or create the label.
 	var label: Label = node.get_node_or_null("ConfigLabel") as Label
-	var product: String = String(machine.get("configured_product", ""))
-	if not is_io or product.is_empty():
+
+	var label_text: String = ""
+	if is_io:
+		var product: String = String(machine.get("configured_product", ""))
+		if not product.is_empty():
+			var product_def: Dictionary = DataManager.products.get(product, {})
+			label_text = String(product_def.get("name", product))
+	else:
+		label_text = String(def.get("name", machine.type))
+
+	if label_text.is_empty():
 		if label != null:
 			label.queue_free()
 		return
+
 	if label == null:
 		label = Label.new()
 		label.name = "ConfigLabel"
@@ -610,11 +649,11 @@ func _update_machine_config_label(machine_id: String) -> void:
 		label.add_theme_color_override("font_color", Color.WHITE)
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
 		label.add_theme_constant_override("outline_size", 2)
-		label.position = Vector2(0, -18)
 		label.z_index = 50
 		node.add_child(label)
-	var product_def: Dictionary = DataManager.products.get(product, {})
-	label.text = String(product_def.get("name", product))
+	label.text = label_text
+	var size: Vector2i = machine.get("size", Vector2i(1, 1))
+	label.position = Vector2(0, -size.y * FactoryManager.INTERIOR_TILE_SIZE / 2.0 - 18)
 
 
 func _create_machine_node(machine: Dictionary) -> Node2D:
@@ -652,13 +691,8 @@ func _create_machine_node(machine: Dictionary) -> Node2D:
 				)
 				node.add_child(sprite)
 
-	# Add label
-	var label = Label.new()
-	label.text = machine_def.get("name", machine.type)
-	label.position = Vector2(-FactoryManager.INTERIOR_TILE_SIZE / 2, -size.y * FactoryManager.INTERIOR_TILE_SIZE / 2 - 20)
-	label.add_theme_font_size_override("font_size", 10)
-	node.add_child(label)
-
+	# Label (machine name or configured product) is added by
+	# _update_machine_config_label after the node is mounted.
 	return node
 
 
@@ -807,69 +841,134 @@ func _cancel_demolish_mode() -> void:
 # ========================================
 
 func _update_connections() -> void:
-	"""Draw lines showing manual connections between machines"""
+	"""Redraw all manual machine-to-machine connections this frame. Lines
+	and arrows are colored by the product flowing through the connection
+	(matched to the hopper config swatches + network-view socket colors).
+	When the source machine has the product available right now, arrows
+	march along the line; otherwise a single mid-line arrow indicates the
+	connection's direction but signals "nothing flowing yet"."""
 	if not connections_renderer:
 		return
 
-	# Clear previous connections (remove all children)
 	for child in connections_renderer.get_children():
 		child.queue_free()
 
-	# Get all manual connections from FactoryManager
 	var connections = FactoryManager.get_connections(facility_id)
-
-	# Draw each connection
 	for conn in connections:
-		var from_machine_id = conn.get("from", "")
-		var to_machine_id = conn.get("to", "")
+		var from_machine_id: String = String(conn.get("from", ""))
+		var to_machine_id: String = String(conn.get("to", ""))
 
-		var from_machine = FactoryManager.get_machine(facility_id, from_machine_id)
-		var to_machine = FactoryManager.get_machine(facility_id, to_machine_id)
-
+		var from_machine: Dictionary = FactoryManager.get_machine(facility_id, from_machine_id)
+		var to_machine: Dictionary = FactoryManager.get_machine(facility_id, to_machine_id)
 		if from_machine.is_empty() or to_machine.is_empty():
 			continue
 
-		var from_pos = from_machine.get("world_pos", Vector2.ZERO)
-		var to_pos = to_machine.get("world_pos", Vector2.ZERO)
+		var from_pos: Vector2 = from_machine.get("world_pos", Vector2.ZERO)
+		var to_pos: Vector2 = to_machine.get("world_pos", Vector2.ZERO)
+		var direction: Vector2 = (to_pos - from_pos).normalized()
 
-		# Calculate direction for arrow
-		var direction = (to_pos - from_pos).normalized()
+		var product: String = _get_connection_product(from_machine_id)
+		var color: Color = DataManager.get_product_color(product)
+		var flowing: bool = _is_connection_flowing(from_machine_id, to_machine_id, product)
 
-		_draw_connection_line(from_pos, to_pos, direction)
+		_draw_connection_line(from_pos, to_pos, direction, color, flowing)
 
 
-func _draw_connection_line(from_pos: Vector2, to_pos: Vector2, direction: Vector2) -> void:
-	"""Draw a single connection line with an arrow"""
-	var line = Line2D.new()
+func _get_connection_product(source_machine_id: String) -> String:
+	"""Return the product carried by a connection sourced at source_machine_id.
+	IO nodes carry their `configured_product`; single-input producers carry
+	their production.output; recipe-based producers carry the recipe's first
+	output. Empty string means "unknown" — connection renders in neutral gray."""
+	var machine: Dictionary = FactoryManager.get_machine(facility_id, source_machine_id)
+	if machine.is_empty():
+		return ""
+	var def: Dictionary = DataManager.get_machine_data(machine.type)
+	if def.get("is_input_node", false) or def.get("is_output_node", false):
+		return String(machine.get("configured_product", ""))
+	var production: Dictionary = def.get("production", {})
+	var output: String = String(production.get("output", ""))
+	if not output.is_empty():
+		return output
+	var recipe_id: String = String(def.get("recipe_id", ""))
+	if not recipe_id.is_empty():
+		var recipe: Dictionary = DataManager.get_recipe_data(recipe_id)
+		var outputs: Array = recipe.get("outputs", [])
+		if outputs.size() > 0:
+			return String(outputs[0].get("product", ""))
+	return ""
+
+
+func _is_connection_flowing(source_machine_id: String, dest_machine_id: String, product: String) -> bool:
+	"""True iff product can actually move on this connection right now.
+	Requires BOTH (a) the source has the product (facility inventory for
+	Input Hoppers, machine inventory otherwise) AND (b) the destination has
+	buffer room — Output Depots write to facility inventory which is
+	unbounded so they always have room. When the destination buffer is
+	full, the arrows stop marching so the player can see exactly where the
+	chain is stalled."""
+	if product.is_empty():
+		return false
+	var source_machine: Dictionary = FactoryManager.get_machine(facility_id, source_machine_id)
+	if source_machine.is_empty():
+		return false
+	var src_def: Dictionary = DataManager.get_machine_data(source_machine.type)
+
+	# Source has product?
+	var has_product: bool
+	if src_def.get("is_input_node", false):
+		has_product = ProductionManager.get_inventory_item(facility_id, product) > 0
+	else:
+		has_product = ProductionManager.get_machine_inventory_item(facility_id, source_machine_id, product) > 0
+	if not has_product:
+		return false
+
+	# Destination has room? Output Depots feed the unbounded facility
+	# inventory so they're always a valid sink.
+	var dest_machine: Dictionary = FactoryManager.get_machine(facility_id, dest_machine_id)
+	if dest_machine.is_empty():
+		return false
+	var dst_def: Dictionary = DataManager.get_machine_data(dest_machine.type)
+	if dst_def.get("is_output_node", false):
+		return true
+	return ProductionManager._machine_remaining_capacity(facility_id, dest_machine_id, product) > 0
+
+
+func _draw_connection_line(from_pos: Vector2, to_pos: Vector2, direction: Vector2, color: Color, flowing: bool) -> void:
+	"""Draw a line + arrow(s) for one connection. Color encodes the product;
+	`flowing` toggles between marching arrows and a single idle arrow."""
+	var line := Line2D.new()
 	line.width = 3.0
-	line.default_color = Color(0.3, 0.8, 1.0, 0.8)  # Light blue
+	# Slightly more saturated/transparent line vs. arrow body so the arrows
+	# pop on top of the line in the same hue.
+	line.default_color = Color(color.r, color.g, color.b, 0.75)
 	line.add_point(from_pos)
 	line.add_point(to_pos)
 	connections_renderer.add_child(line)
 
-	# Draw arrow at midpoint
-	var midpoint = (from_pos + to_pos) / 2.0
-	var arrow = _create_arrow(midpoint, direction)
-	connections_renderer.add_child(arrow)
+	var arrow_size: float = 12.0
+	if flowing:
+		var t_offset: float = fposmod(_animation_time * FLOW_ARROW_SPEED, FLOW_ARROW_SPACING)
+		var t: float = t_offset
+		while t < 1.0:
+			var arrow := _create_arrow(from_pos.lerp(to_pos, t), direction, color, arrow_size)
+			connections_renderer.add_child(arrow)
+			t += FLOW_ARROW_SPACING
+	else:
+		var arrow := _create_arrow(from_pos.lerp(to_pos, 0.7), direction, color, arrow_size)
+		connections_renderer.add_child(arrow)
 
 
-func _create_arrow(position: Vector2, direction: Vector2) -> Polygon2D:
-	"""Create an arrow polygon pointing in the given direction"""
-	var arrow = Polygon2D.new()
-	arrow.color = Color(1.0, 0.8, 0.2, 0.9)  # Orange/yellow
+func _create_arrow(position: Vector2, direction: Vector2, color: Color, size: float = 12.0) -> Polygon2D:
+	"""Triangle pointing along `direction`, colored to match the line."""
+	var arrow := Polygon2D.new()
+	arrow.color = color
 	arrow.position = position
 
-	# Arrow size
-	var arrow_size = 12.0
-
-	# Create arrow shape (triangle pointing in direction)
-	var angle = atan2(direction.y, direction.x)
-	var tip = Vector2(arrow_size, 0).rotated(angle)
-	var left = Vector2(-arrow_size / 2, -arrow_size / 2).rotated(angle)
-	var right = Vector2(-arrow_size / 2, arrow_size / 2).rotated(angle)
-
+	var angle: float = atan2(direction.y, direction.x)
+	var tip: Vector2 = Vector2(size, 0).rotated(angle)
+	var left: Vector2 = Vector2(-size / 2, -size / 2).rotated(angle)
+	var right: Vector2 = Vector2(-size / 2, size / 2).rotated(angle)
 	arrow.polygon = PackedVector2Array([tip, left, right])
-
 	return arrow
 
 

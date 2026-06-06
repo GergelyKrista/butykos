@@ -26,6 +26,52 @@ const RECIPES_FILE = DATA_DIR + "recipes.json"
 const MACHINES_FILE = DATA_DIR + "machines.json"
 const ROADS_FILE = DATA_DIR + "roads.json"
 
+# Per-product color palette. Single source of truth for the logistics network
+# view (socket + connection lines), the factory interior (connection lines +
+# hopper-config popup icons), and any future UI that needs to color-code
+# products. Picked to read at a glance: barley golden, hops vibrant green,
+# water blue, finished beers warm gold. Unknown products fall back to a
+# hash-derived hue in `get_product_color`.
+const PRODUCT_COLORS: Dictionary = {
+	# Raw crops
+	"barley": Color("#d4a017"),
+	"hops": Color("#5fb84a"),
+	"wheat": Color("#deb054"),
+	"corn": Color("#f1c40f"),
+	"grapes": Color("#722f7a"),
+	"water": Color("#3498db"),
+	"bottles": Color("#a0d8e8"),
+	# Intermediates (general)
+	"malt": Color("#a05a2c"),
+	"mash": Color("#7d5a3a"),
+	"fermented_wash": Color("#9c6b3a"),
+	"raw_spirit": Color("#dcdcdc"),
+	# Intermediates (lager chain, slice 3.x)
+	"grist": Color("#c8a060"),
+	"wort": Color("#d49850"),
+	"boiled_wort": Color("#b87a3a"),
+	"cleaned_wort": Color("#e0a460"),
+	"cooled_wort": Color("#dca858"),
+	"green_beer": Color("#c8d650"),
+	"matured_beer": Color("#d8b850"),
+	"finished_beer": Color("#e8c060"),
+	# Beers
+	"ale": Color("#c1853b"),
+	"packaged_ale": Color("#c1853b"),
+	"lager": Color("#e8c060"),
+	"wheat_beer": Color("#f0d080"),
+	"stout": Color("#3a2418"),
+	"porter": Color("#4a2e1d"),
+	# Spirits / aged
+	"whiskey": Color("#8b4513"),
+	"vodka": Color("#e8e8e8"),
+	"premium_whiskey": Color("#a0522d"),
+	"aged_spirit": Color("#9c6b3a"),
+	"wine": Color("#722f37"),
+	"reserve_25_year": Color("#5c2818"),
+	"limited_edition": Color("#8a4a78"),
+}
+
 # ========================================
 # INITIALIZATION
 # ========================================
@@ -79,6 +125,18 @@ func get_machine_data(machine_id: String) -> Dictionary:
 func get_road_data(road_id: String) -> Dictionary:
 	"""Get road definition by ID"""
 	return roads.get(road_id, {})
+
+
+func get_product_color(product_id: String) -> Color:
+	"""Stable per-product color. Hits PRODUCT_COLORS for curated products;
+	unknown products fall through to a hash-derived hue so new content
+	doesn't crash here — when it ships, add the proper color to the map."""
+	if product_id.is_empty():
+		return Color(0.5, 0.5, 0.5)
+	if PRODUCT_COLORS.has(product_id):
+		return PRODUCT_COLORS[product_id]
+	var h: float = float(absi(product_id.hash()) % 360) / 360.0
+	return Color.from_hsv(h, 0.55, 0.92)
 
 
 func get_all_roads() -> Dictionary:

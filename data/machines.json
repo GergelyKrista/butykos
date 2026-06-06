@@ -33,31 +33,6 @@
 		],
 		"recipe_id": "mash_tun_lager"
 	},
-	"fermentation_vat": {
-		"name": "Fermentation Vat",
-		"description": "Ferments mash into beer or wash",
-		"category": "brewing",
-		"size": [
-			2,
-			3
-		],
-		"cost": 500,
-		"visual": {
-			"color": "#DAA520",
-			"sprite": "res://assets/machines/fermentation_vat.png"
-		},
-		"production": {
-			"input": "mash",
-			"input_quantity": 4,
-			"output": "fermented_wash",
-			"quantity": 3,
-			"cycle_time": 8.0
-		},
-		"requires_facility": [
-			"brewery",
-			"distillery"
-		]
-	},
 	"distillation_column": {
 		"name": "Distillation Column",
 		"description": "Distills wash into spirits",
