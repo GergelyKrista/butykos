@@ -253,35 +253,48 @@ func _draw_connections() -> void:
 		if not facility_nodes.has(source_id) or not facility_nodes.has(dest_id):
 			continue
 
-		# Line terminates at the matching product's socket (or first socket as
-		# fallback; box edge midpoint if neither side has sockets yet).
+		# Line terminates at the matching product's socket if the side has
+		# one currently, else at the box edge midpoint (a "broken" attachment).
 		var product: String = String(connection.get("product", ""))
 		var endpoints: Array = _get_connection_endpoints(source_id, dest_id, product)
 		var start_pos: Vector2 = endpoints[0]
 		var end_pos: Vector2 = endpoints[1]
 
-		# Line color matches the resource — barley lines are barley-colored,
-		# malt lines are malt-colored. Hover override stays red so deletion
-		# target is unambiguous.
-		var color: Color = _socket_color_for(product)
+		# Broken connections (source no longer produces the product) render
+		# as dashed gray so the Logistics player can spot routes that need
+		# troubleshooting. Hover override (red) still wins for "delete me".
+		var broken: bool = _is_connection_broken(connection)
+		var color: Color
 		if hovered_connection == connection.id:
 			color = CONNECTION_HOVER_COLOR
+		elif broken:
+			color = Color(0.6, 0.6, 0.6, 0.7)
+		else:
+			# Line color = the source's actually-carried product. Same hash
+			# palette as the sockets, so barley lines look barley etc.
+			color = _socket_color_for(product)
 
-		draw_line(start_pos, end_pos, color, 3.0 / canvas_zoom)
+		var line_w: float = 3.0 / canvas_zoom
+		if broken:
+			# `draw_dashed_line` makes the brokenness instantly readable.
+			draw_dashed_line(start_pos, end_pos, color, line_w, 8.0 / canvas_zoom, true)
+		else:
+			draw_line(start_pos, end_pos, color, line_w)
 
 		# Arrow head — sized in canvas-space, divide by zoom so it stays
-		# visually constant on screen.
-		var direction: Vector2 = (end_pos - start_pos).normalized()
-		var arrow_pos: Vector2 = start_pos.lerp(end_pos, 0.7)
-		var perpendicular := Vector2(-direction.y, direction.x)
-		var arrow_size: float = 8.0 / canvas_zoom
-
-		var arrow_points := PackedVector2Array([
-			arrow_pos + direction * arrow_size,
-			arrow_pos - direction * arrow_size * 0.5 + perpendicular * arrow_size * 0.6,
-			arrow_pos - direction * arrow_size * 0.5 - perpendicular * arrow_size * 0.6,
-		])
-		draw_polygon(arrow_points, [color])
+		# visually constant on screen. Skipped for broken connections
+		# (line itself already reads as "something's off here").
+		if not broken:
+			var direction: Vector2 = (end_pos - start_pos).normalized()
+			var arrow_pos: Vector2 = start_pos.lerp(end_pos, 0.7)
+			var perpendicular := Vector2(-direction.y, direction.x)
+			var arrow_size: float = 8.0 / canvas_zoom
+			var arrow_points := PackedVector2Array([
+				arrow_pos + direction * arrow_size,
+				arrow_pos - direction * arrow_size * 0.5 + perpendicular * arrow_size * 0.6,
+				arrow_pos - direction * arrow_size * 0.5 - perpendicular * arrow_size * 0.6,
+			])
+			draw_polygon(arrow_points, [color])
 
 
 func _draw_facility_nodes() -> void:
@@ -327,7 +340,7 @@ func _draw_facility_nodes() -> void:
 		# IO sockets — inputs on the left edge, outputs on the right edge.
 		# Both sides start one row-half below the header so they're vertically
 		# centered within their row.
-		var io: Dictionary = _get_node_io(facility_id)
+		var io: Dictionary = get_node_io(facility_id)
 
 		# Empty box → render an italic-feeling status hint so the player knows
 		# WHY there are no sockets (farmhouse: no production; brewery: no
@@ -363,7 +376,7 @@ func _draw_facility_nodes() -> void:
 # NODE GEOMETRY + IO HELPERS
 # ========================================
 
-func _get_node_io(facility_id: String) -> Dictionary:
+func get_node_io(facility_id: String) -> Dictionary:
 	"""Return { inputs: Array[String], outputs: Array[String] } for a facility.
 
 	Slice 2.1 sources:
@@ -434,7 +447,7 @@ func _get_inactive_reason(facility_id: String) -> String:
 	"""Human-readable status string for a node that has no IO sockets.
 	Empty string means the node is producing / has sockets and no overlay
 	is needed."""
-	var io: Dictionary = _get_node_io(facility_id)
+	var io: Dictionary = get_node_io(facility_id)
 	if io.inputs.size() > 0 or io.outputs.size() > 0:
 		return ""
 	var facility: Dictionary = WorldManager.get_facility(facility_id)
@@ -452,7 +465,7 @@ func _get_node_box_size(facility_id: String) -> Vector2:
 	"""Box height grows with the max(inputs, outputs) socket count so all
 	sockets fit. Minimum one row's worth so empty boxes still look like
 	boxes."""
-	var io: Dictionary = _get_node_io(facility_id)
+	var io: Dictionary = get_node_io(facility_id)
 	var rows: int = maxi(maxi(io.inputs.size(), io.outputs.size()), 1)
 	var body_height: float = BOX_HEADER_HEIGHT + float(rows) * BOX_SOCKET_ROW_HEIGHT + BOX_PADDING_BOTTOM
 	return Vector2(BOX_WIDTH, body_height)
@@ -483,32 +496,42 @@ func _get_output_socket_pos(facility_id: String, index: int) -> Vector2:
 
 
 func _get_connection_endpoints(source_id: String, dest_id: String, product: String) -> Array:
-	"""Return [source_socket_pos, dest_socket_pos]. Picks the source's matching
-	output socket and the dest's matching input socket by product. Falls back
-	to the first socket if no match, and to the box's right-/left-edge midpoint
-	if a side has no sockets at all (e.g. farmhouse → mill before the design
-	doc's IO-from-machine-state slice lands)."""
-	var src_io: Dictionary = _get_node_io(source_id)
-	var dst_io: Dictionary = _get_node_io(dest_id)
+	"""Return [source_pos, dest_pos] for the line endpoints. Attaches to the
+	matching product's socket if the side currently exposes one. Falls back
+	to the box's right-/left-edge midpoint if no matching socket exists —
+	this makes "broken" connections (source no longer produces the product,
+	dest no longer accepts it) visually obvious instead of silently
+	re-attaching to the wrong socket as the IO list shifts."""
+	var src_io: Dictionary = get_node_io(source_id)
+	var dst_io: Dictionary = get_node_io(dest_id)
 	var src_pos: Vector2
-	if src_io.outputs.is_empty():
+	var src_idx: int = src_io.outputs.find(product)
+	if src_idx >= 0:
+		src_pos = _get_output_socket_pos(source_id, src_idx)
+	else:
+		# Broken on source side — attach to box right-edge midpoint.
 		var r: Rect2 = _get_node_rect(source_id)
 		src_pos = Vector2(r.position.x + r.size.x, r.position.y + r.size.y / 2.0)
-	else:
-		var sidx: int = src_io.outputs.find(product)
-		if sidx < 0:
-			sidx = 0
-		src_pos = _get_output_socket_pos(source_id, sidx)
 	var dst_pos: Vector2
-	if dst_io.inputs.is_empty():
+	var dst_idx: int = dst_io.inputs.find(product)
+	if dst_idx >= 0:
+		dst_pos = _get_input_socket_pos(dest_id, dst_idx)
+	else:
+		# Broken on dest side — attach to box left-edge midpoint.
 		var r2: Rect2 = _get_node_rect(dest_id)
 		dst_pos = Vector2(r2.position.x, r2.position.y + r2.size.y / 2.0)
-	else:
-		var didx: int = dst_io.inputs.find(product)
-		if didx < 0:
-			didx = 0
-		dst_pos = _get_input_socket_pos(dest_id, didx)
 	return [src_pos, dst_pos]
+
+
+func _is_connection_broken(connection: Dictionary) -> bool:
+	"""A connection is "broken" if its routed product is not currently in
+	the source's outputs (the source no longer produces it). Player needs
+	to troubleshoot: assign the right crop, place hopper, etc."""
+	var product: String = String(connection.get("product", ""))
+	if product.is_empty():
+		return true
+	var src_io: Dictionary = get_node_io(String(connection.get("source_id", "")))
+	return not (product in src_io.outputs)
 
 
 func _socket_color_for(product: String) -> Color:
