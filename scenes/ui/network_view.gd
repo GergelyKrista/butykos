@@ -16,10 +16,26 @@ extends Control
 ##     canvas-space; rendering applies the canvas → view transform via
 ##     `draw_set_transform`, and hit-tests invert it.
 ##
+## Slice-2.0 box nodes + IO sockets (2026-06-05 evening, third pass):
+##   - Nodes are boxes (Blender / Unreal-style) with a header showing the
+##     facility name, input sockets stacked on the left edge, output
+##     sockets stacked on the right edge.
+##   - IO is currently derived from facility data's `production.input` /
+##     `production.output` block. Facilities without a production block
+##     (farmhouse, storage_warehouse) render as empty boxes — placeholder
+##     until slice-2.1 reads Input Hopper / Output Depot state from
+##     FactoryManager and lets sockets sprout per actual machine config.
+##   - Connection lines now terminate at the matching product's input /
+##     output socket (falls back to the first socket if no match, and to
+##     box-edge midpoint when a side has no sockets).
+##   - Hit-testing for node bodies is now Rect2.has_point instead of
+##     circle distance.
+##
 ## Future slices (memory: Drinkustry logistics node-editor vision):
-##   - IO sockets reflecting Input Hopper / Output Depot state
-##   - Group/annotate nodes
-##   - Per-connection throughput control
+##   - 2.1 — sockets driven by Input Hopper / Output Depot state inside
+##     factories (Industrial-player edits propagate to Logistics view)
+##   - 3 — group + annotate nodes, infinite-canvas niceties
+##   - 4 — per-connection throughput control
 
 signal facility_clicked(facility_id: String)
 signal facility_drag_started(facility_id: String)
@@ -29,6 +45,15 @@ signal connection_right_clicked(connection_id: String)
 const NODE_RADIUS: float = 22.0
 const LABEL_FONT_SIZE: int = 12
 const LABEL_OFFSET_Y: float = NODE_RADIUS + 14.0  # gap between node bottom and label baseline
+
+# Slice-2 box geometry — all values in CANVAS-SPACE units.
+const BOX_WIDTH: float = 140.0
+const BOX_HEADER_HEIGHT: float = 22.0
+const BOX_SOCKET_ROW_HEIGHT: float = 18.0
+const BOX_PADDING_BOTTOM: float = 6.0
+const SOCKET_RADIUS: float = 5.0
+const SOCKET_LABEL_FONT_SIZE: int = 10
+const BOX_HEADER_DIVIDER_COLOR: Color = Color(1.0, 1.0, 1.0, 0.3)
 
 # Canvas zoom range. 1.0 = "natural" size; 0.25 = quarter scale (overview);
 # 4.0 = 4x in for fine placement of nodes.
@@ -215,8 +240,12 @@ func _draw_connections() -> void:
 		if not facility_nodes.has(source_id) or not facility_nodes.has(dest_id):
 			continue
 
-		var start_pos: Vector2 = facility_nodes[source_id]
-		var end_pos: Vector2 = facility_nodes[dest_id]
+		# Line terminates at the matching product's socket (or first socket as
+		# fallback; box edge midpoint if neither side has sockets yet).
+		var product: String = String(connection.get("product", ""))
+		var endpoints: Array = _get_connection_endpoints(source_id, dest_id, product)
+		var start_pos: Vector2 = endpoints[0]
+		var end_pos: Vector2 = endpoints[1]
 
 		var color: Color = CONNECTION_HOVER_COLOR if hovered_connection == connection.id else CONNECTION_COLOR
 
@@ -239,32 +268,161 @@ func _draw_connections() -> void:
 
 func _draw_facility_nodes() -> void:
 	var font: Font = ThemeDB.fallback_font
-	# Node and label sizes are constants in canvas-space; everything still
-	# scales naturally with zoom.
 	for facility_id in facility_nodes:
 		var pos: Vector2 = facility_nodes[facility_id]
 		var facility: Dictionary = WorldManager.get_facility(facility_id)
 		if facility.is_empty():
 			continue
+		var def: Dictionary = DataManager.get_facility_data(facility.type)
+		var rect: Rect2 = _get_node_rect(facility_id)
 
+		# Body color (with hover / drag tints).
 		var color: Color = NODE_COLORS.get(facility.type, NODE_COLORS["default"])
-
 		if hovered_facility == facility_id:
 			color = color.lightened(0.3)
 		if drag_start_facility == facility_id:
 			color = Color(0.3, 0.6, 0.95) if is_moving else Color(0.3, 0.8, 0.3)
 
-		draw_circle(pos, NODE_RADIUS, color)
-		draw_arc(pos, NODE_RADIUS, 0.0, TAU, 32, Color.WHITE, 2.0 / canvas_zoom)
+		# Box body + border. Border width is divided by zoom so it stays
+		# visually constant.
+		draw_rect(rect, color, true)
+		draw_rect(rect, Color.WHITE, false, 2.0 / canvas_zoom)
 
-		# Facility name label centered below the node.
-		var def: Dictionary = DataManager.get_facility_data(facility.type)
+		# Header divider between title and socket rows.
+		var header_y: float = rect.position.y + BOX_HEADER_HEIGHT
+		draw_line(
+			Vector2(rect.position.x, header_y),
+			Vector2(rect.position.x + rect.size.x, header_y),
+			BOX_HEADER_DIVIDER_COLOR,
+			1.0 / canvas_zoom,
+		)
+
+		# Centered title in the header strip.
 		var name_text: String = String(def.get("name", facility.type))
-		var text_size: Vector2 = font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE)
-		var label_pos := Vector2(pos.x - text_size.x / 2.0, pos.y + LABEL_OFFSET_Y)
-		# Soft drop shadow for readability over any background.
-		draw_string(font, label_pos + Vector2(1, 1), name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, Color(0, 0, 0, 0.7))
-		draw_string(font, label_pos, name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, Color.WHITE)
+		var title_size: Vector2 = font.get_string_size(name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE)
+		var title_pos := Vector2(pos.x - title_size.x / 2.0, rect.position.y + BOX_HEADER_HEIGHT - 6.0)
+		draw_string(font, title_pos + Vector2(1, 1), name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, Color(0, 0, 0, 0.7))
+		draw_string(font, title_pos, name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, Color.WHITE)
+
+		# IO sockets — inputs on the left edge, outputs on the right edge.
+		# Both sides start one row-half below the header so they're vertically
+		# centered within their row.
+		var io: Dictionary = _get_node_io(facility_id)
+		for i in range(io.inputs.size()):
+			var socket_pos: Vector2 = _get_input_socket_pos(facility_id, i)
+			var socket_color: Color = _socket_color_for(io.inputs[i])
+			draw_circle(socket_pos, SOCKET_RADIUS, socket_color)
+			draw_arc(socket_pos, SOCKET_RADIUS, 0.0, TAU, 16, Color.WHITE, 1.0 / canvas_zoom)
+			# Product label, left-aligned inside the box.
+			var in_lbl_pos := Vector2(socket_pos.x + SOCKET_RADIUS + 4.0, socket_pos.y + 3.0)
+			draw_string(font, in_lbl_pos, io.inputs[i], HORIZONTAL_ALIGNMENT_LEFT, -1, SOCKET_LABEL_FONT_SIZE, Color(1, 1, 1, 0.85))
+		for i in range(io.outputs.size()):
+			var socket_pos2: Vector2 = _get_output_socket_pos(facility_id, i)
+			var socket_color2: Color = _socket_color_for(io.outputs[i])
+			draw_circle(socket_pos2, SOCKET_RADIUS, socket_color2)
+			draw_arc(socket_pos2, SOCKET_RADIUS, 0.0, TAU, 16, Color.WHITE, 1.0 / canvas_zoom)
+			# Product label, right-aligned inside the box.
+			var out_lbl_size: Vector2 = font.get_string_size(io.outputs[i], HORIZONTAL_ALIGNMENT_LEFT, -1, SOCKET_LABEL_FONT_SIZE)
+			var out_lbl_pos := Vector2(socket_pos2.x - SOCKET_RADIUS - 4.0 - out_lbl_size.x, socket_pos2.y + 3.0)
+			draw_string(font, out_lbl_pos, io.outputs[i], HORIZONTAL_ALIGNMENT_LEFT, -1, SOCKET_LABEL_FONT_SIZE, Color(1, 1, 1, 0.85))
+
+
+# ========================================
+# NODE GEOMETRY + IO HELPERS
+# ========================================
+
+func _get_node_io(facility_id: String) -> Dictionary:
+	"""Return { inputs: Array[String], outputs: Array[String] } for a facility.
+	Slice 2.0: derived from facility data's `production` block (one input
+	and one output if present). Slice 2.1 will read actual Input Hopper and
+	Output Depot placements from FactoryManager and reflect those instead."""
+	var facility: Dictionary = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return {"inputs": [], "outputs": []}
+	var def: Dictionary = DataManager.get_facility_data(facility.type)
+	var production: Dictionary = def.get("production", {})
+	var inputs: Array[String] = []
+	var outputs: Array[String] = []
+	var inp: String = String(production.get("input", ""))
+	if not inp.is_empty():
+		inputs.append(inp)
+	var out: String = String(production.get("output", ""))
+	if not out.is_empty():
+		outputs.append(out)
+	return {"inputs": inputs, "outputs": outputs}
+
+
+func _get_node_box_size(facility_id: String) -> Vector2:
+	"""Box height grows with the max(inputs, outputs) socket count so all
+	sockets fit. Minimum one row's worth so empty boxes still look like
+	boxes."""
+	var io: Dictionary = _get_node_io(facility_id)
+	var rows: int = maxi(maxi(io.inputs.size(), io.outputs.size()), 1)
+	var body_height: float = BOX_HEADER_HEIGHT + float(rows) * BOX_SOCKET_ROW_HEIGHT + BOX_PADDING_BOTTOM
+	return Vector2(BOX_WIDTH, body_height)
+
+
+func _get_node_rect(facility_id: String) -> Rect2:
+	"""Canvas-space rect of the node box. `facility_nodes[id]` is treated as
+	the box CENTER so dragging behaves naturally (cursor stays in the middle
+	of the box)."""
+	var center: Vector2 = facility_nodes.get(facility_id, Vector2.ZERO)
+	var box_size: Vector2 = _get_node_box_size(facility_id)
+	return Rect2(center - box_size / 2.0, box_size)
+
+
+func _socket_y_for(facility_id: String, index: int) -> float:
+	var rect: Rect2 = _get_node_rect(facility_id)
+	return rect.position.y + BOX_HEADER_HEIGHT + BOX_SOCKET_ROW_HEIGHT / 2.0 + float(index) * BOX_SOCKET_ROW_HEIGHT
+
+
+func _get_input_socket_pos(facility_id: String, index: int) -> Vector2:
+	var rect: Rect2 = _get_node_rect(facility_id)
+	return Vector2(rect.position.x, _socket_y_for(facility_id, index))
+
+
+func _get_output_socket_pos(facility_id: String, index: int) -> Vector2:
+	var rect: Rect2 = _get_node_rect(facility_id)
+	return Vector2(rect.position.x + rect.size.x, _socket_y_for(facility_id, index))
+
+
+func _get_connection_endpoints(source_id: String, dest_id: String, product: String) -> Array:
+	"""Return [source_socket_pos, dest_socket_pos]. Picks the source's matching
+	output socket and the dest's matching input socket by product. Falls back
+	to the first socket if no match, and to the box's right-/left-edge midpoint
+	if a side has no sockets at all (e.g. farmhouse → mill before the design
+	doc's IO-from-machine-state slice lands)."""
+	var src_io: Dictionary = _get_node_io(source_id)
+	var dst_io: Dictionary = _get_node_io(dest_id)
+	var src_pos: Vector2
+	if src_io.outputs.is_empty():
+		var r: Rect2 = _get_node_rect(source_id)
+		src_pos = Vector2(r.position.x + r.size.x, r.position.y + r.size.y / 2.0)
+	else:
+		var sidx: int = src_io.outputs.find(product)
+		if sidx < 0:
+			sidx = 0
+		src_pos = _get_output_socket_pos(source_id, sidx)
+	var dst_pos: Vector2
+	if dst_io.inputs.is_empty():
+		var r2: Rect2 = _get_node_rect(dest_id)
+		dst_pos = Vector2(r2.position.x, r2.position.y + r2.size.y / 2.0)
+	else:
+		var didx: int = dst_io.inputs.find(product)
+		if didx < 0:
+			didx = 0
+		dst_pos = _get_input_socket_pos(dest_id, didx)
+	return [src_pos, dst_pos]
+
+
+func _socket_color_for(product: String) -> Color:
+	"""Stable color per product, derived from product-name hash. Future slice
+	will swap this for a real per-product palette tied to the products.json
+	data when colors get art-directed."""
+	if product.is_empty():
+		return Color(0.5, 0.5, 0.5)
+	var h: float = float(absi(product.hash()) % 360) / 360.0
+	return Color.from_hsv(h, 0.55, 0.92)
 
 
 # ========================================
@@ -305,9 +463,9 @@ func update_facility_positions() -> void:
 	world_bounds = Rect2(min_pos, max_pos - min_pos)
 
 	# `view_bounds` defines the auto-layout target in canvas-space (NOT
-	# view-space — canvas-space is the editor's "world"). Same numerical
-	# value as the control's size minus a NODE_RADIUS padding.
-	var padding: float = NODE_RADIUS + 10.0
+	# view-space — canvas-space is the editor's "world"). Pad by half a box
+	# so the auto-laid-out boxes don't clip the control's edge.
+	var padding: float = BOX_WIDTH / 2.0 + 10.0
 	view_bounds = Rect2(Vector2(padding, padding), size - Vector2(padding * 2.0, padding * 2.0))
 
 	for facility in facilities:
@@ -332,7 +490,8 @@ func _world_to_panel(world_pos: Vector2) -> Vector2:
 func get_facility_at_pos(view_pos: Vector2) -> String:
 	var canvas_pos: Vector2 = _view_to_canvas(view_pos)
 	for facility_id in facility_nodes:
-		if canvas_pos.distance_to(facility_nodes[facility_id]) <= NODE_RADIUS:
+		var rect: Rect2 = _get_node_rect(facility_id)
+		if rect.has_point(canvas_pos):
 			return facility_id
 	return ""
 
@@ -342,12 +501,11 @@ func get_connection_at_pos(view_pos: Vector2) -> String:
 	for connection in LogisticsManager.connections.values():
 		if not facility_nodes.has(connection.source_id) or not facility_nodes.has(connection.destination_id):
 			continue
-		var start_pos: Vector2 = facility_nodes[connection.source_id]
-		var end_pos: Vector2 = facility_nodes[connection.destination_id]
-		# Distance threshold is in canvas-space; divide by zoom is NOT needed
-		# because the threshold scales naturally with how close the click
-		# lands in canvas-space.
-		if _point_to_line_distance(canvas_pos, start_pos, end_pos) < 10.0:
+		var product: String = String(connection.get("product", ""))
+		var endpoints: Array = _get_connection_endpoints(connection.source_id, connection.destination_id, product)
+		# Distance threshold is in canvas-space; matches the slice-1.5
+		# behaviour — clicks scale naturally with zoom.
+		if _point_to_line_distance(canvas_pos, endpoints[0], endpoints[1]) < 10.0:
 			return connection.id
 	return ""
 
