@@ -62,12 +62,16 @@ const DRAG_LINE_COLOR: Color = Color(0.5, 0.8, 0.5, 0.6)
 # update_facility_positions(); custom positions in `_custom_positions` win.
 var facility_nodes: Dictionary = {}
 
-# Player-set positions (canvas-space), persisted across update_facility_positions
-# calls. Cleared per facility when that facility is removed.
+# Player-set positions (canvas-space). HELD BY REFERENCE TO the per-corp
+# state stored in LogisticsManager so the layout survives world_map scene
+# reloads (e.g. trips to a brewery interior) and switches per active corp.
+# Mutations propagate to LogisticsManager.network_view_state automatically.
 var _custom_positions: Dictionary = {}
 
 # Canvas view transform: canvas → view is `p * canvas_zoom + canvas_offset`.
 # Inverse (view → canvas) is `(p - canvas_offset) / canvas_zoom`.
+# Both are by-VALUE — explicit `_persist_view_transform()` writes them back
+# to LogisticsManager state after every change.
 var canvas_zoom: float = 1.0
 var canvas_offset: Vector2 = Vector2.ZERO
 
@@ -99,6 +103,47 @@ func _ready() -> void:
 	# be visually loose AND uninteractable (clicks land on whatever is
 	# behind them, not the node).
 	clip_contents = true
+
+	# Adopt the per-corp view state from LogisticsManager so the layout
+	# survives scene reloads (factory interior trips) and swaps per active
+	# corp. Listen for live corp switches so we can swap state without
+	# requiring the panel to be closed and reopened.
+	EventBus.active_corp_changed.connect(_on_active_corp_changed_swap_state)
+	_adopt_state_for_corp(GameManager.active_corp_id)
+
+
+func _adopt_state_for_corp(corp_id: String) -> void:
+	"""Bind the local view state to the per-corp record kept on
+	LogisticsManager. _custom_positions is held by reference so future
+	mutations write through; canvas_zoom/canvas_offset are by value (use
+	_persist_view_transform after changes)."""
+	var state: Dictionary = LogisticsManager.get_network_view_state_for_corp(corp_id)
+	_custom_positions = state.custom_positions
+	canvas_zoom = state.canvas_zoom
+	canvas_offset = state.canvas_offset
+
+
+func _persist_view_transform() -> void:
+	"""Write canvas_zoom + canvas_offset back to LogisticsManager for the
+	current corp. _custom_positions is already a by-ref alias so it's
+	always in sync."""
+	var state: Dictionary = LogisticsManager.get_network_view_state_for_corp(GameManager.active_corp_id)
+	state.canvas_zoom = canvas_zoom
+	state.canvas_offset = canvas_offset
+
+
+func _on_active_corp_changed_swap_state(old_corp_id: String, new_corp_id: String) -> void:
+	"""Save the outgoing corp's zoom/offset, then swap in the new corp's
+	state and re-lay out. _custom_positions is by-ref so the outgoing
+	corp's positions are already saved."""
+	if old_corp_id == new_corp_id:
+		return
+	var old_state: Dictionary = LogisticsManager.get_network_view_state_for_corp(old_corp_id)
+	old_state.canvas_zoom = canvas_zoom
+	old_state.canvas_offset = canvas_offset
+	_adopt_state_for_corp(new_corp_id)
+	update_facility_positions()
+	queue_redraw()
 
 
 # ========================================
@@ -330,6 +375,7 @@ func _zoom_at(view_point: Vector2, zoom_factor: float) -> void:
 		return
 	canvas_zoom = new_zoom
 	canvas_offset = view_point - canvas_point_before * canvas_zoom
+	_persist_view_transform()
 	queue_redraw()
 
 
@@ -346,6 +392,7 @@ func _update_pan(view_pos: Vector2) -> void:
 
 func _end_pan() -> void:
 	is_panning = false
+	_persist_view_transform()
 
 
 # ========================================
