@@ -209,16 +209,21 @@ func _create_machine_menu() -> void:
 	var machines = DataManager.get_machines_for_facility(facility_type)
 	print("Found %d machines for %s" % [machines.size(), facility_type])
 
-	# Group machines by category (only unlocked ones)
+	# Group machines by category (only unlocked + non-hidden ones)
 	var categories = {}
 	var unlocked_count = 0
 	for machine_id in machines:
+		var machine_def = machines[machine_id]
+		# Hide machines tagged out of the menu (slice-3 design doc §4:
+		# Market Outlet / Water Pump / Steam Boiler are placeholders that
+		# stay in data for save-compat but should not be placeable).
+		if machine_def.get("hidden_from_build_menu", false):
+			continue
 		# Filter by research unlock
 		if not ResearchManager.is_machine_unlocked(machine_id):
 			continue
 
 		unlocked_count += 1
-		var machine_def = machines[machine_id]
 		var category = machine_def.get("category", "other")
 		if not categories.has(category):
 			categories[category] = []
