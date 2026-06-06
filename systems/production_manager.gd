@@ -745,96 +745,78 @@ func _update_io_nodes(delta: float) -> void:
 
 
 func _process_input_hopper(facility_id: String, hopper: Dictionary) -> void:
-	"""Input hopper pulls materials from facility inventory and distributes to connected machines"""
+	"""Input hopper pulls ITS configured product from facility inventory and
+	distributes to connected machines. Slice 3.2: hoppers are explicit about
+	what they carry — an unconfigured hopper is a no-op. (Old behavior was
+	to introspect the connected machine's `production.input`; that breaks
+	for multi-input machines and made the player powerless to pick what
+	flowed where.)"""
 
-	var hopper_id = hopper.get("id", "")
+	var hopper_id: String = hopper.get("id", "")
+	var configured: String = String(hopper.get("configured_product", ""))
+	if configured.is_empty():
+		return
 
-	# Get all connections FROM this input hopper
 	var connections = FactoryManager.get_connections_from(facility_id, hopper_id)
 	if connections.is_empty():
 		return
 
-	# For each connected machine, check what it needs
+	# Push the configured product to each connected machine in turn until
+	# facility stock runs out for this cycle. The destination machine just
+	# accepts whatever it's given — if the player wired it wrong (hopper of
+	# hops feeding a machine that wants malt) the product piles up in the
+	# machine's inventory and the machine stays blocked, which is the
+	# correct "the player has work to do" feedback.
 	for conn in connections:
-		var destination_machine_id = conn.get("to", "")
+		var destination_machine_id: String = conn.get("to", "")
 		if destination_machine_id.is_empty():
 			continue
-
-		var destination_machine = FactoryManager.get_machine(facility_id, destination_machine_id)
-		if destination_machine.is_empty():
-			continue
-
-		var machine_def = DataManager.get_machine_data(destination_machine.type)
-		if machine_def.is_empty():
-			continue
-
-		var production_data = machine_def.get("production", {})
-		if production_data.is_empty():
-			continue
-
-		# Get what the connected machine needs
-		var input_product = production_data.get("input", "")
-		if input_product.is_empty():
-			continue
-
-		# Check if facility has this product
-		var facility_stock = get_inventory_item(facility_id, input_product)
+		var facility_stock: int = get_inventory_item(facility_id, configured)
 		if facility_stock <= 0:
-			continue
-
-		# Transfer from facility to connected machine
-		var transfer_amount = min(io_node_transfer_amount, facility_stock)
-		if _remove_from_inventory(facility_id, input_product, transfer_amount):
-			_add_to_machine_inventory(facility_id, destination_machine_id, input_product, transfer_amount)
-
+			return
+		var transfer_amount: int = mini(io_node_transfer_amount, facility_stock)
+		if _remove_from_inventory(facility_id, configured, transfer_amount):
+			_add_to_machine_inventory(facility_id, destination_machine_id, configured, transfer_amount)
 			print("Input Hopper: %d %s (facility → %s)" % [
 				transfer_amount,
-				input_product,
-				destination_machine_id
+				configured,
+				destination_machine_id,
 			])
 
 
 func _process_output_depot(facility_id: String, depot: Dictionary) -> void:
-	"""Output depot collects materials from connected machines and sends to facility inventory"""
+	"""Output depot pulls ITS configured product from connected source
+	machines and pushes it to the facility's inventory. Slice 3.2:
+	depots are explicit too. An unconfigured depot is a no-op."""
 
-	var depot_id = depot.get("id", "")
+	var depot_id: String = depot.get("id", "")
+	var configured: String = String(depot.get("configured_product", ""))
+	if configured.is_empty():
+		return
 
-	# Get all connections TO this output depot
 	var connections = FactoryManager.get_connections_to(facility_id, depot_id)
 	if connections.is_empty():
 		return
 
-	# Collect from each connected machine
 	for conn in connections:
-		var source_machine_id = conn.get("from", "")
+		var source_machine_id: String = conn.get("from", "")
 		if source_machine_id.is_empty():
 			continue
-
-		# Get machine's inventory
-		var machine_inventory = get_machine_inventory(facility_id, source_machine_id)
-		if machine_inventory.is_empty():
+		var machine_inventory: Dictionary = get_machine_inventory(facility_id, source_machine_id)
+		var quantity: int = int(machine_inventory.get(configured, 0))
+		if quantity <= 0:
 			continue
-
-		# Transfer all products from machine to facility
-		for product in machine_inventory.keys():
-			var quantity = machine_inventory[product]
-			if quantity <= 0:
-				continue
-
-			# Transfer up to io_node_transfer_amount
-			var transfer_amount = min(io_node_transfer_amount, quantity)
-			if _remove_from_machine_inventory(facility_id, source_machine_id, product, transfer_amount):
-				_add_to_inventory(facility_id, product, transfer_amount)
-
-				print("Output Depot: %d %s (%s → facility)" % [
-					transfer_amount,
-					product,
-					source_machine_id
-				])
-
-				# Check if product should be auto-sold
-				if auto_sell_enabled and _should_auto_sell(product):
-					_sell_product(facility_id, product, transfer_amount)
+		var transfer_amount: int = mini(io_node_transfer_amount, quantity)
+		if _remove_from_machine_inventory(facility_id, source_machine_id, configured, transfer_amount):
+			_add_to_inventory(facility_id, configured, transfer_amount)
+			print("Output Depot: %d %s (%s → facility)" % [
+				transfer_amount,
+				configured,
+				source_machine_id,
+			])
+			# Auto-sell hook preserved.
+			if auto_sell_enabled and _should_auto_sell(configured):
+				_sell_product(facility_id, configured, transfer_amount)
 
 
 func _process_market_outlet(facility_id: String, outlet: Dictionary) -> void:
