@@ -88,6 +88,42 @@ const CONNECTION_COLOR: Color = Color(0.3, 0.7, 0.3, 0.8)
 const CONNECTION_HOVER_COLOR: Color = Color(0.8, 0.3, 0.3, 0.8)
 const DRAG_LINE_COLOR: Color = Color(0.5, 0.8, 0.5, 0.6)
 
+## Explicit per-product colors. Picked to match the farm-field tints from
+## the world map (barley golden, hops vibrant green) and to be visually
+## distinct from each other for at-a-glance flow tracing. Unknown products
+## fall through to a hash-derived hue so future content doesn't crash here.
+const PRODUCT_COLORS: Dictionary = {
+	# Raw crops
+	"barley": Color("#d4a017"),        # golden — matches farm field tint
+	"hops": Color("#5fb84a"),          # vibrant green — matches farm field tint
+	"wheat": Color("#deb054"),
+	"corn": Color("#f1c40f"),
+	"grapes": Color("#722f7a"),
+	"water": Color("#3498db"),
+	# Intermediates
+	"malt": Color("#a05a2c"),
+	"mash": Color("#7d5a3a"),
+	"fermented_wash": Color("#9c6b3a"),
+	"raw_spirit": Color("#dcdcdc"),
+	# Beers
+	"ale": Color("#c1853b"),
+	"packaged_ale": Color("#c1853b"),
+	"lager": Color("#e8c060"),
+	"wheat_beer": Color("#f0d080"),
+	"stout": Color("#3a2418"),
+	"porter": Color("#4a2e1d"),
+	# Spirits / aged
+	"whiskey": Color("#8b4513"),
+	"vodka": Color("#e8e8e8"),
+	"premium_whiskey": Color("#a0522d"),
+	"aged_spirit": Color("#9c6b3a"),
+	"wine": Color("#722f37"),
+}
+
+# Marching-arrows animation tuning.
+const FLOW_ARROW_SPACING: float = 0.18  # fraction of line length between arrows
+const FLOW_ARROW_SPEED: float = 0.3     # arrow positions per second (0.0–1.0 along the line)
+
 # Node positions in CANVAS-SPACE (not view-space). Cleared and rebuilt by
 # update_facility_positions(); custom positions in `_custom_positions` win.
 var facility_nodes: Dictionary = {}
@@ -123,6 +159,10 @@ var _canvas_offset_at_pan_start: Vector2 = Vector2.ZERO
 var hovered_facility: String = ""
 var hovered_connection: String = ""
 
+# Time accumulator for the marching-arrows animation on active connections.
+# Advances in _process while the panel is visible.
+var _animation_time: float = 0.0
+
 # Bounds (used by the auto-layout fallback when no custom position exists)
 var view_bounds: Rect2 = Rect2()
 var world_bounds: Rect2 = Rect2()
@@ -153,8 +193,9 @@ func _ready() -> void:
 	set_process(true)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if is_visible_in_tree():
+		_animation_time += delta
 		queue_redraw()
 
 
@@ -289,20 +330,27 @@ func _draw_connections() -> void:
 		else:
 			draw_line(start_pos, end_pos, color, line_w)
 
-		# Arrow head — sized in canvas-space, divide by zoom so it stays
-		# visually constant on screen. Skipped for broken connections
-		# (line itself already reads as "something's off here").
+		# Arrows. Two modes:
+		#  - Active traffic (a vehicle is dispatched on this connection):
+		#    marching arrows slide along the line in flow direction,
+		#    indicating "stuff is moving right now". The animation loops
+		#    forever as long as the panel is visible and the route has
+		#    traffic.
+		#  - Idle but valid: single mid-line arrow, same as before.
+		# Skipped entirely for broken connections.
 		if not broken:
 			var direction: Vector2 = (end_pos - start_pos).normalized()
-			var arrow_pos: Vector2 = start_pos.lerp(end_pos, 0.7)
-			var perpendicular := Vector2(-direction.y, direction.x)
 			var arrow_size: float = 8.0 / canvas_zoom
-			var arrow_points := PackedVector2Array([
-				arrow_pos + direction * arrow_size,
-				arrow_pos - direction * arrow_size * 0.5 + perpendicular * arrow_size * 0.6,
-				arrow_pos - direction * arrow_size * 0.5 - perpendicular * arrow_size * 0.6,
-			])
-			draw_polygon(arrow_points, [color])
+			if _connection_has_active_traffic(String(connection.id)):
+				# Marching arrows. The offset advances over time so each
+				# arrow walks from source → dest along the line.
+				var t_offset: float = fposmod(_animation_time * FLOW_ARROW_SPEED, FLOW_ARROW_SPACING)
+				var t: float = t_offset
+				while t < 1.0:
+					_draw_directional_arrow(start_pos.lerp(end_pos, t), direction, arrow_size, color)
+					t += FLOW_ARROW_SPACING
+			else:
+				_draw_directional_arrow(start_pos.lerp(end_pos, 0.7), direction, arrow_size, color)
 
 
 func _draw_facility_nodes() -> void:
@@ -543,13 +591,39 @@ func _is_connection_broken(connection: Dictionary) -> bool:
 
 
 func _socket_color_for(product: String) -> Color:
-	"""Stable color per product, derived from product-name hash. Future slice
-	will swap this for a real per-product palette tied to the products.json
-	data when colors get art-directed."""
+	"""Stable color per product. Hits the curated PRODUCT_COLORS map for
+	all known slice-1 products (barley = golden, hops = green, etc.).
+	Falls back to a hash-derived hue for any product not yet listed —
+	when new content lands and the color matters, add it to the map."""
 	if product.is_empty():
 		return Color(0.5, 0.5, 0.5)
+	if PRODUCT_COLORS.has(product):
+		return PRODUCT_COLORS[product]
 	var h: float = float(absi(product.hash()) % 360) / 360.0
 	return Color.from_hsv(h, 0.55, 0.92)
+
+
+func _connection_has_active_traffic(connection_id: String) -> bool:
+	"""True iff at least one vehicle is currently dispatched on this
+	connection. Drives the marching-arrows animation in _draw_connections."""
+	if connection_id.is_empty():
+		return false
+	for vehicle in LogisticsManager.vehicles.values():
+		if String(vehicle.get("connection_id", "")) == connection_id:
+			return true
+	return false
+
+
+func _draw_directional_arrow(at_pos: Vector2, direction: Vector2, half_size: float, color: Color) -> void:
+	"""Filled triangle pointing along `direction`. Used by both the static
+	mid-arrow and the marching-arrows animation."""
+	var perpendicular := Vector2(-direction.y, direction.x)
+	var arrow_points := PackedVector2Array([
+		at_pos + direction * half_size,
+		at_pos - direction * half_size * 0.5 + perpendicular * half_size * 0.6,
+		at_pos - direction * half_size * 0.5 - perpendicular * half_size * 0.6,
+	])
+	draw_polygon(arrow_points, [color])
 
 
 # ========================================
