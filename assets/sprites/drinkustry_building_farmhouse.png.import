@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2dpwq168vxp1"
-path="res://.godot/imported/sprite_animation_barley_field_stage2.png-b19f05e7cb50cc1d16e7e8a2c089c9d6.ctex"
+uid="uid://cewh722hq1a0v"
+path="res://.godot/imported/drinkustry_building_farmhouse.png-d67ac38b0fcdfbac082c030144f46d40.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/animations/animation_barley_field/sprite_animation_barley_field_stage2.png"
-dest_files=["res://.godot/imported/sprite_animation_barley_field_stage2.png-b19f05e7cb50cc1d16e7e8a2c089c9d6.ctex"]
+source_file="res://assets/sprites/drinkustry_building_farmhouse.png"
+dest_files=["res://.godot/imported/drinkustry_building_farmhouse.png-d67ac38b0fcdfbac082c030144f46d40.ctex"]
 
 [params]
 
