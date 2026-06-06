@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Slice 3.3 + Buffer Caps Handover (2026-06-06)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --industrial: #f0883e;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 40px; }
+  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  h3 { font-size: 18px; margin: 32px 0 12px; font-weight: 600; }
+  h4 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 40px; }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout.scratch { border-left-color: var(--accent-2); }
+  .callout-title { font-weight: 600; margin-bottom: 6px; color: #fff; }
+
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 16px 0;
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .file { font-family: var(--mono); font-size: 13px; color: var(--accent-2); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+  th { background: var(--surface-2); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .state-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; }
+  .state-card .state-tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+  .state-card.flowing .state-tag { color: var(--accent-3); }
+  .state-card.blocked .state-tag { color: var(--warn); }
+  .state-card.waiting .state-tag { color: var(--accent); }
+  .state-card.producing .state-tag { color: var(--industrial); }
+  .state-card .state-title { font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .state-card .state-note { font-size: 13px; color: var(--text-dim); }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+    .state-grid { grid-template-columns: 1fr; }
+  }
+
+  footer.doc-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Engineering Handover</div>
+    <h1>Slice 3.3 + Per-Machine Buffer Caps — What Changed and Why</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      End-to-end lager production runs and the brewery chain backpressures cleanly. This doc walks through the four mechanical changes shipped in this session, where the code lives, and the open items so you can pick up without re-reading the diff.
+    </p>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">2026-06-06</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">Drinkustry / butykos</div></div>
+      <div class="meta-item"><div class="meta-label">Doc Type</div><div class="meta-value">Engineering handover</div></div>
+      <div class="meta-item"><div class="meta-label">Audience</div><div class="meta-value">Gergely (code)</div></div>
+      <div class="meta-item"><div class="meta-label">Branch</div><div class="meta-value">testing/farmhouse+corp-switcher</div></div>
+      <div class="meta-item"><div class="meta-label">Commits</div><div class="meta-value">8301527 · f28c465</div></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#tldr">TL;DR</a></li>
+      <li><a href="#multi-input">Multi-Input Recipes (Slice 3.3)</a></li>
+      <li><a href="#water-pump">Water Pump &amp; Fermentation Vat Removal</a></li>
+      <li><a href="#buffer-caps">Per-Machine Buffer Caps</a></li>
+      <li><a href="#logging">State-Change-Only Logging</a></li>
+      <li><a href="#visuals">Connection Arrows &amp; Shared Product Colors</a></li>
+      <li><a href="#tuning">Tuning Knobs</a></li>
+      <li><a href="#open">Open Items / Known Limits</a></li>
+      <li><a href="#files">File &amp; Symbol Index</a></li>
+    </ol>
+  </nav>
+
+  <section id="tldr">
+    <h2>1. TL;DR</h2>
+    <ul>
+      <li><strong>Slice 3.3 shipped.</strong> Mash Tun, Brewer, and Bottling Line read multi-input recipes from <code>recipes.json</code> and produce lager end-to-end.</li>
+      <li><strong>Water Pump</strong> is a new always-available world-map facility (cost $200, outputs water with no input). Lets the chain be tested without unlocking <code>water_source</code>.</li>
+      <li><strong>Fermentation Vat removed</strong> from <code>machines.json</code> — Fermentation Vessel is the canonical fermenter and Vat was producing the wrong intermediate.</li>
+      <li><strong>Per-product buffer caps</strong> (<code>MACHINE_BUFFER_CAP_PER_PRODUCT = 16</code>): machines stall when their output buffer is full. Backpressure cascades from any downstream bottleneck back through the chain.</li>
+      <li><strong>State-change-only logging</strong> via <code>_log_once</code>: per-cycle plumbing prints are gone. Each producer / hopper / depot logs exactly one line per state transition.</li>
+      <li><strong>Connection arrows</strong> in the factory interior now stop marching the instant the receiving machine fills up — visual stall indicator.</li>
+      <li><strong>Shared product colors</strong> live on <code>DataManager.PRODUCT_COLORS</code>. Network view, factory connections, and the hopper-config popup all source from there.</li>
+    </ul>
+  </section>
+
+  <section id="multi-input">
+    <h2>2. Multi-Input Recipes (Slice 3.3)</h2>
+    <p>
+      Slice 3.1 landed the <code>recipes.json</code> data model. Slice 3.2 landed the per-hopper product config. Slice 3.3 is the engine work that wires them together so multi-input machines actually execute a recipe.
+    </p>
+
+    <h3>Recipe lookup path</h3>
+    <p>
+      A machine entry in <code>machines.json</code> opts in by setting a <code>recipe_id</code> instead of (or alongside) the legacy <code>production</code> block. The recipe path takes priority — if both are present, <code>recipe_id</code> wins.
+    </p>
+<pre><code>"mash_tun": {
+    "name": "Mash Tun",
+    "recipe_id": "mash_tun_lager",
+    ...
+}
+
+// recipes.json
+"mash_tun_lager": {
+    "inputs":  [{"product": "grist", "quantity": 4}, {"product": "water", "quantity": 6}],
+    "outputs": [{"product": "mash",  "quantity": 4}],
+    "cycle_time": 4.0
+}</code></pre>
+
+    <h3>Engine hooks</h3>
+    <p>All three changes live in <span class="file">systems/production_manager.gd</span>:</p>
+    <ul>
+      <li><code>_on_machine_placed</code> — reads <code>recipe_id</code>, pulls <code>cycle_time</code> from the recipe, initializes the machine timer. Falls through to the legacy <code>production.cycle_time</code> path if no recipe.</li>
+      <li><code>_complete_machine_recipe_cycle(...)</code> — new function. Checks every input is present in the machine's buffer, checks every output has room (see §4), then atomically consumes inputs and produces outputs. Reports the first missing input or first full output on block.</li>
+      <li><code>_machine_needs_product(machine, product)</code> — recognizes recipe inputs (so <code>_try_transfer_to_adjacent</code> routes correctly into multi-input machines).</li>
+    </ul>
+
+    <div class="callout">
+      <div class="callout-title">Backwards compatibility</div>
+      The legacy single-input path (<code>production.input</code> + <code>production.output</code>) is untouched. Mill, Lauter Tun, Whirlpool, Cooler, Fermentation Vessel, Maturation Tank, Filtration Unit all still run on the old path — they don't need a recipe because they're single-in/single-out.
+    </div>
+  </section>
+
+  <section id="water-pump">
+    <h2>3. Water Pump &amp; Fermentation Vat Removal</h2>
+
+    <h3>Water Pump</h3>
+    <p>
+      Added <code>water_pump</code> entry in <code>data/facilities.json</code>. Properties:
+    </p>
+    <table>
+      <tr><th>Field</th><th>Value</th><th>Why</th></tr>
+      <tr><td><code>cost</code></td><td>$200</td><td>Cheap enough to spam during testing, not free (prevents accidental no-cost spam).</td></tr>
+      <tr><td><code>maintenance_cost</code></td><td>0</td><td>No upkeep — this is meant as the bootstrap water source.</td></tr>
+      <tr><td><code>unlock_requirements</code></td><td><code>{}</code></td><td>Always buildable, unlike <code>water_source</code> which gates on <code>fertilizers</code> research.</td></tr>
+      <tr><td><code>production</code></td><td>20 water / 3.0s</td><td>Matches <code>water_source</code> output rate.</td></tr>
+      <tr><td><code>corp_id</code></td><td><code>"agri"</code></td><td>Water is Agri's deliverable.</td></tr>
+    </table>
+
+    <h3>Fermentation Vat removed</h3>
+    <p>
+      Removed the standalone <code>fermentation_vat</code> entry from <code>machines.json</code>. It produced <code>fermented_wash</code> from <code>mash</code> (the old spirits chain) and didn't fit the new lager pipeline. Fermentation Vessel (<code>cooled_wort → green_beer</code>) is the canonical fermenter for the lager chain.
+    </p>
+    <p>
+      Cross-reference check: <code>research_tree.json</code> mentions <code>wine_fermentation_vat</code>, which is a different machine. No live references to the deleted <code>fermentation_vat</code> remain. The sprite asset <span class="file">assets/machines/fermentation_vat.png</span> is now orphaned — leaving it in place for now in case we want to revive the spirits chain.
+    </p>
+  </section>
+
+  <section id="buffer-caps">
+    <h2>4. Per-Machine Buffer Caps</h2>
+
+    <p>
+      This is the most consequential mechanical change. Before this session, machine inventories were unbounded — a Mill could produce 1,000 grist into its own buffer if nothing downstream consumed it. The visible symptom was that <em>nothing visibly halted the chain</em>: the logs showed a healthy "producing" cadence even when the chain was broken because the producer had infinite slack.
+    </p>
+
+    <h3>The design</h3>
+    <p>
+      Borrowed from Satisfactory: each machine has a per-product buffer cap. If the cap is full, the machine <strong>stops consuming inputs</strong> until the output drains. Backpressure propagates up the chain.
+    </p>
+
+<pre><code>const MACHINE_BUFFER_CAP_PER_PRODUCT: int = 16
+
+func _get_machine_buffer_cap(machine_def: Dictionary) -> int:
+    if bool(machine_def.get("is_storage_buffer", false)):
+        return int(machine_def.get("storage_capacity", MACHINE_BUFFER_CAP_PER_PRODUCT))
+    return MACHINE_BUFFER_CAP_PER_PRODUCT</code></pre>
+
+    <p>
+      Cap is per-product, not total — a Mash Tun can independently hold up to 16 grist, 16 water, and 16 mash. Storage-buffer machines (the data-defined <code>is_storage_buffer</code> flag) override with their own <code>storage_capacity</code> field (Storage Tank: 100, Large Storage Tank: 300).
+    </p>
+
+    <h3>Where the cap is enforced</h3>
+    <table>
+      <tr><th>Function</th><th>What it now checks</th></tr>
+      <tr><td><code>_complete_machine_recipe_cycle</code></td><td>Before consuming inputs, verifies every output has room (<code>current + quantity ≤ cap</code>). If not, resets timer and logs once.</td></tr>
+      <tr><td><code>_complete_machine_production_cycle</code> (legacy)</td><td>Same — output cap check before consume.</td></tr>
+      <tr><td><code>_try_transfer_to_adjacent</code></td><td>Transfer amount clamped by destination's <code>_machine_remaining_capacity</code>.</td></tr>
+      <tr><td><code>_process_input_hopper</code></td><td>Push to each destination clamped by destination room. Reports "blocked" when every destination is full.</td></tr>
+      <tr><td><code>_process_storage_buffer</code></td><td>Same clamp on destination room.</td></tr>
+    </table>
+
+    <div class="callout warn">
+      <div class="callout-title">Output Depots are uncapped on the facility side</div>
+      Output Depots push to facility inventory, which is unbounded — trucks ship from there to other facilities. We did not put a cap on facility inventory in this slice. If you want a facility-level storage cap later, the natural place is <code>_add_to_inventory</code> in ProductionManager.
+    </div>
+
+    <h3>How backpressure cascades</h3>
+    <p>
+      The lager chain stress test (final log this session):
+    </p>
+    <ol>
+      <li>Player adds the hops route last. Brewer has wort but no hops.</li>
+      <li><code>Brewer needs 2 hops (has 0)</code> — Brewer blocks on input.</li>
+      <li>Lauter Tun keeps producing wort. Brewer's wort buffer fills to 16.</li>
+      <li><code>Lauter Tun output buffer full (wort: 16/16)</code> — Lauter Tun stalls.</li>
+      <li>Mash Tun keeps producing mash. Lauter Tun's mash buffer fills to 16.</li>
+      <li><code>Mash Tun output buffer full (mash: 16/16)</code> — Mash Tun stalls.</li>
+      <li><code>Mill output buffer full (grist: 16/16)</code> — Mill stalls. Hopper backs up.</li>
+      <li><code>Hopper blocked: malt (every destination full)</code> — facility-side malt accumulates.</li>
+    </ol>
+    <p>
+      The instant hops arrive, the stack unwinds in reverse — each machine resumes as soon as its output has room and its inputs are present. The visible log narrates the cascade exactly once per transition.
+    </p>
+  </section>
+
+  <section id="logging">
+    <h2>5. State-Change-Only Logging</h2>
+    <p>
+      Old behavior: every production cycle printed something. A blocked Mash Tun spammed <code>needs 4 grist</code> every 4 seconds. A working Hopper spammed <code>10 malt (facility → machine_9)</code> every 2 seconds. The console was unreadable.
+    </p>
+
+    <h3>The pattern</h3>
+<pre><code>var _last_log_message: Dictionary = {}
+
+func _log_once(state_key: String, message: String) -> void:
+    if _last_log_message.get(state_key, "") != message:
+        _last_log_message[state_key] = message
+        print(message)</code></pre>
+
+    <p>
+      Each machine / hopper / depot has a stable <code>state_key</code> (e.g. <code>"machine:facility_7:machine_9"</code>). The message string IS the state — when the message changes, we print and update the cache. When it stays the same, we stay quiet.
+    </p>
+
+    <h3>Observable states</h3>
+    <div class="state-grid">
+      <div class="state-card producing">
+        <div class="state-tag">Producing</div>
+        <div class="state-title">Machine running</div>
+        <div class="state-note"><code>Machine producing: Mill (4 grist every 3.0s)</code> — fires once when the machine transitions from blocked/idle into a working cycle.</div>
+      </div>
+      <div class="state-card blocked">
+        <div class="state-tag">Blocked</div>
+        <div class="state-title">Input shortage</div>
+        <div class="state-note"><code>Machine blocked: Brewer needs 2 hops (has 0) for recipe 'Boiling Wort with Hops'</code> — fires once per shortage reason. Reports the first missing input.</div>
+      </div>
+      <div class="state-card blocked">
+        <div class="state-tag">Blocked</div>
+        <div class="state-title">Output buffer full</div>
+        <div class="state-note"><code>Machine blocked: Lauter Tun output buffer full (wort: 16/16)</code> — the backpressure indicator.</div>
+      </div>
+      <div class="state-card flowing">
+        <div class="state-tag">Flowing</div>
+        <div class="state-title">Hopper transferring</div>
+        <div class="state-note"><code>Hopper flowing: malt (facility → machines)</code> — at least one destination received product this tick.</div>
+      </div>
+      <div class="state-card waiting">
+        <div class="state-tag">Waiting</div>
+        <div class="state-title">Hopper has no stock</div>
+        <div class="state-note"><code>Hopper waiting: bottles (facility stock empty)</code> — facility inventory empty, hopper has nothing to push.</div>
+      </div>
+      <div class="state-card blocked">
+        <div class="state-tag">Blocked</div>
+        <div class="state-title">Hopper destinations full</div>
+        <div class="state-note"><code>Hopper blocked: water (every destination full)</code> — facility has the product but every connected machine's buffer is full.</div>
+      </div>
+    </div>
+
+    <p>
+      Each transition prints once. If a Mash Tun oscillates between <code>blocked: needs grist</code> and <code>producing</code>, both lines fire on each transition — which is the right signal: state is actually changing.
+    </p>
+  </section>
+
+  <section id="visuals">
+    <h2>6. Connection Arrows &amp; Shared Product Colors</h2>
+
+    <h3>Shared color palette</h3>
+    <p>
+      Per-product colors moved to <span class="file">core/data_manager.gd</span> as <code>PRODUCT_COLORS</code> + <code>get_product_color(product_id) -> Color</code>. Single source of truth. <code>network_view.gd</code>'s <code>_socket_color_for</code> now delegates here instead of holding its own copy.
+    </p>
+    <p>
+      The palette is curated for slice-1 + slice-3 products (barley golden, hops vibrant green, water blue, lager warm gold, grist/wort/boiled_wort/cleaned_wort/cooled_wort tinted along the brewing pipeline). Unknown products fall back to a hash-derived hue so future content doesn't crash here.
+    </p>
+
+    <h3>Factory interior connection arrows</h3>
+    <p>
+      Replaced the old static "light blue line + single orange arrow" with:
+    </p>
+    <ul>
+      <li><strong>Line color</strong> = product color (from <code>DataManager.get_product_color</code>).</li>
+      <li><strong>Flowing</strong> = marching arrows along the line, paced by <code>FLOW_ARROW_SPEED</code> / <code>FLOW_ARROW_SPACING</code> (mirrors network view).</li>
+      <li><strong>Idle</strong> = single mid-line arrow at <code>t=0.7</code> (direction hint).</li>
+    </ul>
+    <p>
+      "Flowing" is computed by <code>_is_connection_flowing(source_id, dest_id, product)</code> in <span class="file">scenes/factory_interior/factory_interior.gd</span>. It requires BOTH (a) the source has the product, AND (b) the destination has buffer room. So when a downstream machine fills up, arrows stop marching at exactly that connection — the player can see where the stall is.
+    </p>
+
+    <h3>Hopper config popup</h3>
+    <p>
+      Right-clicking an Input Hopper or Output Depot opens a product picker. Each entry now has a generated 16×16 color swatch icon matching the connection color, so the picker visibly maps to the line color the hopper will drive.
+    </p>
+  </section>
+
+  <section id="tuning">
+    <h2>7. Tuning Knobs</h2>
+    <p>The math for "right" capacity is provisional. Everything that's likely to need tuning lives in one place:</p>
+    <table>
+      <tr><th>Constant</th><th>Default</th><th>Location</th><th>Effect</th></tr>
+      <tr><td><code>MACHINE_BUFFER_CAP_PER_PRODUCT</code></td><td><code>16</code></td><td><span class="file">production_manager.gd</span></td><td>Per-product buffer cap. Lower = chains stall sooner / more visibly. Higher = chains balance more easily but slower failure feedback.</td></tr>
+      <tr><td><code>io_node_transfer_amount</code></td><td><code>10</code></td><td><span class="file">production_manager.gd</span></td><td>How much an Input Hopper / Output Depot moves per IO tick. Clamped by cap so this is a "max per tick" ceiling.</td></tr>
+      <tr><td><code>IO_NODE_CYCLE_TIME</code></td><td><code>2.0</code></td><td><span class="file">production_manager.gd</span></td><td>Seconds between IO node ticks.</td></tr>
+      <tr><td><code>FLOW_ARROW_SPEED</code></td><td><code>0.3</code></td><td><span class="file">factory_interior.gd</span></td><td>Arrow march speed (fraction of line per second).</td></tr>
+      <tr><td><code>FLOW_ARROW_SPACING</code></td><td><code>0.18</code></td><td><span class="file">factory_interior.gd</span></td><td>Fraction of line between adjacent marching arrows.</td></tr>
+      <tr><td>Per-machine cap override</td><td>—</td><td><span class="file">machines.json</span></td><td>For storage-buffer machines: <code>"is_storage_buffer": true</code> + <code>"storage_capacity": N</code>. We could extend this to a general <code>"buffer_capacity"</code> field for tuning hot-spot machines individually.</td></tr>
+    </table>
+  </section>
+
+  <section id="open">
+    <h2>8. Open Items / Known Limits</h2>
+    <ul>
+      <li>
+        <strong>Facility inventory still unbounded.</strong> Trucks ship from facility inventory, so it acts as a reservoir. If we want facility-level caps (e.g., a brewery can only hold so much malt at a time), the entry point is <code>_add_to_inventory</code> in ProductionManager — but that interacts with logistics dispatch and farmhouse routing, so it's a real design decision, not a one-liner.
+      </li>
+      <li>
+        <strong><code>_try_transfer_to_adjacent</code> still uses the half-rule.</strong> When a producer transfers to a downstream machine, it transfers <code>max(1, available / 2)</code>, capped by destination room. With caps in place this means producers never dump huge batches on transfer (max ≈ 16), but the half-rule itself is heuristic. Worth revisiting if balance feels off.
+      </li>
+      <li>
+        <strong>Storage tanks aren't fed by upstream machine output.</strong> <code>_machine_needs_product</code> returns false for non-recipe / non-production machines, so a Mill cannot directly fill a Storage Tank via a connection. Storage tanks are reachable only via Input Hopper today. If we want machine→storage connections to work, add a special-case for <code>is_storage_buffer</code> in <code>_machine_needs_product</code>.
+      </li>
+      <li>
+        <strong>Buffer cap of 16 is a guess.</strong> Validated on the lager chain — chains balance, severed connections stall in &lt;1 min. Hasn't been stress-tested on longer or branched chains.
+      </li>
+      <li>
+        <strong>No save-game compatibility for old saves with Fermentation Vat.</strong> If a save references a machine type that no longer exists, <code>get_machine_data</code> returns <code>{}</code> and the machine becomes inert. We should handle this in the save migration path if any test saves matter.
+      </li>
+      <li>
+        <strong>Connection rendering still recreates Line2D / Polygon2D children every frame.</strong> Works fine for ~20 connections; will want to convert to a <code>_draw()</code> override on the connections renderer if a brewery interior gets significantly denser.
+      </li>
+      <li>
+        <strong>Branch state.</strong> Both new commits landed on <code>testing/farmhouse+corp-switcher</code> directly. The feature branch <code>feature/brewery-lager-chain</code> doesn't have the buffer-cap work because <code>_complete_production_cycle</code> + <code>_on_facility_removed</code> on testing reference farmhouse-only state (<code>field_crop_types</code>, <code>_field_idle_reason</code>, <code>_complete_farm_field_cycle</code>) that doesn't exist on the feature branch. Re-applying to feature requires the farmhouse work to land there first.
+      </li>
+    </ul>
+  </section>
+
+  <section id="files">
+    <h2>9. File &amp; Symbol Index</h2>
+    <table>
+      <tr><th>File</th><th>What changed</th></tr>
+      <tr>
+        <td><span class="file">systems/production_manager.gd</span></td>
+        <td>
+          New: <code>MACHINE_BUFFER_CAP_PER_PRODUCT</code>, <code>_last_log_message</code>, <code>_log_once</code>, <code>_get_machine_buffer_cap</code>, <code>_machine_remaining_capacity</code>, <code>_complete_machine_recipe_cycle</code>. Rewritten: <code>_complete_machine_production_cycle</code>, <code>_complete_production_cycle</code>, <code>_try_transfer_to_adjacent</code>, <code>_process_input_hopper</code>, <code>_process_output_depot</code>, <code>_process_storage_buffer</code>, <code>_on_machine_placed</code>, <code>_on_machine_removed</code>, <code>_on_facility_removed</code>, <code>_machine_needs_product</code>.
+        </td>
+      </tr>
+      <tr>
+        <td><span class="file">core/data_manager.gd</span></td>
+        <td>New: <code>PRODUCT_COLORS</code> const, <code>get_product_color(product_id) -> Color</code>.</td>
+      </tr>
+      <tr>
+        <td><span class="file">data/facilities.json</span></td>
+        <td>New <code>water_pump</code> entry (Agri, no unlock, $200, 20 water / 3s).</td>
+      </tr>
+      <tr>
+        <td><span class="file">data/machines.json</span></td>
+        <td>Removed <code>fermentation_vat</code> entry.</td>
+      </tr>
+      <tr>
+        <td><span class="file">scenes/factory_interior/factory_interior.gd</span></td>
+        <td>
+          New: <code>_animation_time</code>, <code>FLOW_ARROW_SPEED</code>, <code>FLOW_ARROW_SPACING</code>, <code>_get_connection_product</code>, <code>_is_connection_flowing(src, dst, product)</code>, <code>_create_color_swatch</code>. Rewritten: <code>_update_connections</code>, <code>_draw_connection_line</code>, <code>_build_machine_product_popup</code> (now uses <code>add_icon_item</code> with color swatches). Generalized <code>_update_machine_config_label</code> so every machine gets a name label (was IO-only before).
+        </td>
+      </tr>
+      <tr>
+        <td><span class="file">scenes/ui/network_view.gd</span></td>
+        <td>Removed local <code>PRODUCT_COLORS</code>. <code>_socket_color_for</code> delegates to <code>DataManager.get_product_color</code>.</td>
+      </tr>
+    </table>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / Butykos · Engineering handover · 2026-06-06 · written for Gergely
+  </footer>
+
+</div>
+</body>
+</html>
