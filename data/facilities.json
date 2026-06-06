@@ -96,13 +96,6 @@
 				"grain_mill": 1
 			}
 		},
-		"production": {
-			"input": "malt",
-			"input_quantity": 8,
-			"output": "ale",
-			"quantity": 5,
-			"cycle_time": 8.0
-		},
 		"visual": {
 			"color": "#c97a3f",
 			"icon": "res://assets/sprites/sprite_facility_brewery.png"
@@ -191,7 +184,7 @@
 	"packaging_plant": {
 		"id": "packaging_plant",
 		"name": "Packaging Plant",
-		"description": "Packages finished alcohol products for premium pricing.",
+		"description": "Produces empty bottles for the bottling line. Will gain a raw-material input in a later slice; for now bottles flow free.",
 		"category": "processing",
 		"corp_id": "industrial",
 		"size": [
@@ -208,10 +201,8 @@
 			}
 		},
 		"production": {
-			"input": "ale",
-			"input_quantity": 5,
-			"output": "packaged_ale",
-			"quantity": 5,
+			"output": "bottles",
+			"quantity": 20,
 			"cycle_time": 4.0
 		},
 		"visual": {

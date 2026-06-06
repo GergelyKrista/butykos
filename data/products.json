@@ -205,5 +205,86 @@
 		"base_price": 400,
 		"stack_size": 25,
 		"is_final_product": true
+	},
+	"grist": {
+		"id": "grist",
+		"name": "Grist",
+		"description": "Coarse-milled malt; ready for mashing with water",
+		"category": "intermediate",
+		"base_price": 18,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"wort": {
+		"id": "wort",
+		"name": "Wort",
+		"description": "Sweet liquid extracted from mash; the raw material before hops are added",
+		"category": "intermediate",
+		"base_price": 25,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"boiled_wort": {
+		"id": "boiled_wort",
+		"name": "Boiled Wort",
+		"description": "Wort boiled with hops; carries flavor but still contains hop sediment",
+		"category": "intermediate",
+		"base_price": 32,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"cleaned_wort": {
+		"id": "cleaned_wort",
+		"name": "Cleaned Wort",
+		"description": "Boiled wort after the whirlpool separator removes hop solids",
+		"category": "intermediate",
+		"base_price": 38,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"cooled_wort": {
+		"id": "cooled_wort",
+		"name": "Cooled Wort",
+		"description": "Cleaned wort chilled to fermentation temperature",
+		"category": "intermediate",
+		"base_price": 42,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"green_beer": {
+		"id": "green_beer",
+		"name": "Green Beer",
+		"description": "Freshly fermented beer; needs time to mature before it is drinkable",
+		"category": "intermediate",
+		"base_price": 60,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"matured_beer": {
+		"id": "matured_beer",
+		"name": "Matured Beer",
+		"description": "Lagered beer; cleaner flavor after extended cold storage",
+		"category": "intermediate",
+		"base_price": 80,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"finished_beer": {
+		"id": "finished_beer",
+		"name": "Finished Beer",
+		"description": "Filtered beer ready for bottling",
+		"category": "intermediate",
+		"base_price": 100,
+		"stack_size": 100,
+		"is_final_product": false
+	},
+	"bottles": {
+		"id": "bottles",
+		"name": "Bottles",
+		"description": "Empty glass bottles supplied by the Packaging Plant",
+		"category": "raw_material",
+		"base_price": 4,
+		"stack_size": 100,
+		"is_final_product": false
 	}
 }
