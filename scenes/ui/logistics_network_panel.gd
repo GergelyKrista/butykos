@@ -103,26 +103,16 @@ func _on_logistics_changed(_data = null) -> void:
 
 
 func _determine_product(source_id: String, dest_id: String) -> String:
-	var source = WorldManager.get_facility(source_id)
-	var dest = WorldManager.get_facility(dest_id)
-	if source.is_empty() or dest.is_empty():
+	"""Pick the product to carry on a new connection — strict match against
+	the source's CURRENT outputs and the dest's CURRENT inputs (slice-2.1+
+	gates farmhouse outputs by inventory and brewery I/O by hopper presence).
+	Returns "" if the source doesn't actually produce anything the dest
+	accepts. The caller surfaces the "No compatible product!" notification."""
+	if network_view == null:
 		return ""
-
-	var source_def = DataManager.get_facility_data(source.type)
-	var dest_def = DataManager.get_facility_data(dest.type)
-
-	var outputs = source_def.get("outputs", [])
-	var inputs = dest_def.get("inputs", [])
-
-	if source.type == "farmhouse":
-		var crop = ProductionManager.get_farmhouse_crop_type(source_id)
-		outputs = [crop if not crop.is_empty() else "barley"]
-
-	for output in outputs:
-		if output in inputs:
-			return output
-
-	if inputs.is_empty() and outputs.size() > 0:
-		return outputs[0]
-
+	var src_io: Dictionary = network_view.get_node_io(source_id)
+	var dst_io: Dictionary = network_view.get_node_io(dest_id)
+	for output in src_io.outputs:
+		if output in dst_io.inputs:
+			return String(output)
 	return ""
