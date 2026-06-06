@@ -67,17 +67,19 @@ const GRID_COLOR_MINOR: Color = Color(1.0, 1.0, 1.0, 0.05)
 const GRID_COLOR_MAJOR: Color = Color(1.0, 1.0, 1.0, 0.10)
 const GRID_MAJOR_EVERY: int = 5  # every 5th line is a "major" line, slightly brighter
 
-const NODE_COLORS: Dictionary = {
-	"barley_field": Color(0.8, 0.7, 0.3),
-	"wheat_farm": Color(0.9, 0.75, 0.4),
-	"grain_mill": Color(0.6, 0.5, 0.4),
-	"brewery": Color(0.4, 0.3, 0.2),
-	"distillery": Color(0.5, 0.35, 0.25),
-	"packaging_plant": Color(0.3, 0.5, 0.7),
-	"storage_warehouse": Color(0.5, 0.5, 0.5),
-	"farmhouse": Color(0.6, 0.4, 0.3),
-	"default": Color(0.4, 0.4, 0.4),
+## Node body colors are derived from the facility's category so the network
+## view reads at a glance with the same colour language as the world-map
+## build menu (see world_map_ui.gd CATEGORY_COLORS — kept in sync here).
+const CATEGORY_COLORS: Dictionary = {
+	"tools": Color(0.5, 0.5, 0.6),
+	"agriculture": Color(0.3, 0.6, 0.3),
+	"processing": Color(0.6, 0.5, 0.3),
+	"production": Color(0.6, 0.4, 0.3),
+	"storage": Color(0.4, 0.4, 0.5),
+	"other": Color(0.4, 0.4, 0.4),
 }
+
+const INACTIVE_LABEL_COLOR: Color = Color(1.0, 1.0, 1.0, 0.45)
 
 const CONNECTION_COLOR: Color = Color(0.3, 0.7, 0.3, 0.8)
 const CONNECTION_HOVER_COLOR: Color = Color(0.8, 0.3, 0.3, 0.8)
@@ -135,6 +137,17 @@ func _ready() -> void:
 	# requiring the panel to be closed and reopened.
 	EventBus.active_corp_changed.connect(_on_active_corp_changed_swap_state)
 	_adopt_state_for_corp(GameManager.active_corp_id)
+
+	# Continuous redraw while the panel is visible — keeps the IO sockets
+	# fresh as inventory grows (farmhouse output sockets follow incoming
+	# crops) and as machines are placed inside breweries (brewery sockets
+	# sprout/disappear in real-time).
+	set_process(true)
+
+
+func _process(_delta: float) -> void:
+	if is_visible_in_tree():
+		queue_redraw()
 
 
 func _adopt_state_for_corp(corp_id: String) -> void:
@@ -247,7 +260,12 @@ func _draw_connections() -> void:
 		var start_pos: Vector2 = endpoints[0]
 		var end_pos: Vector2 = endpoints[1]
 
-		var color: Color = CONNECTION_HOVER_COLOR if hovered_connection == connection.id else CONNECTION_COLOR
+		# Line color matches the resource — barley lines are barley-colored,
+		# malt lines are malt-colored. Hover override stays red so deletion
+		# target is unambiguous.
+		var color: Color = _socket_color_for(product)
+		if hovered_connection == connection.id:
+			color = CONNECTION_HOVER_COLOR
 
 		draw_line(start_pos, end_pos, color, 3.0 / canvas_zoom)
 
@@ -276,8 +294,10 @@ func _draw_facility_nodes() -> void:
 		var def: Dictionary = DataManager.get_facility_data(facility.type)
 		var rect: Rect2 = _get_node_rect(facility_id)
 
-		# Body color (with hover / drag tints).
-		var color: Color = NODE_COLORS.get(facility.type, NODE_COLORS["default"])
+		# Body color = build-menu category color so the network reads with
+		# the same colour language as the world-map build menu.
+		var category: String = String(def.get("category", "other"))
+		var color: Color = CATEGORY_COLORS.get(category, CATEGORY_COLORS["other"])
 		if hovered_facility == facility_id:
 			color = color.lightened(0.3)
 		if drag_start_facility == facility_id:
@@ -308,6 +328,18 @@ func _draw_facility_nodes() -> void:
 		# Both sides start one row-half below the header so they're vertically
 		# centered within their row.
 		var io: Dictionary = _get_node_io(facility_id)
+
+		# Empty box → render an italic-feeling status hint so the player knows
+		# WHY there are no sockets (farmhouse: no production; brewery: no
+		# input hopper / output depot inside; etc.).
+		if io.inputs.is_empty() and io.outputs.is_empty():
+			var hint: String = _get_inactive_reason(facility_id)
+			if not hint.is_empty():
+				var hint_size: Vector2 = font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, SOCKET_LABEL_FONT_SIZE)
+				var hint_y: float = rect.position.y + BOX_HEADER_HEIGHT + (rect.size.y - BOX_HEADER_HEIGHT) / 2.0 + 3.0
+				var hint_pos := Vector2(pos.x - hint_size.x / 2.0, hint_y)
+				draw_string(font, hint_pos, hint, HORIZONTAL_ALIGNMENT_LEFT, -1, SOCKET_LABEL_FONT_SIZE, INACTIVE_LABEL_COLOR)
+
 		for i in range(io.inputs.size()):
 			var socket_pos: Vector2 = _get_input_socket_pos(facility_id, i)
 			var socket_color: Color = _socket_color_for(io.inputs[i])
@@ -333,13 +365,59 @@ func _draw_facility_nodes() -> void:
 
 func _get_node_io(facility_id: String) -> Dictionary:
 	"""Return { inputs: Array[String], outputs: Array[String] } for a facility.
-	Slice 2.0: derived from facility data's `production` block (one input
-	and one output if present). Slice 2.1 will read actual Input Hopper and
-	Output Depot placements from FactoryManager and reflect those instead."""
+
+	Slice 2.1 sources:
+	- Farmhouse → output socket per unique product in its current inventory.
+	  No inventory = no sockets (the box renders an "(inactive)" label).
+	  Inputs always empty — farmhouses are the gather node, not a consumer.
+	- Facilities with `has_interior` (brewery, distillery, etc.) → IO sockets
+	  appear ONLY when there are corresponding machines placed inside (Input
+	  Hopper for input, Output Depot for output). Product labels still come
+	  from the facility's `production` block until per-hopper product config
+	  ships (slice 2.2).
+	- Everything else → static IO from the facility's `production.input` /
+	  `production.output` block (slice 2.0 behaviour).
+	"""
 	var facility: Dictionary = WorldManager.get_facility(facility_id)
 	if facility.is_empty():
 		return {"inputs": [], "outputs": []}
 	var def: Dictionary = DataManager.get_facility_data(facility.type)
+
+	# Farmhouse: socket per unique inventory product.
+	if facility.type == "farmhouse":
+		var inv: Dictionary = ProductionManager.get_inventory(facility_id)
+		var fh_outputs: Array[String] = []
+		for product in inv.keys():
+			fh_outputs.append(String(product))
+		return {"inputs": [], "outputs": fh_outputs}
+
+	# Interior-having facility: gate sockets by Input Hopper / Output Depot
+	# presence in the factory interior.
+	var has_interior: bool = bool(def.get("has_interior", false))
+	if has_interior and FactoryManager.has_interior(facility_id):
+		var has_input_machine: bool = false
+		var has_output_machine: bool = false
+		var machines: Array = FactoryManager.get_all_machines(facility_id)
+		for m in machines:
+			var m_def: Dictionary = DataManager.get_machine_data(m.type)
+			if m_def.get("is_input_node", false):
+				has_input_machine = true
+			if m_def.get("is_output_node", false):
+				has_output_machine = true
+		var production: Dictionary = def.get("production", {})
+		var gated_inputs: Array[String] = []
+		var gated_outputs: Array[String] = []
+		if has_input_machine:
+			var inp1: String = String(production.get("input", ""))
+			if not inp1.is_empty():
+				gated_inputs.append(inp1)
+		if has_output_machine:
+			var out1: String = String(production.get("output", ""))
+			if not out1.is_empty():
+				gated_outputs.append(out1)
+		return {"inputs": gated_inputs, "outputs": gated_outputs}
+
+	# Default: static IO from the facility data.
 	var production: Dictionary = def.get("production", {})
 	var inputs: Array[String] = []
 	var outputs: Array[String] = []
@@ -350,6 +428,24 @@ func _get_node_io(facility_id: String) -> Dictionary:
 	if not out.is_empty():
 		outputs.append(out)
 	return {"inputs": inputs, "outputs": outputs}
+
+
+func _get_inactive_reason(facility_id: String) -> String:
+	"""Human-readable status string for a node that has no IO sockets.
+	Empty string means the node is producing / has sockets and no overlay
+	is needed."""
+	var io: Dictionary = _get_node_io(facility_id)
+	if io.inputs.size() > 0 or io.outputs.size() > 0:
+		return ""
+	var facility: Dictionary = WorldManager.get_facility(facility_id)
+	if facility.is_empty():
+		return ""
+	if facility.type == "farmhouse":
+		return "(no production yet)"
+	var def: Dictionary = DataManager.get_facility_data(facility.type)
+	if bool(def.get("has_interior", false)):
+		return "(no I/O placed inside)"
+	return "(idle)"
 
 
 func _get_node_box_size(facility_id: String) -> Vector2:
