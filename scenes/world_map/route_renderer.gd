@@ -15,8 +15,28 @@ func _ready() -> void:
 	EventBus.connection_created.connect(_on_connection_created)
 	EventBus.connection_removed.connect(_on_connection_removed)
 
+	# Routes are a Logistics-corp surface — non-Logistics corps don't see them
+	# on the world map. Listen for corp changes and refresh visibility.
+	EventBus.active_corp_changed.connect(_on_active_corp_changed)
+	_apply_corp_visibility()
+
 	# Redraw all existing connections
 	_redraw_all_connections()
+
+
+# ========================================
+# CORP VISIBILITY
+# ========================================
+
+func _apply_corp_visibility() -> void:
+	"""Show route lines only to the Logistics corp (and to `single`, the
+	dev/legacy default, so testing without the corp switcher still works)."""
+	var active: String = GameManager.active_corp_id
+	visible = active == GameManager.CORP_LOGISTICS or active == GameManager.CORP_SINGLE
+
+
+func _on_active_corp_changed(_old_corp_id: String, _new_corp_id: String) -> void:
+	_apply_corp_visibility()
 
 
 # ========================================
