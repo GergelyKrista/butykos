@@ -1,0 +1,68 @@
+{
+	"mash_tun_lager": {
+		"name": "Mashing for Lager",
+		"description": "Combine grist and water to make mash",
+		"machine": "mash_tun",
+		"inputs": [
+			{
+				"product": "grist",
+				"quantity": 4
+			},
+			{
+				"product": "water",
+				"quantity": 6
+			}
+		],
+		"outputs": [
+			{
+				"product": "mash",
+				"quantity": 4
+			}
+		],
+		"cycle_time": 4.0
+	},
+	"brewer_lager": {
+		"name": "Boiling Wort with Hops",
+		"description": "Boil wort with hops to make boiled wort",
+		"machine": "brewer",
+		"inputs": [
+			{
+				"product": "wort",
+				"quantity": 4
+			},
+			{
+				"product": "hops",
+				"quantity": 2
+			}
+		],
+		"outputs": [
+			{
+				"product": "boiled_wort",
+				"quantity": 4
+			}
+		],
+		"cycle_time": 5.0
+	},
+	"bottling_line_lager": {
+		"name": "Bottling Lager",
+		"description": "Combine finished beer with bottles to produce lager",
+		"machine": "bottling_line",
+		"inputs": [
+			{
+				"product": "finished_beer",
+				"quantity": 4
+			},
+			{
+				"product": "bottles",
+				"quantity": 4
+			}
+		],
+		"outputs": [
+			{
+				"product": "lager",
+				"quantity": 4
+			}
+		],
+		"cycle_time": 3.0
+	}
+}

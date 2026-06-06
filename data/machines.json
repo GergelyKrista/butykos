@@ -1,668 +1,1064 @@
 {
-  "conveyor_belt": {
-    "name": "Conveyor Belt",
-    "description": "Transports materials between machines",
-    "category": "logistics",
-    "size": [1, 1],
-    "cost": 50,
-    "visual": {
-      "color": "#666666",
-      "sprite": "res://assets/machines/conveyor_belt.png"
-    },
-    "connectable": true
-  },
-
-  "mash_tun": {
-    "name": "Mash Tun",
-    "description": "Converts grain into mash for brewing",
-    "category": "brewing",
-    "size": [2, 2],
-    "cost": 300,
-    "visual": {
-      "color": "#8B4513",
-      "sprite": "res://assets/machines/mash_tun.png"
-    },
-    "production": {
-      "input": "malt",
-      "input_quantity": 5,
-      "output": "mash",
-      "quantity": 4,
-      "cycle_time": 4.0
-    },
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "fermentation_vat": {
-    "name": "Fermentation Vat",
-    "description": "Ferments mash into beer or wash",
-    "category": "brewing",
-    "size": [2, 3],
-    "cost": 500,
-    "visual": {
-      "color": "#DAA520",
-      "sprite": "res://assets/machines/fermentation_vat.png"
-    },
-    "production": {
-      "input": "mash",
-      "input_quantity": 4,
-      "output": "fermented_wash",
-      "quantity": 3,
-      "cycle_time": 8.0
-    },
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "distillation_column": {
-    "name": "Distillation Column",
-    "description": "Distills wash into spirits",
-    "category": "distilling",
-    "size": [2, 4],
-    "cost": 800,
-    "visual": {
-      "color": "#C0C0C0",
-      "sprite": "res://assets/machines/distillation_column.png"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 3,
-      "output": "raw_spirit",
-      "quantity": 2,
-      "cycle_time": 6.0
-    },
-    "requires_facility": ["distillery"]
-  },
-
-  "aging_barrel": {
-    "name": "Aging Barrel",
-    "description": "Ages spirits to improve quality",
-    "category": "distilling",
-    "size": [1, 1],
-    "cost": 200,
-    "visual": {
-      "color": "#654321",
-      "sprite": "res://assets/machines/aging_barrel.png"
-    },
-    "production": {
-      "input": "raw_spirit",
-      "input_quantity": 1,
-      "output": "aged_spirit",
-      "quantity": 1,
-      "cycle_time": 12.0
-    },
-    "requires_facility": ["distillery"]
-  },
-
-  "bottling_line": {
-    "name": "Bottling Line",
-    "description": "Packages finished products for sale",
-    "category": "packaging",
-    "size": [3, 2],
-    "cost": 600,
-    "visual": {
-      "color": "#00CED1",
-      "sprite": "res://assets/machines/bottling_line.png"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 3,
-      "output": "ale",
-      "quantity": 5,
-      "cycle_time": 3.0
-    },
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "quality_control": {
-    "name": "Quality Control Station",
-    "description": "Ensures product quality and increases value",
-    "category": "quality",
-    "size": [2, 2],
-    "cost": 400,
-    "visual": {
-      "color": "#4169E1",
-      "sprite": "res://assets/machines/quality_control.png"
-    },
-    "modifiers": {
-      "quality_bonus": 0.15,
-      "price_multiplier": 1.2
-    },
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "storage_tank": {
-    "name": "Storage Tank",
-    "description": "Stores intermediate products and buffers production flow",
-    "category": "storage",
-    "size": [2, 2],
-    "cost": 250,
-    "visual": {
-      "color": "#708090",
-      "sprite": "res://assets/machines/storage_tank.png"
-    },
-    "storage_capacity": 100,
-    "is_storage_buffer": true,
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "input_hopper": {
-    "name": "Input Hopper",
-    "description": "Receives materials from logistics routes",
-    "category": "logistics",
-    "size": [1, 1],
-    "cost": 100,
-    "visual": {
-      "color": "#A9A9A9",
-      "sprite": "res://assets/machines/input_hopper.png"
-    },
-    "is_input_node": true,
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "output_depot": {
-    "name": "Output Depot",
-    "description": "Sends finished products to logistics routes",
-    "category": "logistics",
-    "size": [1, 1],
-    "cost": 100,
-    "visual": {
-      "color": "#FFD700",
-      "sprite": "res://assets/machines/output_depot.png"
-    },
-    "is_output_node": true,
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "market_outlet": {
-    "name": "Market Outlet",
-    "description": "Sells raw and intermediate products for reduced profit (bootstrap income)",
-    "category": "logistics",
-    "size": [1, 1],
-    "cost": 75,
-    "visual": {
-      "color": "#32CD32",
-      "sprite": "res://assets/machines/market_outlet.png"
-    },
-    "is_market_outlet": true,
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "boiler": {
-    "name": "Steam Boiler",
-    "description": "Provides power to nearby machines",
-    "category": "utility",
-    "size": [2, 3],
-    "cost": 700,
-    "visual": {
-      "color": "#DC143C",
-      "sprite": "res://assets/machines/boiler.png"
-    },
-    "power_output": 10,
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "water_pump": {
-    "name": "Water Pump",
-    "description": "Supplies water for production",
-    "category": "utility",
-    "size": [1, 2],
-    "cost": 150,
-    "visual": {
-      "color": "#1E90FF",
-      "sprite": "res://assets/machines/water_pump.png"
-    },
-    "resource_type": "water",
-    "requires_facility": ["brewery", "distillery"]
-  },
-
-  "advanced_mash_tun": {
-    "name": "Advanced Mash Tun",
-    "description": "Improved mash tun with better temperature control and yield",
-    "category": "brewing",
-    "size": [2, 2],
-    "cost": 600,
-    "visual": {
-      "color": "#A0522D"
-    },
-    "production": {
-      "input": "malt",
-      "input_quantity": 5,
-      "output": "mash",
-      "quantity": 5,
-      "cycle_time": 3.0
-    },
-    "requires_facility": ["brewery", "distillery", "lager_brewery"],
-    "unlock_requirements": {
-      "research": ["yeast_cultivation"]
-    }
-  },
-
-  "temperature_controlled_vat": {
-    "name": "Temperature Controlled Vat",
-    "description": "Precise fermentation with temperature control for consistent quality",
-    "category": "brewing",
-    "size": [2, 3],
-    "cost": 900,
-    "visual": {
-      "color": "#CD853F"
-    },
-    "production": {
-      "input": "mash",
-      "input_quantity": 4,
-      "output": "fermented_wash",
-      "quantity": 4,
-      "cycle_time": 6.0
-    },
-    "requires_facility": ["brewery", "distillery", "lager_brewery"],
-    "unlock_requirements": {
-      "research": ["temperature_control"]
-    }
-  },
-
-  "lager_fermentation_tank": {
-    "name": "Lager Fermentation Tank",
-    "description": "Cold fermentation tank for producing crisp lagers",
-    "category": "brewing",
-    "size": [3, 3],
-    "cost": 1200,
-    "visual": {
-      "color": "#FFD700"
-    },
-    "production": {
-      "input": "mash",
-      "input_quantity": 5,
-      "output": "fermented_wash",
-      "quantity": 5,
-      "cycle_time": 10.0
-    },
-    "requires_facility": ["lager_brewery"],
-    "unlock_requirements": {
-      "research": ["lager_brewing"]
-    }
-  },
-
-  "master_brewer_station": {
-    "name": "Master Brewer Station",
-    "description": "Expert brewing station for premium beer production",
-    "category": "brewing",
-    "size": [2, 2],
-    "cost": 1500,
-    "visual": {
-      "color": "#8B4513"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 3,
-      "output": "ale",
-      "quantity": 6,
-      "cycle_time": 4.0
-    },
-    "modifiers": {
-      "quality_bonus": 0.5,
-      "price_multiplier": 1.5
-    },
-    "requires_facility": ["brewery", "lager_brewery"],
-    "unlock_requirements": {
-      "research": ["master_brewer"]
-    }
-  },
-
-  "copper_pot_still": {
-    "name": "Copper Pot Still",
-    "description": "Traditional copper still for small-batch spirits",
-    "category": "distilling",
-    "size": [2, 3],
-    "cost": 700,
-    "visual": {
-      "color": "#B87333"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 4,
-      "output": "raw_spirit",
-      "quantity": 3,
-      "cycle_time": 5.0
-    },
-    "requires_facility": ["distillery", "whiskey_distillery", "vodka_distillery"],
-    "unlock_requirements": {
-      "research": ["pot_stills"]
-    }
-  },
-
-  "copper_condenser_unit": {
-    "name": "Copper Condenser Unit",
-    "description": "Improved condensation for higher purity spirits",
-    "category": "distilling",
-    "size": [2, 2],
-    "cost": 850,
-    "visual": {
-      "color": "#CD7F32"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 3,
-      "output": "raw_spirit",
-      "quantity": 3,
-      "cycle_time": 4.0
-    },
-    "modifiers": {
-      "purity_bonus": 0.2
-    },
-    "requires_facility": ["distillery", "whiskey_distillery", "vodka_distillery"],
-    "unlock_requirements": {
-      "research": ["copper_condensers"]
-    }
-  },
-
-  "double_distillation_still": {
-    "name": "Double Distillation Still",
-    "description": "Two-stage distillation for premium whiskey production",
-    "category": "distilling",
-    "size": [3, 4],
-    "cost": 1500,
-    "visual": {
-      "color": "#8B4513"
-    },
-    "production": {
-      "input": "raw_spirit",
-      "input_quantity": 4,
-      "output": "whiskey",
-      "quantity": 3,
-      "cycle_time": 8.0
-    },
-    "requires_facility": ["distillery", "whiskey_distillery"],
-    "unlock_requirements": {
-      "research": ["double_distillation"]
-    }
-  },
-
-  "column_still": {
-    "name": "Column Still",
-    "description": "Continuous distillation for high-purity neutral spirits",
-    "category": "distilling",
-    "size": [2, 5],
-    "cost": 1800,
-    "visual": {
-      "color": "#C0C0C0"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 5,
-      "output": "vodka",
-      "quantity": 4,
-      "cycle_time": 5.0
-    },
-    "requires_facility": ["distillery", "vodka_distillery"],
-    "unlock_requirements": {
-      "research": ["column_stills"]
-    }
-  },
-
-  "continuous_still": {
-    "name": "Continuous Still",
-    "description": "Industrial-scale continuous distillation system",
-    "category": "distilling",
-    "size": [3, 5],
-    "cost": 2500,
-    "visual": {
-      "color": "#A9A9A9"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 8,
-      "output": "raw_spirit",
-      "quantity": 8,
-      "cycle_time": 3.0
-    },
-    "requires_facility": ["distillery", "whiskey_distillery", "vodka_distillery"],
-    "unlock_requirements": {
-      "research": ["continuous_distillation"]
-    }
-  },
-
-  "oak_aging_barrel": {
-    "name": "Oak Aging Barrel",
-    "description": "Quality oak barrel for proper spirit aging",
-    "category": "aging",
-    "size": [1, 1],
-    "cost": 300,
-    "visual": {
-      "color": "#8B4513"
-    },
-    "production": {
-      "input": "raw_spirit",
-      "input_quantity": 2,
-      "output": "aged_spirit",
-      "quantity": 2,
-      "cycle_time": 10.0
-    },
-    "requires_facility": ["distillery", "whiskey_distillery", "aging_cellar", "barrel_house"],
-    "unlock_requirements": {
-      "research": ["oak_barrels"]
-    }
-  },
-
-  "charred_oak_barrel": {
-    "name": "Charred Oak Barrel",
-    "description": "Charred interior adds rich flavor to aged spirits",
-    "category": "aging",
-    "size": [1, 1],
-    "cost": 450,
-    "visual": {
-      "color": "#3D2314"
-    },
-    "production": {
-      "input": "raw_spirit",
-      "input_quantity": 2,
-      "output": "aged_spirit",
-      "quantity": 2,
-      "cycle_time": 8.0
-    },
-    "modifiers": {
-      "value_multiplier": 1.25
-    },
-    "requires_facility": ["distillery", "whiskey_distillery", "aging_cellar", "barrel_house"],
-    "unlock_requirements": {
-      "research": ["charred_barrels"]
-    }
-  },
-
-  "climate_controlled_rack": {
-    "name": "Climate Controlled Rack",
-    "description": "Temperature-controlled aging rack for optimal maturation",
-    "category": "aging",
-    "size": [2, 2],
-    "cost": 800,
-    "visual": {
-      "color": "#4A3728"
-    },
-    "production": {
-      "input": "raw_spirit",
-      "input_quantity": 4,
-      "output": "aged_spirit",
-      "quantity": 4,
-      "cycle_time": 12.0
-    },
-    "requires_facility": ["aging_cellar", "barrel_house"],
-    "unlock_requirements": {
-      "research": ["climate_cellars"]
-    }
-  },
-
-  "solera_barrel_system": {
-    "name": "Solera Barrel System",
-    "description": "Fractional blending system for exceptionally complex spirits",
-    "category": "aging",
-    "size": [3, 2],
-    "cost": 2000,
-    "visual": {
-      "color": "#2F1810"
-    },
-    "production": {
-      "input": "whiskey",
-      "input_quantity": 4,
-      "output": "premium_whiskey",
-      "quantity": 3,
-      "cycle_time": 15.0
-    },
-    "requires_facility": ["barrel_house"],
-    "unlock_requirements": {
-      "research": ["solera_system"]
-    }
-  },
-
-  "glass_bottling_line": {
-    "name": "Glass Bottling Line",
-    "description": "Premium glass bottle packaging for higher product value",
-    "category": "packaging",
-    "size": [3, 2],
-    "cost": 900,
-    "visual": {
-      "color": "#00FA9A"
-    },
-    "production": {
-      "input": "ale",
-      "input_quantity": 5,
-      "output": "packaged_ale",
-      "quantity": 6,
-      "cycle_time": 3.0
-    },
-    "modifiers": {
-      "value_multiplier": 1.2
-    },
-    "requires_facility": ["brewery", "packaging_plant", "bottling_facility"],
-    "unlock_requirements": {
-      "research": ["glass_bottles"]
-    }
-  },
-
-  "quality_inspection_station": {
-    "name": "Quality Inspection Station",
-    "description": "Rigorous quality control ensures only premium products pass",
-    "category": "packaging",
-    "size": [2, 2],
-    "cost": 700,
-    "visual": {
-      "color": "#4169E1"
-    },
-    "modifiers": {
-      "quality_bonus": 0.25,
-      "reject_rate": 0.1
-    },
-    "requires_facility": ["brewery", "distillery", "packaging_plant", "bottling_facility"],
-    "unlock_requirements": {
-      "research": ["quality_control"]
-    }
-  },
-
-  "premium_labeling_machine": {
-    "name": "Premium Labeling Machine",
-    "description": "Brand recognition through premium labels increases prices",
-    "category": "packaging",
-    "size": [2, 1],
-    "cost": 1100,
-    "visual": {
-      "color": "#9932CC"
-    },
-    "modifiers": {
-      "price_multiplier": 1.35
-    },
-    "requires_facility": ["packaging_plant", "bottling_facility"],
-    "unlock_requirements": {
-      "research": ["premium_branding"]
-    }
-  },
-
-  "steam_powered_boiler": {
-    "name": "Steam Powered Boiler",
-    "description": "High-capacity steam boiler for industrial operations",
-    "category": "utility",
-    "size": [3, 3],
-    "cost": 1200,
-    "visual": {
-      "color": "#B22222"
-    },
-    "power_output": 25,
-    "requires_facility": ["brewery", "distillery", "industrial_mill", "lager_brewery", "whiskey_distillery", "vodka_distillery"],
-    "unlock_requirements": {
-      "research": ["steam_power"]
-    }
-  },
-
-  "automated_conveyor": {
-    "name": "Automated Conveyor",
-    "description": "Steam-powered automated material transport",
-    "category": "logistics",
-    "size": [1, 1],
-    "cost": 200,
-    "visual": {
-      "color": "#808080"
-    },
-    "connectable": true,
-    "transfer_speed": 2.0,
-    "requires_facility": ["brewery", "distillery", "industrial_mill", "lager_brewery", "whiskey_distillery", "vodka_distillery"],
-    "unlock_requirements": {
-      "research": ["automated_milling"]
-    }
-  },
-
-  "large_storage_tank": {
-    "name": "Large Storage Tank",
-    "description": "High-capacity storage for intermediate products",
-    "category": "storage",
-    "size": [3, 3],
-    "cost": 500,
-    "visual": {
-      "color": "#696969"
-    },
-    "storage_capacity": 300,
-    "is_storage_buffer": true,
-    "requires_facility": ["brewery", "distillery", "storage_warehouse", "distribution_depot"],
-    "unlock_requirements": {
-      "research": ["steam_power"]
-    }
-  },
-
-  "wine_press": {
-    "name": "Wine Press",
-    "description": "Extracts juice from grapes for wine production",
-    "category": "brewing",
-    "size": [2, 2],
-    "cost": 600,
-    "visual": {
-      "color": "#722F37"
-    },
-    "production": {
-      "input": "grapes",
-      "input_quantity": 10,
-      "output": "fermented_wash",
-      "quantity": 8,
-      "cycle_time": 6.0
-    },
-    "requires_facility": ["winery"],
-    "unlock_requirements": {
-      "research": ["agricultural_science"]
-    }
-  },
-
-  "wine_fermentation_vat": {
-    "name": "Wine Fermentation Vat",
-    "description": "Specialized vat for fermenting grape juice into wine",
-    "category": "brewing",
-    "size": [2, 3],
-    "cost": 800,
-    "visual": {
-      "color": "#8B0000"
-    },
-    "production": {
-      "input": "fermented_wash",
-      "input_quantity": 4,
-      "output": "wine",
-      "quantity": 3,
-      "cycle_time": 10.0
-    },
-    "requires_facility": ["winery"],
-    "unlock_requirements": {
-      "research": ["agricultural_science"]
-    }
-  }
+	"conveyor_belt": {
+		"name": "Conveyor Belt",
+		"description": "Transports materials between machines",
+		"category": "logistics",
+		"size": [
+			1,
+			1
+		],
+		"cost": 50,
+		"visual": {
+			"color": "#666666",
+			"sprite": "res://assets/machines/conveyor_belt.png"
+		},
+		"connectable": true
+	},
+	"mash_tun": {
+		"name": "Mash Tun",
+		"description": "Combines grist and water to make mash. Multi-input recipe (slice 3.3 engine work pending).",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 300,
+		"visual": {
+			"color": "#8B4513",
+			"sprite": "res://assets/machines/mash_tun.png"
+		},
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		],
+		"recipe_id": "mash_tun_lager"
+	},
+	"fermentation_vat": {
+		"name": "Fermentation Vat",
+		"description": "Ferments mash into beer or wash",
+		"category": "brewing",
+		"size": [
+			2,
+			3
+		],
+		"cost": 500,
+		"visual": {
+			"color": "#DAA520",
+			"sprite": "res://assets/machines/fermentation_vat.png"
+		},
+		"production": {
+			"input": "mash",
+			"input_quantity": 4,
+			"output": "fermented_wash",
+			"quantity": 3,
+			"cycle_time": 8.0
+		},
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		]
+	},
+	"distillation_column": {
+		"name": "Distillation Column",
+		"description": "Distills wash into spirits",
+		"category": "distilling",
+		"size": [
+			2,
+			4
+		],
+		"cost": 800,
+		"visual": {
+			"color": "#C0C0C0",
+			"sprite": "res://assets/machines/distillation_column.png"
+		},
+		"production": {
+			"input": "fermented_wash",
+			"input_quantity": 3,
+			"output": "raw_spirit",
+			"quantity": 2,
+			"cycle_time": 6.0
+		},
+		"requires_facility": [
+			"distillery"
+		]
+	},
+	"aging_barrel": {
+		"name": "Aging Barrel",
+		"description": "Ages spirits to improve quality",
+		"category": "distilling",
+		"size": [
+			1,
+			1
+		],
+		"cost": 200,
+		"visual": {
+			"color": "#654321",
+			"sprite": "res://assets/machines/aging_barrel.png"
+		},
+		"production": {
+			"input": "raw_spirit",
+			"input_quantity": 1,
+			"output": "aged_spirit",
+			"quantity": 1,
+			"cycle_time": 12.0
+		},
+		"requires_facility": [
+			"distillery"
+		]
+	},
+	"bottling_line": {
+		"name": "Bottling Line",
+		"description": "Bottles finished beer with empty bottles to produce lager. Multi-input recipe.",
+		"category": "packaging",
+		"size": [
+			3,
+			2
+		],
+		"cost": 600,
+		"visual": {
+			"color": "#00CED1",
+			"sprite": "res://assets/machines/bottling_line.png"
+		},
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		],
+		"recipe_id": "bottling_line_lager"
+	},
+	"quality_control": {
+		"name": "Quality Control Station",
+		"description": "Ensures product quality and increases value",
+		"category": "quality",
+		"size": [
+			2,
+			2
+		],
+		"cost": 400,
+		"visual": {
+			"color": "#4169E1",
+			"sprite": "res://assets/machines/quality_control.png"
+		},
+		"modifiers": {
+			"quality_bonus": 0.15,
+			"price_multiplier": 1.2
+		},
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		]
+	},
+	"storage_tank": {
+		"name": "Storage Tank",
+		"description": "Stores intermediate products and buffers production flow",
+		"category": "storage",
+		"size": [
+			2,
+			2
+		],
+		"cost": 250,
+		"visual": {
+			"color": "#708090",
+			"sprite": "res://assets/machines/storage_tank.png"
+		},
+		"storage_capacity": 100,
+		"is_storage_buffer": true,
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		]
+	},
+	"input_hopper": {
+		"name": "Input Hopper",
+		"description": "Receives materials from logistics routes",
+		"category": "logistics",
+		"size": [
+			1,
+			1
+		],
+		"cost": 100,
+		"visual": {
+			"color": "#A9A9A9",
+			"sprite": "res://assets/machines/input_hopper.png"
+		},
+		"is_input_node": true,
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		]
+	},
+	"output_depot": {
+		"name": "Output Depot",
+		"description": "Sends finished products to logistics routes",
+		"category": "logistics",
+		"size": [
+			1,
+			1
+		],
+		"cost": 100,
+		"visual": {
+			"color": "#FFD700",
+			"sprite": "res://assets/machines/output_depot.png"
+		},
+		"is_output_node": true,
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		]
+	},
+	"market_outlet": {
+		"name": "Market Outlet",
+		"description": "Sells raw and intermediate products for reduced profit (bootstrap income)",
+		"category": "logistics",
+		"size": [
+			1,
+			1
+		],
+		"cost": 75,
+		"visual": {
+			"color": "#32CD32",
+			"sprite": "res://assets/machines/market_outlet.png"
+		},
+		"is_market_outlet": true,
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		],
+		"hidden_from_build_menu": true
+	},
+	"boiler": {
+		"name": "Steam Boiler",
+		"description": "Provides power to nearby machines",
+		"category": "utility",
+		"size": [
+			2,
+			3
+		],
+		"cost": 700,
+		"visual": {
+			"color": "#DC143C",
+			"sprite": "res://assets/machines/boiler.png"
+		},
+		"power_output": 10,
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		],
+		"hidden_from_build_menu": true
+	},
+	"water_pump": {
+		"name": "Water Pump",
+		"description": "Supplies water for production",
+		"category": "utility",
+		"size": [
+			1,
+			2
+		],
+		"cost": 150,
+		"visual": {
+			"color": "#1E90FF",
+			"sprite": "res://assets/machines/water_pump.png"
+		},
+		"resource_type": "water",
+		"requires_facility": [
+			"brewery",
+			"distillery"
+		],
+		"hidden_from_build_menu": true
+	},
+	"advanced_mash_tun": {
+		"name": "Advanced Mash Tun",
+		"description": "Improved mash tun with better temperature control and yield",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 600,
+		"visual": {
+			"color": "#A0522D"
+		},
+		"production": {
+			"input": "malt",
+			"input_quantity": 5,
+			"output": "mash",
+			"quantity": 5,
+			"cycle_time": 3.0
+		},
+		"requires_facility": [
+			"brewery",
+			"distillery",
+			"lager_brewery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"yeast_cultivation"
+			]
+		}
+	},
+	"temperature_controlled_vat": {
+		"name": "Temperature Controlled Vat",
+		"description": "Precise fermentation with temperature control for consistent quality",
+		"category": "brewing",
+		"size": [
+			2,
+			3
+		],
+		"cost": 900,
+		"visual": {
+			"color": "#CD853F"
+		},
+		"production": {
+			"input": "mash",
+			"input_quantity": 4,
+			"output": "fermented_wash",
+			"quantity": 4,
+			"cycle_time": 6.0
+		},
+		"requires_facility": [
+			"brewery",
+			"distillery",
+			"lager_brewery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"temperature_control"
+			]
+		}
+	},
+	"lager_fermentation_tank": {
+		"name": "Lager Fermentation Tank",
+		"description": "Cold fermentation tank for producing crisp lagers",
+		"category": "brewing",
+		"size": [
+			3,
+			3
+		],
+		"cost": 1200,
+		"visual": {
+			"color": "#FFD700"
+		},
+		"production": {
+			"input": "mash",
+			"input_quantity": 5,
+			"output": "fermented_wash",
+			"quantity": 5,
+			"cycle_time": 10.0
+		},
+		"requires_facility": [
+			"lager_brewery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"lager_brewing"
+			]
+		}
+	},
+	"master_brewer_station": {
+		"name": "Master Brewer Station",
+		"description": "Expert brewing station for premium beer production",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 1500,
+		"visual": {
+			"color": "#8B4513"
+		},
+		"production": {
+			"input": "fermented_wash",
+			"input_quantity": 3,
+			"output": "ale",
+			"quantity": 6,
+			"cycle_time": 4.0
+		},
+		"modifiers": {
+			"quality_bonus": 0.5,
+			"price_multiplier": 1.5
+		},
+		"requires_facility": [
+			"brewery",
+			"lager_brewery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"master_brewer"
+			]
+		}
+	},
+	"copper_pot_still": {
+		"name": "Copper Pot Still",
+		"description": "Traditional copper still for small-batch spirits",
+		"category": "distilling",
+		"size": [
+			2,
+			3
+		],
+		"cost": 700,
+		"visual": {
+			"color": "#B87333"
+		},
+		"production": {
+			"input": "fermented_wash",
+			"input_quantity": 4,
+			"output": "raw_spirit",
+			"quantity": 3,
+			"cycle_time": 5.0
+		},
+		"requires_facility": [
+			"distillery",
+			"whiskey_distillery",
+			"vodka_distillery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"pot_stills"
+			]
+		}
+	},
+	"copper_condenser_unit": {
+		"name": "Copper Condenser Unit",
+		"description": "Improved condensation for higher purity spirits",
+		"category": "distilling",
+		"size": [
+			2,
+			2
+		],
+		"cost": 850,
+		"visual": {
+			"color": "#CD7F32"
+		},
+		"production": {
+			"input": "fermented_wash",
+			"input_quantity": 3,
+			"output": "raw_spirit",
+			"quantity": 3,
+			"cycle_time": 4.0
+		},
+		"modifiers": {
+			"purity_bonus": 0.2
+		},
+		"requires_facility": [
+			"distillery",
+			"whiskey_distillery",
+			"vodka_distillery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"copper_condensers"
+			]
+		}
+	},
+	"double_distillation_still": {
+		"name": "Double Distillation Still",
+		"description": "Two-stage distillation for premium whiskey production",
+		"category": "distilling",
+		"size": [
+			3,
+			4
+		],
+		"cost": 1500,
+		"visual": {
+			"color": "#8B4513"
+		},
+		"production": {
+			"input": "raw_spirit",
+			"input_quantity": 4,
+			"output": "whiskey",
+			"quantity": 3,
+			"cycle_time": 8.0
+		},
+		"requires_facility": [
+			"distillery",
+			"whiskey_distillery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"double_distillation"
+			]
+		}
+	},
+	"column_still": {
+		"name": "Column Still",
+		"description": "Continuous distillation for high-purity neutral spirits",
+		"category": "distilling",
+		"size": [
+			2,
+			5
+		],
+		"cost": 1800,
+		"visual": {
+			"color": "#C0C0C0"
+		},
+		"production": {
+			"input": "fermented_wash",
+			"input_quantity": 5,
+			"output": "vodka",
+			"quantity": 4,
+			"cycle_time": 5.0
+		},
+		"requires_facility": [
+			"distillery",
+			"vodka_distillery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"column_stills"
+			]
+		}
+	},
+	"continuous_still": {
+		"name": "Continuous Still",
+		"description": "Industrial-scale continuous distillation system",
+		"category": "distilling",
+		"size": [
+			3,
+			5
+		],
+		"cost": 2500,
+		"visual": {
+			"color": "#A9A9A9"
+		},
+		"production": {
+			"input": "fermented_wash",
+			"input_quantity": 8,
+			"output": "raw_spirit",
+			"quantity": 8,
+			"cycle_time": 3.0
+		},
+		"requires_facility": [
+			"distillery",
+			"whiskey_distillery",
+			"vodka_distillery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"continuous_distillation"
+			]
+		}
+	},
+	"oak_aging_barrel": {
+		"name": "Oak Aging Barrel",
+		"description": "Quality oak barrel for proper spirit aging",
+		"category": "aging",
+		"size": [
+			1,
+			1
+		],
+		"cost": 300,
+		"visual": {
+			"color": "#8B4513"
+		},
+		"production": {
+			"input": "raw_spirit",
+			"input_quantity": 2,
+			"output": "aged_spirit",
+			"quantity": 2,
+			"cycle_time": 10.0
+		},
+		"requires_facility": [
+			"distillery",
+			"whiskey_distillery",
+			"aging_cellar",
+			"barrel_house"
+		],
+		"unlock_requirements": {
+			"research": [
+				"oak_barrels"
+			]
+		}
+	},
+	"charred_oak_barrel": {
+		"name": "Charred Oak Barrel",
+		"description": "Charred interior adds rich flavor to aged spirits",
+		"category": "aging",
+		"size": [
+			1,
+			1
+		],
+		"cost": 450,
+		"visual": {
+			"color": "#3D2314"
+		},
+		"production": {
+			"input": "raw_spirit",
+			"input_quantity": 2,
+			"output": "aged_spirit",
+			"quantity": 2,
+			"cycle_time": 8.0
+		},
+		"modifiers": {
+			"value_multiplier": 1.25
+		},
+		"requires_facility": [
+			"distillery",
+			"whiskey_distillery",
+			"aging_cellar",
+			"barrel_house"
+		],
+		"unlock_requirements": {
+			"research": [
+				"charred_barrels"
+			]
+		}
+	},
+	"climate_controlled_rack": {
+		"name": "Climate Controlled Rack",
+		"description": "Temperature-controlled aging rack for optimal maturation",
+		"category": "aging",
+		"size": [
+			2,
+			2
+		],
+		"cost": 800,
+		"visual": {
+			"color": "#4A3728"
+		},
+		"production": {
+			"input": "raw_spirit",
+			"input_quantity": 4,
+			"output": "aged_spirit",
+			"quantity": 4,
+			"cycle_time": 12.0
+		},
+		"requires_facility": [
+			"aging_cellar",
+			"barrel_house"
+		],
+		"unlock_requirements": {
+			"research": [
+				"climate_cellars"
+			]
+		}
+	},
+	"solera_barrel_system": {
+		"name": "Solera Barrel System",
+		"description": "Fractional blending system for exceptionally complex spirits",
+		"category": "aging",
+		"size": [
+			3,
+			2
+		],
+		"cost": 2000,
+		"visual": {
+			"color": "#2F1810"
+		},
+		"production": {
+			"input": "whiskey",
+			"input_quantity": 4,
+			"output": "premium_whiskey",
+			"quantity": 3,
+			"cycle_time": 15.0
+		},
+		"requires_facility": [
+			"barrel_house"
+		],
+		"unlock_requirements": {
+			"research": [
+				"solera_system"
+			]
+		}
+	},
+	"glass_bottling_line": {
+		"name": "Glass Bottling Line",
+		"description": "Premium glass bottle packaging for higher product value",
+		"category": "packaging",
+		"size": [
+			3,
+			2
+		],
+		"cost": 900,
+		"visual": {
+			"color": "#00FA9A"
+		},
+		"production": {
+			"input": "ale",
+			"input_quantity": 5,
+			"output": "packaged_ale",
+			"quantity": 6,
+			"cycle_time": 3.0
+		},
+		"modifiers": {
+			"value_multiplier": 1.2
+		},
+		"requires_facility": [
+			"brewery",
+			"packaging_plant",
+			"bottling_facility"
+		],
+		"unlock_requirements": {
+			"research": [
+				"glass_bottles"
+			]
+		}
+	},
+	"quality_inspection_station": {
+		"name": "Quality Inspection Station",
+		"description": "Rigorous quality control ensures only premium products pass",
+		"category": "packaging",
+		"size": [
+			2,
+			2
+		],
+		"cost": 700,
+		"visual": {
+			"color": "#4169E1"
+		},
+		"modifiers": {
+			"quality_bonus": 0.25,
+			"reject_rate": 0.1
+		},
+		"requires_facility": [
+			"brewery",
+			"distillery",
+			"packaging_plant",
+			"bottling_facility"
+		],
+		"unlock_requirements": {
+			"research": [
+				"quality_control"
+			]
+		}
+	},
+	"premium_labeling_machine": {
+		"name": "Premium Labeling Machine",
+		"description": "Brand recognition through premium labels increases prices",
+		"category": "packaging",
+		"size": [
+			2,
+			1
+		],
+		"cost": 1100,
+		"visual": {
+			"color": "#9932CC"
+		},
+		"modifiers": {
+			"price_multiplier": 1.35
+		},
+		"requires_facility": [
+			"packaging_plant",
+			"bottling_facility"
+		],
+		"unlock_requirements": {
+			"research": [
+				"premium_branding"
+			]
+		}
+	},
+	"steam_powered_boiler": {
+		"name": "Steam Powered Boiler",
+		"description": "High-capacity steam boiler for industrial operations",
+		"category": "utility",
+		"size": [
+			3,
+			3
+		],
+		"cost": 1200,
+		"visual": {
+			"color": "#B22222"
+		},
+		"power_output": 25,
+		"requires_facility": [
+			"brewery",
+			"distillery",
+			"industrial_mill",
+			"lager_brewery",
+			"whiskey_distillery",
+			"vodka_distillery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"steam_power"
+			]
+		},
+		"hidden_from_build_menu": true
+	},
+	"automated_conveyor": {
+		"name": "Automated Conveyor",
+		"description": "Steam-powered automated material transport",
+		"category": "logistics",
+		"size": [
+			1,
+			1
+		],
+		"cost": 200,
+		"visual": {
+			"color": "#808080"
+		},
+		"connectable": true,
+		"transfer_speed": 2.0,
+		"requires_facility": [
+			"brewery",
+			"distillery",
+			"industrial_mill",
+			"lager_brewery",
+			"whiskey_distillery",
+			"vodka_distillery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"automated_milling"
+			]
+		}
+	},
+	"large_storage_tank": {
+		"name": "Large Storage Tank",
+		"description": "High-capacity storage for intermediate products",
+		"category": "storage",
+		"size": [
+			3,
+			3
+		],
+		"cost": 500,
+		"visual": {
+			"color": "#696969"
+		},
+		"storage_capacity": 300,
+		"is_storage_buffer": true,
+		"requires_facility": [
+			"brewery",
+			"distillery",
+			"storage_warehouse",
+			"distribution_depot"
+		],
+		"unlock_requirements": {
+			"research": [
+				"steam_power"
+			]
+		}
+	},
+	"wine_press": {
+		"name": "Wine Press",
+		"description": "Extracts juice from grapes for wine production",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 600,
+		"visual": {
+			"color": "#722F37"
+		},
+		"production": {
+			"input": "grapes",
+			"input_quantity": 10,
+			"output": "fermented_wash",
+			"quantity": 8,
+			"cycle_time": 6.0
+		},
+		"requires_facility": [
+			"winery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"agricultural_science"
+			]
+		}
+	},
+	"wine_fermentation_vat": {
+		"name": "Wine Fermentation Vat",
+		"description": "Specialized vat for fermenting grape juice into wine",
+		"category": "brewing",
+		"size": [
+			2,
+			3
+		],
+		"cost": 800,
+		"visual": {
+			"color": "#8B0000"
+		},
+		"production": {
+			"input": "fermented_wash",
+			"input_quantity": 4,
+			"output": "wine",
+			"quantity": 3,
+			"cycle_time": 10.0
+		},
+		"requires_facility": [
+			"winery"
+		],
+		"unlock_requirements": {
+			"research": [
+				"agricultural_science"
+			]
+		}
+	},
+	"mill": {
+		"name": "Mill",
+		"description": "Crushes malt into grist for mashing",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 250,
+		"visual": {
+			"color": "#A57A48"
+		},
+		"production": {
+			"input": "malt",
+			"input_quantity": 4,
+			"output": "grist",
+			"quantity": 4,
+			"cycle_time": 3.0
+		},
+		"requires_facility": [
+			"brewery"
+		]
+	},
+	"lauter_tun": {
+		"name": "Lauter Tun",
+		"description": "Separates mash into clear wort",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 350,
+		"visual": {
+			"color": "#9C7B5C"
+		},
+		"production": {
+			"input": "mash",
+			"input_quantity": 4,
+			"output": "wort",
+			"quantity": 4,
+			"cycle_time": 4.0
+		},
+		"requires_facility": [
+			"brewery"
+		]
+	},
+	"brewer": {
+		"name": "Brewer",
+		"description": "Boils wort with hops. Multi-input recipe (slice 3.3 engine work pending).",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 600,
+		"visual": {
+			"color": "#8B4513"
+		},
+		"recipe_id": "brewer_lager",
+		"requires_facility": [
+			"brewery"
+		]
+	},
+	"whirlpool_separator": {
+		"name": "Whirlpool Separator",
+		"description": "Removes hop solids and protein from boiled wort",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 400,
+		"visual": {
+			"color": "#7CA1B4"
+		},
+		"production": {
+			"input": "boiled_wort",
+			"input_quantity": 4,
+			"output": "cleaned_wort",
+			"quantity": 4,
+			"cycle_time": 3.0
+		},
+		"requires_facility": [
+			"brewery"
+		]
+	},
+	"cooler": {
+		"name": "Cooler",
+		"description": "Chills wort to fermentation temperature",
+		"category": "brewing",
+		"size": [
+			1,
+			2
+		],
+		"cost": 300,
+		"visual": {
+			"color": "#5BA2C8"
+		},
+		"production": {
+			"input": "cleaned_wort",
+			"input_quantity": 4,
+			"output": "cooled_wort",
+			"quantity": 4,
+			"cycle_time": 2.0
+		},
+		"requires_facility": [
+			"brewery"
+		]
+	},
+	"fermentation_vessel": {
+		"name": "Fermentation Vessel",
+		"description": "Ferments cooled wort into green beer over a long cycle",
+		"category": "brewing",
+		"size": [
+			2,
+			3
+		],
+		"cost": 700,
+		"visual": {
+			"color": "#DAA520"
+		},
+		"production": {
+			"input": "cooled_wort",
+			"input_quantity": 4,
+			"output": "green_beer",
+			"quantity": 4,
+			"cycle_time": 8.0
+		},
+		"requires_facility": [
+			"brewery"
+		]
+	},
+	"maturation_tank": {
+		"name": "Maturation Tank",
+		"description": "Lagers green beer at cold temperature for a clean flavor",
+		"category": "brewing",
+		"size": [
+			2,
+			3
+		],
+		"cost": 750,
+		"visual": {
+			"color": "#B0926A"
+		},
+		"production": {
+			"input": "green_beer",
+			"input_quantity": 4,
+			"output": "matured_beer",
+			"quantity": 4,
+			"cycle_time": 10.0
+		},
+		"requires_facility": [
+			"brewery"
+		]
+	},
+	"filtration_unit": {
+		"name": "Filtration Unit",
+		"description": "Filters matured beer into a clear finished beer",
+		"category": "brewing",
+		"size": [
+			2,
+			2
+		],
+		"cost": 500,
+		"visual": {
+			"color": "#D4D4D4"
+		},
+		"production": {
+			"input": "matured_beer",
+			"input_quantity": 4,
+			"output": "finished_beer",
+			"quantity": 4,
+			"cycle_time": 4.0
+		},
+		"requires_facility": [
+			"brewery"
+		]
+	}
 }
