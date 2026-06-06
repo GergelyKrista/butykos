@@ -38,8 +38,11 @@ extends Control
 ##   - 4 — per-connection throughput control
 
 signal facility_clicked(facility_id: String)
-signal facility_drag_started(facility_id: String)
-signal facility_drag_ended(target_facility_id: String)
+# Connection drags are now socket-initiated (slice 2.3). The signal carries
+# both the facility id and the specific product that the dragged socket
+# exposes, so the panel doesn't need to re-derive route compatibility.
+signal facility_drag_started(facility_id: String, product: String)
+signal facility_drag_ended(target_facility_id: String, product: String)
 signal connection_right_clicked(connection_id: String)
 
 const NODE_RADIUS: float = 22.0
@@ -102,12 +105,17 @@ var _custom_positions: Dictionary = {}
 var canvas_zoom: float = 1.0
 var canvas_offset: Vector2 = Vector2.ZERO
 
-# Interaction state
-var is_connecting: bool = false   # Shift+LMB drag from a node
-var is_moving: bool = false       # LMB drag on a node body
-var is_panning: bool = false      # Middle-click drag
+# Interaction state.
+# Connection drags now originate from an output SOCKET (Blender/Unreal style).
+# Clicking the node body starts a move instead. Sockets are checked before
+# the body on press, so a click that lands on a socket never moves the node.
+var is_connecting: bool = false
+var is_moving: bool = false
+var is_panning: bool = false
 var drag_start_facility: String = ""
-var drag_current_canvas_pos: Vector2 = Vector2.ZERO  # mouse position in canvas-space
+var drag_source_product: String = ""              # product of the source output socket
+var drag_start_canvas_pos: Vector2 = Vector2.ZERO  # source socket position (rubber-band origin)
+var drag_current_canvas_pos: Vector2 = Vector2.ZERO  # cursor position in canvas-space
 var _pan_start_view_pos: Vector2 = Vector2.ZERO
 var _canvas_offset_at_pan_start: Vector2 = Vector2.ZERO
 
@@ -205,12 +213,12 @@ func _draw() -> void:
 	_draw_grid()
 	_draw_connections()
 
-	# Rubber-band line for the connection drag (Shift+LMB).
+	# Rubber-band line for the in-progress socket-initiated connection
+	# (slice 2.3). Origin is the source socket position (not the box
+	# center) so the line reads as "this socket is reaching out".
 	if is_connecting and not drag_start_facility.is_empty():
-		var start_pos: Vector2 = facility_nodes.get(drag_start_facility, Vector2.ZERO)
-		# Line width drawn in canvas-space — divide by zoom so it stays
-		# visually constant regardless of zoom level.
-		draw_line(start_pos, drag_current_canvas_pos, DRAG_LINE_COLOR, 3.0 / canvas_zoom)
+		var band_color: Color = _socket_color_for(drag_source_product) if not drag_source_product.is_empty() else DRAG_LINE_COLOR
+		draw_line(drag_start_canvas_pos, drag_current_canvas_pos, band_color, 3.0 / canvas_zoom)
 
 	_draw_facility_nodes()
 
@@ -615,6 +623,23 @@ func get_facility_at_pos(view_pos: Vector2) -> String:
 	return ""
 
 
+func get_socket_at_pos(view_pos: Vector2) -> Dictionary:
+	"""Return socket info (facility_id, type "input"/"output", index, product)
+	if the cursor is over a socket dot, else {}. Hit zone is a bit larger
+	than the visual radius so the player doesn't have to be pixel-precise."""
+	var canvas_pos: Vector2 = _view_to_canvas(view_pos)
+	var hit_radius: float = SOCKET_RADIUS * 1.6
+	for facility_id in facility_nodes:
+		var io: Dictionary = get_node_io(facility_id)
+		for i in range(io.inputs.size()):
+			if canvas_pos.distance_to(_get_input_socket_pos(facility_id, i)) <= hit_radius:
+				return {"facility_id": facility_id, "type": "input", "index": i, "product": io.inputs[i]}
+		for i in range(io.outputs.size()):
+			if canvas_pos.distance_to(_get_output_socket_pos(facility_id, i)) <= hit_radius:
+				return {"facility_id": facility_id, "type": "output", "index": i, "product": io.outputs[i]}
+	return {}
+
+
 func get_connection_at_pos(view_pos: Vector2) -> String:
 	var canvas_pos: Vector2 = _view_to_canvas(view_pos)
 	for connection in LogisticsManager.connections.values():
@@ -703,19 +728,34 @@ func _gui_input(event: InputEvent) -> void:
 
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
-				var facility_id: String = get_facility_at_pos(view_pos)
-				if not facility_id.is_empty():
-					drag_start_facility = facility_id
-					drag_current_canvas_pos = _view_to_canvas(view_pos)
-					# Shift = connect; bare LMB = move the node.
-					is_connecting = mb.shift_pressed
-					is_moving = not mb.shift_pressed
-					if is_connecting:
-						facility_drag_started.emit(facility_id)
+				# Sockets win over the box body — Blender / Unreal style.
+				# Output socket = start connection drag. Input socket = no-op
+				# for now (slice 2.3 only supports source→destination drags;
+				# input-initiated reverse drags can come later if needed).
+				var socket: Dictionary = get_socket_at_pos(view_pos)
+				if not socket.is_empty():
+					if String(socket.type) == "output":
+						is_connecting = true
+						drag_start_facility = String(socket.facility_id)
+						drag_source_product = String(socket.product)
+						drag_start_canvas_pos = _get_output_socket_pos(drag_start_facility, int(socket.index))
+						drag_current_canvas_pos = _view_to_canvas(view_pos)
+						facility_drag_started.emit(drag_start_facility, drag_source_product)
+				else:
+					var facility_id: String = get_facility_at_pos(view_pos)
+					if not facility_id.is_empty():
+						drag_start_facility = facility_id
+						drag_current_canvas_pos = _view_to_canvas(view_pos)
+						is_moving = true
 			else:
 				if is_connecting:
-					var target: String = get_facility_at_pos(view_pos)
-					facility_drag_ended.emit(target)
+					# Strict drop target: a matching input socket. Releasing
+					# on a node body / empty space cancels.
+					var release_socket: Dictionary = get_socket_at_pos(view_pos)
+					if not release_socket.is_empty() and String(release_socket.type) == "input":
+						facility_drag_ended.emit(String(release_socket.facility_id), String(release_socket.product))
+					else:
+						facility_drag_ended.emit("", "")
 				elif is_moving and not drag_start_facility.is_empty():
 					# Commit the move. Position is canvas-space; clamping is
 					# loose (canvas is conceptually infinite, but we keep it
@@ -727,6 +767,7 @@ func _gui_input(event: InputEvent) -> void:
 				is_connecting = false
 				is_moving = false
 				drag_start_facility = ""
+				drag_source_product = ""
 			queue_redraw()
 
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:

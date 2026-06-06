@@ -10,6 +10,10 @@ signal close_requested()
 @onready var vehicles_label: Label = $MarginContainer/VBoxContainer/StatsHBox/VehiclesLabel
 
 var _drag_source: String = ""
+# Product of the output socket the connection drag started from. The route's
+# carried product is THIS, not something the panel re-derives — set by the
+# updated `facility_drag_started` signal contract (slice 2.3).
+var _drag_source_product: String = ""
 
 
 func _ready() -> void:
@@ -65,32 +69,42 @@ func _on_close_pressed() -> void:
 	hide_panel()
 
 
-func _on_drag_started(facility_id: String) -> void:
+func _on_drag_started(facility_id: String, product: String) -> void:
 	_drag_source = facility_id
+	_drag_source_product = product
 
 
-func _on_drag_ended(target_facility_id: String) -> void:
-	if _drag_source.is_empty() or target_facility_id.is_empty():
+func _on_drag_ended(target_facility_id: String, target_product: String) -> void:
+	# Cancelled (released on empty space / node body, not on an input socket).
+	if target_facility_id.is_empty():
 		_drag_source = ""
+		_drag_source_product = ""
 		return
-
+	if _drag_source.is_empty():
+		_drag_source_product = ""
+		return
 	if _drag_source == target_facility_id:
 		_drag_source = ""
+		_drag_source_product = ""
 		return
-
-	# Determine product
-	var product = _determine_product(_drag_source, target_facility_id)
-	if product.is_empty():
-		EventBus.notification_posted.emit("No compatible product!", "error")
+	# Slice-2.3: socket products must match. The dragged source product is
+	# the route's carried product; if the dropped input socket expects a
+	# different product, refuse and explain.
+	if target_product != _drag_source_product:
+		EventBus.notification_posted.emit(
+			"Sockets don't match: %s → %s" % [_drag_source_product, target_product],
+			"error",
+		)
 		_drag_source = ""
+		_drag_source_product = ""
 		return
-
-	# Routes are Logistics-owned in v1 (technical-architecture A7); omit corp_id to take the default.
-	var conn_id = LogisticsManager.create_connection(_drag_source, target_facility_id, product)
+	# Routes are Logistics-owned in v1 (technical-architecture A7); omit
+	# corp_id to take the default.
+	var conn_id := LogisticsManager.create_connection(_drag_source, target_facility_id, _drag_source_product)
 	if not conn_id.is_empty():
-		EventBus.notification_posted.emit("Connection: %s" % product.capitalize(), "info")
-
+		EventBus.notification_posted.emit("Connection: %s" % _drag_source_product.capitalize(), "info")
 	_drag_source = ""
+	_drag_source_product = ""
 
 
 func _on_connection_delete(connection_id: String) -> void:
@@ -102,17 +116,3 @@ func _on_logistics_changed(_data = null) -> void:
 		network_view.update_facility_positions()
 
 
-func _determine_product(source_id: String, dest_id: String) -> String:
-	"""Pick the product to carry on a new connection — strict match against
-	the source's CURRENT outputs and the dest's CURRENT inputs (slice-2.1+
-	gates farmhouse outputs by inventory and brewery I/O by hopper presence).
-	Returns "" if the source doesn't actually produce anything the dest
-	accepts. The caller surfaces the "No compatible product!" notification."""
-	if network_view == null:
-		return ""
-	var src_io: Dictionary = network_view.get_node_io(source_id)
-	var dst_io: Dictionary = network_view.get_node_io(dest_id)
-	for output in src_io.outputs:
-		if output in dst_io.inputs:
-			return String(output)
-	return ""
