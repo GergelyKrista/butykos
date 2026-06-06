@@ -22,7 +22,9 @@ func _ready() -> void:
 
 	# Set panel style
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.15, 0.98)
+	# Solid background so the network view reads as a self-contained editor
+	# rather than a glass panel over the world map.
+	style.bg_color = Color(0.10, 0.11, 0.14, 1.0)
 	style.border_color = Color(0.4, 0.4, 0.45)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(6)
