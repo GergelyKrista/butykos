@@ -39,11 +39,17 @@ func _input(event: InputEvent) -> void:
 			if not _is_mouse_over_ui():
 				zoom_out()
 
-		# Middle mouse button panning
+		# Middle mouse button panning (skip if mouse is over UI — otherwise
+		# starting a pan inside the Logistics Network panel would also pan
+		# the world map behind it).
 		elif event.button_index == MOUSE_BUTTON_MIDDLE:
 			if event.pressed:
-				_start_pan()
+				if not _is_mouse_over_ui():
+					_start_pan()
 			else:
+				# Always finish a pan we started, even if the mouse moved
+				# over a UI panel during the drag — otherwise the world
+				# map stays in pan mode forever.
 				_end_pan()
 
 	# Mouse motion for panning
