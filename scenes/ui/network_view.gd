@@ -90,6 +90,18 @@ var world_bounds: Rect2 = Rect2()
 
 
 # ========================================
+# INITIALIZATION
+# ========================================
+
+func _ready() -> void:
+	# Clip drawing to the control's rect so a dragged or zoomed node can't
+	# render outside the panel — nodes "escaping" the window would otherwise
+	# be visually loose AND uninteractable (clicks land on whatever is
+	# behind them, not the node).
+	clip_contents = true
+
+
+# ========================================
 # COORDINATE TRANSFORMS
 # ========================================
 
