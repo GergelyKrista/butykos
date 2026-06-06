@@ -74,6 +74,34 @@ var dispatch_check_interval: float = 1.0  # How often to check for dispatch
 var max_vehicles_per_connection: int = 3  # Max trucks per connection (realistic limit)
 var _dispatch_timer: float = 0.0
 
+# ========================================
+# NETWORK PANEL VIEW STATE (per-corp)
+# ========================================
+#
+# State that the Logistics Network panel persists across scene reloads
+# (factory interior trips) and across corp switches. Each corp keeps its
+# own layout — switching to another corp swaps in that corp's state, so
+# arrangements don't leak between players.
+#
+# Shape: { corp_id: { custom_positions, canvas_zoom, canvas_offset } }
+# Lives on this autoload manager so it survives the world_map scene
+# being re-instantiated when returning from a brewery interior.
+var network_view_state: Dictionary = {}
+
+
+func get_network_view_state_for_corp(corp_id: String) -> Dictionary:
+	"""Return the per-corp view state for the Logistics Network panel.
+	Creates a fresh default entry if no state exists for this corp yet.
+	The returned dict is held by reference — mutating it (e.g. inserting
+	into `custom_positions`) writes through to the persistent store."""
+	if not network_view_state.has(corp_id):
+		network_view_state[corp_id] = {
+			"custom_positions": {},
+			"canvas_zoom": 1.0,
+			"canvas_offset": Vector2.ZERO,
+		}
+	return network_view_state[corp_id]
+
 # Throughput tracking (per cycle)
 var throughput_cycle_time: float = 60.0  # Seconds between throughput resets
 var _throughput_timer: float = 0.0
