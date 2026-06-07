@@ -70,6 +70,9 @@ var farmhouse_ui: Control = null
 # Logistics Network Panel
 var logistics_panel: Control = null
 
+# Trading Screen — Business corp's slice-1 sales surface (per 2026-06-07 §8).
+var trading_screen: Control = null
+
 # Mouse/input state
 var mouse_grid_pos: Vector2i = Vector2i.ZERO
 var hovered_facility_id: String = ""
@@ -132,6 +135,12 @@ func _ready() -> void:
 	# Initialize logistics network panel
 	_setup_logistics_panel()
 
+	# Initialize Trading Screen (Business corp's sales surface, slice-1).
+	_setup_trading_screen()
+
+	# Trading Screen button is on the UI strip; route its click to the toggle.
+	ui.trading_screen_button_pressed.connect(_on_trading_screen_button_pressed)
+
 	# Container for farmhouse working-area overlays. Sits behind facility
 	# sprites but above grid lines so the player can see the tinted area.
 	farmhouse_overlays_container = Node2D.new()
@@ -149,6 +158,11 @@ func _ready() -> void:
 	crop_selector_popup.add_item("(No crop — leave field idle)", 2)
 	crop_selector_popup.id_pressed.connect(_on_crop_selector_item_picked)
 	add_child(crop_selector_popup)
+
+	# Slice-1 Business corp: spawn outside connections at map edges on a fresh
+	# game so the Trading Screen has destinations to list. Idempotent — no-op
+	# on subsequent loads since saved connections persist in WorldManager.
+	WorldManager.spawn_outside_connections_if_needed()
 
 	# Load existing facilities (important for returning from factory interior)
 	_load_existing_facilities()
@@ -1709,6 +1723,7 @@ func _on_farmhouse_ui_closed() -> void:
 # ========================================
 
 const LogisticsNetworkPanelScene = preload("res://scenes/ui/logistics_network_panel.tscn")
+const TradingScreenScript = preload("res://scenes/ui/trading_screen.gd")
 
 func _setup_logistics_panel() -> void:
 	"""Initialize the logistics network panel"""
@@ -1718,6 +1733,39 @@ func _setup_logistics_panel() -> void:
 
 	# Connect close signal
 	logistics_panel.close_requested.connect(_on_logistics_panel_closed)
+
+
+func _setup_trading_screen() -> void:
+	"""Initialize the Trading Screen — Business corp slice-1 sales UI. Code-
+	only PanelContainer (no .tscn); script extends PanelContainer."""
+	trading_screen = TradingScreenScript.new()
+	trading_screen.visible = false
+	ui.add_child(trading_screen)
+
+
+func _on_trading_screen_button_pressed() -> void:
+	"""Toggle the Trading Screen. Cancels any active mode first so the player
+	doesn't have a half-placed facility floating behind the panel."""
+	if trading_screen.visible:
+		trading_screen.close()
+		return
+	if placement_mode:
+		_cancel_placement()
+	if route_mode:
+		_cancel_route_mode()
+	if demolish_mode:
+		_cancel_demolish_mode()
+	if road_mode:
+		_cancel_road_mode()
+	if field_mode:
+		_cancel_field_mode()
+	if farmhouse_ui and farmhouse_ui.visible:
+		farmhouse_ui.hide_ui()
+	if logistics_panel.visible:
+		logistics_panel.hide_panel()
+	if research_panel.visible:
+		research_panel.visible = false
+	trading_screen.open()
 
 
 func _toggle_logistics_panel() -> void:

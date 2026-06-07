@@ -244,6 +244,62 @@ func get_all_facilities() -> Array[Dictionary]:
 
 
 # ========================================
+# OUTSIDE CONNECTIONS — WORLD GEN
+# ========================================
+
+# Deterministic perimeter slots for outside connections. Mid-edges of all four
+# sides plus one extra on the north — five total. Picked away from corners so
+# the icons read clearly and road-pathing has room. Order is stable so saves
+# stay coherent across versions.
+const _OUTSIDE_CONNECTION_SPAWN_POSITIONS: Array[Vector2i] = [
+	Vector2i(25, 0),    # north mid
+	Vector2i(49, 25),   # east mid
+	Vector2i(25, 49),   # south mid
+	Vector2i(0, 25),    # west mid
+	Vector2i(37, 0),    # north-east (extra)
+]
+
+
+func spawn_outside_connections_if_needed() -> int:
+	"""Slice-1 Business corp: spawn outside connections at map perimeter on a
+	fresh game. Idempotent — if any outside_connection facility already
+	exists (loaded from save), returns 0 without spawning. Returns the
+	number of newly spawned connections."""
+	if not get_facilities_by_type("outside_connection").is_empty():
+		return 0
+
+	# Per-product price modifiers initialized to small random offsets so the
+	# matrix in the Trading Screen reads as visibly different per destination
+	# from tick zero. MarketManager walks these on its 10s tick.
+	var spawned: int = 0
+	for pos in _OUTSIDE_CONNECTION_SPAWN_POSITIONS:
+		var modifiers: Dictionary = {}
+		for product in MarketManager.base_prices.keys():
+			modifiers[product] = randf_range(0.85, 1.15)
+		var facility_id: String = place_facility(
+			"outside_connection",
+			pos,
+			{
+				"size": Vector2i(1, 1),
+				"price_modifiers": modifiers,
+				"constructed": true,             # No build time; ready immediately.
+				"production_active": false,      # No production cycle.
+			},
+			GameManager.CORP_SHARED,
+		)
+		if not facility_id.is_empty():
+			spawned += 1
+	if spawned > 0:
+		print("World gen: spawned %d outside connections" % spawned)
+	return spawned
+
+
+func get_outside_connections() -> Array[Dictionary]:
+	"""All outside_connection facilities currently on the map."""
+	return get_facilities_by_type("outside_connection")
+
+
+# ========================================
 # ROAD MANAGEMENT
 # ========================================
 

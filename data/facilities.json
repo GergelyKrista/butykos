@@ -369,6 +369,28 @@
 			"icon": ""
 		}
 	},
+	"outside_connection": {
+		"id": "outside_connection",
+		"name": "Outside Connection",
+		"description": "Trade gateway to the world beyond the map. Spawns at world generation on map edges; cannot be built or demolished. Reachable destinations appear in the Business corp's Trading Screen with per-destination prices that drift over time.",
+		"category": "trade",
+		"corp_id": "shared",
+		"size": [
+			1,
+			1
+		],
+		"cost": 0,
+		"construction_time": 0.0,
+		"maintenance_cost": 0,
+		"unlock_requirements": {},
+		"production": {},
+		"is_outside_connection": true,
+		"hidden_from_build_menu": true,
+		"visual": {
+			"color": "#ff6ec7",
+			"icon": ""
+		}
+	},
 	"industrial_mill": {
 		"id": "industrial_mill",
 		"name": "Industrial Mill",

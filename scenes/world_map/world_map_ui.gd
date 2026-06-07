@@ -35,6 +35,7 @@ signal create_route_button_pressed()
 signal demolish_button_pressed()
 signal road_button_pressed(road_id: String)
 signal logistics_network_button_pressed()
+signal trading_screen_button_pressed()
 
 # ========================================
 # INITIALIZATION
@@ -485,6 +486,29 @@ func _add_tool_buttons() -> void:
 	demolish_button.pressed.connect(_on_demolish_button_clicked)
 	build_menu.add_child(demolish_button)
 
+	# Trading Screen — Business corp's slice-1 sales surface. Gated to
+	# Business (and the dev SINGLE fallback so the button is reachable in
+	# the corp-switcher dev flow without flipping to business first).
+	var is_business_or_dev: bool = active == GameManager.CORP_BUSINESS or active == GameManager.CORP_SINGLE
+	if is_business_or_dev:
+		var trading_button = Button.new()
+		trading_button.text = "Trading\nScreen"
+		trading_button.custom_minimum_size = Vector2(100, 60)
+		trading_button.pressed.connect(_on_trading_screen_button_clicked)
+		var trading_style = StyleBoxFlat.new()
+		trading_style.bg_color = Color(0.4, 0.2, 0.35)
+		trading_style.border_width_bottom = 4
+		trading_style.border_color = Color("#ff6ec7")
+		trading_style.corner_radius_top_left = 4
+		trading_style.corner_radius_top_right = 4
+		trading_style.corner_radius_bottom_left = 4
+		trading_style.corner_radius_bottom_right = 4
+		trading_button.add_theme_stylebox_override("normal", trading_style)
+		var trading_hover_style = trading_style.duplicate()
+		trading_hover_style.bg_color = Color(0.5, 0.25, 0.45)
+		trading_button.add_theme_stylebox_override("hover", trading_hover_style)
+		build_menu.add_child(trading_button)
+
 	# Add road buttons filtered by corp ownership. Skip the "Roads:" header
 	# entirely if no roads are visible to the active corp.
 	var visible_roads: Array = []
@@ -577,6 +601,12 @@ func _on_logistics_network_button_clicked() -> void:
 	"""Handle logistics network button click"""
 	print("Logistics Network button clicked")
 	logistics_network_button_pressed.emit()
+
+
+func _on_trading_screen_button_clicked() -> void:
+	"""Handle Trading Screen button click — Business corp's slice-1 sales surface."""
+	print("Trading Screen button clicked")
+	trading_screen_button_pressed.emit()
 
 
 func _create_road_button(road_id: String, road_def: Dictionary) -> void:

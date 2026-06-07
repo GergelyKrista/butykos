@@ -156,6 +156,53 @@ func get_price(product: String) -> int:
 	return base_prices.get(product, 100)
 
 
+# Per-destination price drift bounds. Each outside connection's modifier
+# random-walks inside this range on every MarketManager tick, independent of
+# the global market_trends / supply_pressure. Slice-1 Business corp uses this
+# to make the Trading Screen matrix read as visibly different per destination.
+const OUTSIDE_CONNECTION_MIN_MODIFIER: float = 0.7
+const OUTSIDE_CONNECTION_MAX_MODIFIER: float = 1.3
+const OUTSIDE_CONNECTION_MAX_STEP: float = 0.03
+
+
+func get_price_at(product: String, destination_facility_id: String) -> int:
+	"""Get the price a specific destination quotes for a product. Outside
+	connections multiply the base price by their per-product modifier; any
+	other facility falls back to the global current_prices."""
+	var facility: Dictionary = WorldManager.get_facility(destination_facility_id)
+	if facility.is_empty():
+		return get_price(product)
+	if bool(facility.get("is_outside_connection", false)) \
+			or facility.get("type", "") == "outside_connection":
+		var modifiers: Dictionary = facility.get("price_modifiers", {})
+		var modifier: float = float(modifiers.get(product, 1.0))
+		var base: int = base_prices.get(product, 100)
+		return maxi(1, int(round(float(base) * modifier)))
+	return get_price(product)
+
+
+func _drift_outside_connection_prices() -> void:
+	"""Random-walk each outside connection's per-product price modifiers.
+	Independent of global trends — destinations diverge from each other on
+	their own clock. Called from _update_prices on the 10s tick."""
+	for facility in WorldManager.get_facilities_by_type("outside_connection"):
+		var modifiers: Dictionary = facility.get("price_modifiers", {})
+		if modifiers.is_empty():
+			# Backfill (e.g. legacy save where field wasn't populated).
+			for product in base_prices.keys():
+				modifiers[product] = randf_range(0.85, 1.15)
+			facility["price_modifiers"] = modifiers
+			continue
+		for product in modifiers.keys():
+			var step: float = randf_range(-OUTSIDE_CONNECTION_MAX_STEP, OUTSIDE_CONNECTION_MAX_STEP)
+			var new_value: float = clampf(
+				float(modifiers[product]) + step,
+				OUTSIDE_CONNECTION_MIN_MODIFIER,
+				OUTSIDE_CONNECTION_MAX_MODIFIER,
+			)
+			modifiers[product] = new_value
+
+
 func get_base_price(product: String) -> int:
 	"""Get base (non-fluctuating) price for a product"""
 	return base_prices.get(product, 100)
@@ -214,6 +261,10 @@ func _update_prices() -> void:
 		# Possibly change trend direction
 		if randf() < TREND_CHANGE_CHANCE:
 			_change_trend(product)
+
+	# Slice-1 Business corp: also walk per-destination modifiers so each
+	# outside connection drifts independently of the global market.
+	_drift_outside_connection_prices()
 
 	prices_updated.emit()
 
