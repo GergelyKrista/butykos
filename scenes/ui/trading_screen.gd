@@ -35,7 +35,9 @@ var _qty_inputs: Dictionary = {}
 
 func _ready() -> void:
 	visible = false
-	custom_minimum_size = Vector2(820, 360)
+	# 1.5× scaled down from base 1920×1080 — same target as the Logistics
+	# Network panel so in-game windows feel consistent. UX polish later.
+	custom_minimum_size = Vector2(1280, 720)
 	# Center on screen with KEEP_SIZE so anchors+offsets resolve to the
 	# panel's natural size centered in the parent UI rect.
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_KEEP_SIZE)
