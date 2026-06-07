@@ -476,6 +476,14 @@ func get_node_io(facility_id: String) -> Dictionary:
 	var out: String = String(production.get("output", ""))
 	if not out.is_empty():
 		outputs.append(out)
+	# `accepted_inputs` lets a non-producing facility (Storage Warehouse,
+	# eventually Trading Depot) advertise input sockets for arbitrary
+	# products. De-duped against any production.input already added.
+	var accepted: Array = def.get("accepted_inputs", [])
+	for product_value in accepted:
+		var product: String = String(product_value)
+		if not product.is_empty() and product not in inputs:
+			inputs.append(product)
 	return {"inputs": inputs, "outputs": outputs}
 
 
@@ -613,9 +621,18 @@ func update_facility_positions() -> void:
 
 	facility_nodes.clear()
 
+	# Outside connections live on Business corp's Trading Screen (per the
+	# 2026-06-07 doc) — they're not part of the Logistics Network, even
+	# though they sit in WorldManager.facilities like any other entity.
+	# Fields are also excluded because they participate via their parent
+	# farmhouse, not directly.
 	var facilities: Array = WorldManager.facilities.values().filter(func(f):
 		var facility_def: Dictionary = DataManager.get_facility_data(f.type)
-		return not facility_def.get("is_field", false)
+		if facility_def.get("is_field", false):
+			return false
+		if facility_def.get("is_outside_connection", false):
+			return false
+		return true
 	)
 
 	if facilities.is_empty():

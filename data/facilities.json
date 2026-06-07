@@ -213,7 +213,7 @@
 	"storage_warehouse": {
 		"id": "storage_warehouse",
 		"name": "Storage Warehouse",
-		"description": "Stores large quantities of products. Buffers production chains.",
+		"description": "Stores large quantities of products. Buffers production chains and feeds Business corp's Trading Screen sales.",
 		"category": "storage",
 		"corp_id": "logistics",
 		"size": [
@@ -227,6 +227,9 @@
 			"money": 1800
 		},
 		"production": {},
+		"accepted_inputs": [
+			"lager"
+		],
 		"storage_capacity": 500,
 		"visual": {
 			"color": "#696969",
