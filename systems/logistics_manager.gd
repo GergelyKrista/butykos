@@ -66,6 +66,15 @@ var _next_vehicle_id: int = 1
 
 var vehicle_speed: float = 20.0  # pixels per second (slower for visible travel)
 var vehicle_capacity: int = 50   # units per truck (increased from 10)
+# Auto-dispatch threshold. Original behavior required a full truckload (50
+# units) before dispatching, which works for raw-material chains where the
+# source produces 8-20 units per cycle. End-of-chain finished products
+# (lager via the Bottling Line) produce ~4 per 10s, so the 50 threshold
+# meant a 2-minute wait per shipment — long enough that the player thinks
+# the route is broken. Dispatch as soon as ONE io-node tick's worth (10
+# units) is queued. Trucks still carry up to vehicle_capacity per trip;
+# they just leave sooner with smaller loads when stock is thin.
+const MIN_DISPATCH_QUANTITY: int = 10
 var instant_delivery: bool = false  # For testing: instant delivery
 
 # Auto-dispatch settings
@@ -169,9 +178,12 @@ func _check_auto_dispatch(connection_id: String, connection: Dictionary) -> void
 	var capacity_mult = _get_vehicle_capacity_multiplier()
 	var actual_capacity = int(vehicle_capacity * capacity_mult)
 
-	# Check if source has enough product for a full load
+	# Dispatch when at least one io-node tick of stock is queued — partial
+	# loads are fine. Without this, end-of-chain products (e.g. lager from
+	# the Bottling Line) take minutes to accumulate a full truckload and
+	# the player can't tell the route is alive.
 	var available = ProductionManager.get_inventory_item(source_id, product)
-	if available < actual_capacity:
+	if available < MIN_DISPATCH_QUANTITY:
 		return
 
 	# Check if any vehicle is currently loading at source
