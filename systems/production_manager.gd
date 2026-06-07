@@ -1049,12 +1049,17 @@ func _process_storage_buffer(facility_id: String, storage: Dictionary) -> void:
 # ========================================
 
 func _should_auto_sell(product: String) -> bool:
-	"""Check if a product should be auto-sold (is it a final product?)"""
-	# Final products that can be sold directly
+	"""Check if a product should be auto-sold (is it a final product?).
+
+	Slice-1 Business corp: LAGER IS NOT IN THIS LIST. Lager has to flow
+	through a Storage Warehouse and be sold via the Trading Screen so the
+	Business player's sales decisions actually matter. The other finished
+	products keep auto-selling for now — they'll join the Trading Screen
+	pipeline as slice-2+ products come online."""
+	# Final products that can be sold directly (pre-Business-corp bootstrap).
 	var final_products = [
 		"ale",
 		"packaged_ale",  # Premium packaged ale
-		"lager",
 		"wheat_beer",
 		"whiskey",
 		"vodka",

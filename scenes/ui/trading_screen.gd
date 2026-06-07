@@ -41,6 +41,20 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_KEEP_SIZE)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+	# Opaque panel — dev readability per 2026-06-XX playtest. Polish later.
+	var bg: StyleBoxFlat = StyleBoxFlat.new()
+	bg.bg_color = Color("#161b22")
+	bg.border_color = Color("#ff6ec7")
+	bg.border_width_left = 2
+	bg.border_width_right = 2
+	bg.border_width_top = 2
+	bg.border_width_bottom = 2
+	bg.corner_radius_top_left = 6
+	bg.corner_radius_top_right = 6
+	bg.corner_radius_bottom_left = 6
+	bg.corner_radius_bottom_right = 6
+	add_theme_stylebox_override("panel", bg)
+
 	_build_ui()
 
 	# Live updates: prices tick every 10s, money + stock change when sales /
