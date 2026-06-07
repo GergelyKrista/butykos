@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drinkustry — Storage, Selling, and the Business Corp (2026-06-07)</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1f2630;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --text-dim: #9aa6b2;
+    --accent: #4cc2ff;
+    --accent-2: #ff6ec7;
+    --accent-3: #7ee787;
+    --warn: #f0b429;
+    --agri: #7ee787;
+    --industrial: #f0883e;
+    --logistics: #4cc2ff;
+    --business: #ff6ec7;
+    --radius: 10px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.doc-header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 40px; }
+  .eyebrow { color: var(--business); font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 36px; line-height: 1.2; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  h3 { font-size: 18px; margin: 32px 0 12px; font-weight: 600; }
+  h4 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 20px 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { color: #fff; }
+  em { color: var(--text-dim); font-style: italic; }
+  code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px; }
+  .meta-value { font-size: 14px; font-weight: 600; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 40px; }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc a { color: var(--text); }
+  .toc a:hover { color: var(--accent); }
+
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 16px 20px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.success { border-left-color: var(--accent-3); }
+  .callout.scratch { border-left-color: var(--accent-2); }
+  .callout-title { font-weight: 600; margin-bottom: 6px; color: #fff; }
+
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 16px 0;
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+  th { background: var(--surface-2); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .corp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; border-top: 3px solid var(--accent); margin: 20px 0; }
+  .corp-card.agri { border-top-color: var(--agri); }
+  .corp-card.industrial { border-top-color: var(--industrial); }
+  .corp-card.logistics { border-top-color: var(--logistics); }
+  .corp-card.business { border-top-color: var(--business); }
+  .corp-card h3 { margin-top: 0; }
+  .corp-tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: var(--surface-2); color: var(--text-dim); margin-bottom: 8px; }
+  .corp-card.agri .corp-tag { color: var(--agri); }
+  .corp-card.industrial .corp-tag { color: var(--industrial); }
+  .corp-card.logistics .corp-tag { color: var(--logistics); }
+  .corp-card.business .corp-tag { color: var(--business); }
+
+  .pill { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); margin-left: 8px; vertical-align: middle; }
+  .pill.shipped { color: var(--accent-3); border: 1px solid var(--accent-3); }
+  .pill.needs-plan { color: var(--warn); border: 1px solid var(--warn); }
+  .pill.open { color: var(--accent-2); border: 1px solid var(--accent-2); }
+  .pill.slice1 { color: var(--business); border: 1px solid var(--business); }
+
+  .flow {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .flow .agri { color: var(--agri); }
+  .flow .industrial { color: var(--industrial); }
+  .flow .logistics { color: var(--logistics); }
+  .flow .business { color: var(--business); }
+  .flow .dim { color: var(--text-dim); }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+  }
+
+  footer.doc-footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="eyebrow">Drinkustry / Butykos · Design Brainstorm</div>
+    <h1>Storage, Selling, and the Foundations of Business Corp</h1>
+    <p style="color: var(--text-dim); margin-top: 8px;">
+      The Industrial chain ships lager end-to-end with clean backpressure. Now we close the slice-1 economic loop: where lager <em>goes</em>, who buys it, and at what price — and in doing so plant the first stakes for Business corp, which has been a placeholder until now. Source: Ambrus's 2026-06-07 brainstorm, capturing direction before any engineering plan.
+    </p>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">2026-06-07</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">Drinkustry / butykos</div></div>
+      <div class="meta-item"><div class="meta-label">Doc Type</div><div class="meta-value">Design brainstorm · rev. 2</div></div>
+      <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value">Direction settled, plan pending</div></div>
+      <div class="meta-item"><div class="meta-label">Authors</div><div class="meta-value">Ambrus &amp; Gergely</div></div>
+      <div class="meta-item"><div class="meta-label">Predecessors</div><div class="meta-value">2026-05-02 · 2026-06-05</div></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#why">Why this slice now</a></li>
+      <li><a href="#flow">The shape at a glance</a></li>
+      <li><a href="#world">The world layer: settlements + outside connections</a></li>
+      <li><a href="#selling">Selling points (Business buildings)</a></li>
+      <li><a href="#storage">Storage (Logistics owns the building)</a></li>
+      <li><a href="#trading">Trading mechanic + Trading Depot</a></li>
+      <li><a href="#business">What does the Business player <em>do</em>?</a></li>
+      <li><a href="#slice1">Slice-1 minimum — the bootstrap loop</a></li>
+      <li><a href="#existing">Where this hooks into existing systems</a></li>
+      <li><a href="#open">Open questions</a></li>
+      <li><a href="#order">Implementation order suggestion</a></li>
+    </ol>
+  </nav>
+
+  <section id="why">
+    <h2>1. Why this slice now</h2>
+    <p>
+      Two things converge here. <strong>One</strong>: the Industrial brewery chain is demonstrably shipping lager (see 2026-06-06 handover). The chain has revenue events but no <em>destination</em> — lager auto-sells at a flat market price through the Output Depot path. That's bootstrap, not a closed loop. The natural next move is making lager actually go somewhere a player decided it should go.
+    </p>
+    <p>
+      <strong>Two</strong>: Business corp has been a placeholder since the four-corp pivot. The 2026-05-02 per-corp doc named "market + espionage" as the candidate signature mechanic, and 2026-06-05 §9.3 explicitly left "what does Business <em>do</em>?" open. Storage and selling is the surface where Business gets its first concrete verb. Building this slice answers the open question and closes the lager loop in one move.
+    </p>
+    <div class="callout success">
+      <div class="callout-title">Reframe</div>
+      This isn't "add a sales destination." It's "establish Business corp's daily mechanic — selling, contracts, market awareness — via the lager loop the Industrial chain already produces." Storage is the connective tissue between production (Industrial) and sale (Business), owned by Logistics.
+    </div>
+  </section>
+
+  <section id="flow">
+    <h2>2. The shape at a glance</h2>
+    <p>Who builds what, who routes what, who decides what:</p>
+<div class="flow">
+<span class="industrial">[Industrial]</span> Brewery ships lager via Output Depot
+&nbsp;&nbsp;↓ <span class="logistics">logistics route (Logistics)</span>
+<span class="logistics">[Logistics]</span> Storage Warehouse holds lager (and intermediates)
+&nbsp;&nbsp;↓ <span class="logistics">logistics route along road network (Logistics)</span>
+<span class="business">[Business]</span> chooses destination via Trading Screen:
+&nbsp;&nbsp;• Settlement on map (sold through a Business selling point — Tavern / Bar / Liquor Store / Lodgings)
+&nbsp;&nbsp;• Outside connection at map edge (sold via Trading Depot)
+&nbsp;&nbsp;↓
+<span class="business">[Business]</span> Revenue flows back to the corp wallet. Price tracks supply &amp; demand.
+</div>
+    <p>
+      The crucial corp split: <strong>Logistics moves stuff</strong> (storage + routes), <strong>Business decides where it goes and at what price</strong> (selling points + trading screen + contracts). Industrial produces. Agri feeds. Same depth-bar principle as the brewery interior — each corp has a real surface, not a stat display.
+    </p>
+  </section>
+
+  <section id="world">
+    <h2>3. The world layer: settlements + outside connections</h2>
+
+    <h3>3.1 Settlements (OTTD-style)</h3>
+    <p>
+      Settlements <strong>spawn on the map</strong> at world gen, the way OpenTTD plants towns. Different types and sizes — small village vs. city, working-class district vs. luxury enclave (in the cyberpunk reskin). They're not built by players; they're the world the corps operate in.
+    </p>
+    <p>
+      Settlement attributes that matter for slice-1 sale:
+    </p>
+    <ul>
+      <li><strong>Type</strong> — flavors which selling points work. A working-class neighborhood loves a Bar; a luxury district wants a Liquor Store / wine bar. Cap: 4-6 types at v1.</li>
+      <li><strong>Size</strong> — caps demand volume and maybe selling-point capacity.</li>
+      <li><strong>Other factors</strong> — contract availability, narrative state, eventual demographic shifts. Loose for now.</li>
+    </ul>
+    <p>
+      Settlements have <em>latent demand</em>: an appetite for lager (and eventually other products) measured per-tick. That demand only converts to sale if a Business selling point exists inside the settlement AND a Logistics route delivers stock to it.
+    </p>
+
+    <h3>3.2 Outside connections (Cities Skylines-style)</h3>
+    <p>
+      <strong>4–5 outside connections</strong> appear on the map edges at world gen. They represent the rest of the world — neighboring regions, off-map cities, foreign markets. Logistics builds road into them (same road network as anything else); once a road exists between a Storage Warehouse / Trading Depot and an outside connection, Business can sell into that connection.
+    </p>
+    <p>
+      Outside connections differ from settlements in three ways:
+    </p>
+    <ul>
+      <li>No selling point needed — they're a bulk export route, not a retail surface.</li>
+      <li>Quoted prices are visible in the Trading Screen and fluctuate over time.</li>
+      <li>They scale: an outside connection can absorb large volumes; settlements have local demand caps.</li>
+    </ul>
+
+    <div class="callout warn">
+      <div class="callout-title">Open: who owns outside connections?</div>
+      They're world entities, not owned by any corp. Logistics builds road into them. Business sells through them. No special permission needed beyond road-reachability and stock-availability checks. Worth confirming this is the right model before code.
+    </div>
+  </section>
+
+  <section id="selling">
+    <h2>4. Selling points (Business buildings)</h2>
+
+    <div class="corp-card business">
+      <div class="corp-tag">Corp 04 · Business</div>
+      <h3>Selling points — placed inside settlements</h3>
+      <p>
+        Business builds the retail surface inside settlements. The kinds we want:
+      </p>
+      <table>
+        <tr><th>Building</th><th>Fits which settlements</th><th>Notes (open)</th></tr>
+        <tr><td><strong>Tavern</strong></td><td>Working-class / mid-tier settlements</td><td>Sells beer by the glass. High volume, low margin. Could need foot traffic / road adjacency.</td></tr>
+        <tr><td><strong>Bar</strong></td><td>Mixed-tier / nightlife districts</td><td>Sells beer + spirits (when spirits ship). Medium volume, mid margin.</td></tr>
+        <tr><td><strong>Liquor Store</strong></td><td>Any settlement, but premium products do better in luxury tiers</td><td>Sells bottled product. Bulk, lower margin per unit but higher throughput per tick.</td></tr>
+        <tr><td><strong>Lodgings</strong></td><td>Tourism-oriented or transit-adjacent settlements</td><td>Hotels / inns. Sells beer + lodging packages? Or just a different demand profile. Loose.</td></tr>
+      </table>
+      <p>
+        Suitability is a function of <strong>settlement type × size × active contracts</strong>. Wrong-fit selling points still operate but at a penalty (lower throughput, lower margin). This is also where Business <em>placement decisions</em> become real — you're not just building wherever; you're matching product to demographic.
+      </p>
+    </div>
+
+    <p>
+      Selling points are <strong>not</strong> the same entity as the settlements themselves. The settlement is a world feature; the selling point is a Business-corp building placed inside it. Multiple Business players (eventually) can place selling points in the same settlement; competition emerges naturally.
+    </p>
+  </section>
+
+  <section id="storage">
+    <h2>5. Storage (Logistics owns the building)</h2>
+    <p>
+      Storage Warehouse is already a Logistics-corp facility (2026-06-05 §2). For slice-1 we promote it from passive placeholder to functional buffer:
+    </p>
+    <ul>
+      <li><strong>Holds lager</strong> as the slice-1 minimum.</li>
+      <li><strong>Accepts logistics routes</strong> from Brewery (lager in) and feeds routes to Business selling points / Trading Depots (lager out).</li>
+      <li><strong>Eventually holds intermediates</strong> too. Why intermediates? Because contracts and events can force the chain to stockpile or relocate them. <em>"Hops shortage next month — better store some now."</em> This is where the storage building stops being a buffer and becomes a strategic surface.</li>
+    </ul>
+    <p>
+      The Logistics player builds storage. Where to put it matters (close to producers = short routes, close to sellers = fast turn). This is Logistics's planning bite even without the full OpenTTD-grade route system being in scene yet.
+    </p>
+
+    <div class="callout">
+      <div class="callout-title">Gateway to the aging layer</div>
+      The 2026-05-07 aging-and-speculation doc proposed dwell time as a strategic surface — keep product in storage longer = quality up, cash flow delayed. Slice-1 doesn't need to model aging yet; the slot is reserved here. Storage building is the natural host for the aging mechanic when it lands.
+    </div>
+  </section>
+
+  <section id="trading">
+    <h2>6. Trading mechanic + Trading Depot</h2>
+
+    <h3>6.1 What the trading verb is</h3>
+    <p>
+      Trading = "I have stock in storage; the world has demand at variable prices; I match the two." It's distinct from <em>retail sale</em> (which happens inside a selling point at a settlement). Trading is the bulk-export surface: outside connections + maybe inter-settlement runs at scale.
+    </p>
+    <p>
+      Why trading matters narratively: contracts and events can force you to <em>rely on it</em>. A spike contract from outside connection #2 wants 200 lager in 10 days at premium price. An event makes a competing region cheap, depressing your usual outlet. Bandits hit your usual trade route, raising risk premium. These create the kind of moment-to-moment Business decision-making 2026-06-05 §9.3 was asking about.
+    </p>
+
+    <h3>6.2 Trading Depot building <span class="pill open">open: corp assignment</span></h3>
+    <p>
+      A dedicated <strong>Trading Depot</strong> building manages trade routes with outside connections and (eventually) other on-map settlements at scale. Probable corp: Business owns the policy (which routes, at what price), Logistics may own the building physically — similar to how the Storage Warehouse split could work, or it could be a Business-only building. Worth pinning down.
+    </p>
+
+    <h4>Vehicle pool as the core bottleneck</h4>
+    <p>
+      Trading Depots <strong>house a fixed number of trading vehicles</strong>. This is the central strategic constraint: there are more potentially profitable routes than there are vehicles to staff them. The Business player must allocate the available pool across routes, choosing which destinations get continuous service vs. which get nothing this cycle.
+    </p>
+    <p>
+      Tech / upgrade hooks naturally extend this:
+    </p>
+    <ul>
+      <li><strong>Garage extension</strong> — +N vehicle slots per upgrade.</li>
+      <li><strong>Larger Trading Depot tier</strong> — flat capacity bump.</li>
+      <li><strong>Faster / higher-capacity vehicles</strong> — same slot count, more throughput per vehicle.</li>
+    </ul>
+    <p>
+      This makes Trading Depot capacity research a meaningful spend for Business — equivalent in scope to Industrial's research on cycle time multipliers. (Tech-tree integration is Phase 11 work.)
+    </p>
+
+    <h4>Future hooks</h4>
+    <p>
+      Beyond the vehicle pool, the Trading Depot is the natural surface for:
+    </p>
+    <ul>
+      <li><strong>Security tier per trade line</strong> — pay more for armed convoys, less risk of bandit losses. Narrative event hook.</li>
+      <li><strong>Trade contracts</strong> — long-term agreements with outside connections at fixed prices; trades off flexibility for stability.</li>
+      <li><strong>Smuggling / black market</strong> — higher prices, risk of seizure, ties into the cyberpunk thematic.</li>
+      <li><strong>Inter-settlement caravans</strong> — late-game, moving stock between distant settlements when local markets diverge.</li>
+    </ul>
+
+    <h3>6.3 The Trading Screen</h3>
+    <p>
+      The Business player's main UI surface in slice-1. Lists every reachable destination (outside connection or selling point), how much they currently pay for lager, and how much can be delivered. Player picks a destination, allocates a quantity from storage, and the system dispatches.
+    </p>
+    <p>
+      What "reachable" means: a contiguous road path from the storage building to the destination, owned/usable by Logistics's road network. Same predicate as the existing logistics routing.
+    </p>
+  </section>
+
+  <section id="business">
+    <h2>7. What does the Business player <em>do</em>?</h2>
+    <p>
+      Answering 2026-06-05 §9.3 directly. The Business daily loop is <strong>read → decide → execute → react</strong>, spread across <strong>three primary UI surfaces</strong>. Each is a screen the Business player opens; together they ARE the Business mechanic.
+    </p>
+
+    <h3>7.1 Trading Screen — "Where do I sell, who do I send?"</h3>
+    <p>
+      Matrix view: <strong>rows = sellable resources</strong> (lager initially, more products as the production tech tree expands), <strong>columns = trade partners</strong> (outside connections + eventually selling points). Each cell shows the price that partner currently offers for that resource. Critically: <strong>only partners that buy a given resource appear in its row</strong> — so a partner that only takes finished products doesn't clutter the wort row. Empty cells, hidden cells, clean comparison.
+    </p>
+    <p>
+      Below the comparison matrix, the player <strong>assigns trading vehicles to routes</strong>. Vehicles come from the Trading Depot's pool (§6.2). The slot count is finite; the route count is unbounded. This is the bite — you can SEE that outside connection #4 pays better than #1, but if all your vehicles are committed elsewhere it doesn't matter.
+    </p>
+    <p>
+      Slice-1 minimum: lager as the only row, outside connections as the only columns, sell-button per cell. Vehicle assignment is a stretch goal; absent that, sale is a one-shot transfer paid at the quoted price.
+    </p>
+
+    <h3>7.2 Contracts Screen — "What am I obligated to do?"</h3>
+    <p>
+      Lists active contracts. Each contract is a target product + target destination + quantity + deadline + reward + penalty. Example:
+    </p>
+<pre><code>Contract #207 · Outside Connection 3 · 200 lager in 10 days
+  Reward:    $5,000
+  Penalty:   -$2,000 + reputation hit
+  Status:    ACCEPTED · 60 / 200 delivered · 6 days left</code></pre>
+    <p>
+      Long-term we want a <strong>procedural generator</strong> — small pool of contract templates parameterized by current world state (settlement demand, recent sales, active events). Hand-authored contracts come in as <strong>narrative event payloads</strong> (per 2026-04-30 narrative events doc + memory). The procedural baseline keeps the contract list alive; the hand-authored ones provide the memorable beats.
+    </p>
+    <p>
+      Accepting a contract should reweight the Trading Screen — your vehicle slots and route priorities suddenly want to be aligned with the contract. That's the verb: contracts pressure trading decisions.
+    </p>
+
+    <h3>7.3 Economic Screen — "How is the team's money flowing?" <span class="pill open">key mechanic</span></h3>
+    <p>
+      Per-corp breakdown: <strong>maintenance costs</strong> (buildings, vehicles, route operations), <strong>income</strong> (sales, contracts), <strong>balance</strong>. All four corps shown in one place — the dashboard view of the alliance.
+    </p>
+    <p>
+      The big mechanical bite, and the reason Business is a co-op role and not a solo trade role:
+    </p>
+    <div class="callout scratch">
+      <div class="callout-title">Income distribution sliders</div>
+      Total revenue (sales + contracts) is partitioned between the four corps via <strong>sliders the Business player sets</strong>. Each corp's slice funds its own maintenance and construction.
+      <br><br>
+      Implication: Business is the team treasurer. Underfunding Agri starves fields. Underfunding Logistics stalls routes. Underfunding Industrial halts the brewery chain. The Business player has to balance growth investment (give Industrial more so it expands) against operational keep-the-lights-on (Agri's maintenance) against their own contract-fulfillment needs.
+      <br><br>
+      In MP this is the load-bearing co-op interaction beat — the other three players experience Business's allocation directly, and a dialogue happens.
+    </div>
+    <p>
+      <strong>Tentative: bank / loan management lives here too.</strong> Business takes a loan against future revenue, the proceeds go into the distribution pool. Future revenue is taxed to repay. Open: who carries the debt — Business individually, or the alliance collectively? The latter is more co-op-coherent; the former makes Business's decisions more personally consequential.
+    </p>
+    <p>
+      Espionage (per 2026-05-02) layers on top of all three screens later — peek at competitor production rates, contracts, even their distribution sliders. Not slice-1.
+    </p>
+  </section>
+
+  <section id="slice1">
+    <h2>8. Slice-1 minimum — the bootstrap loop <span class="pill slice1">slice 1</span></h2>
+    <p>
+      What we actually build first. Smallest version that closes the lager loop and proves the Business surface:
+    </p>
+    <ol>
+      <li><strong>Outside connections at map edge.</strong> 4–5 spawned at world gen, each a placeable node on the map perimeter with an <code>outside_connection</code> facility type. No settlement entity needed yet for slice-1.</li>
+      <li><strong>Logistics builds road</strong> from a Storage Warehouse to an outside connection. Existing road tooling.</li>
+      <li><strong>Storage Warehouse accepts lager.</strong> Per 2026-06-05 §7.2 — flag it <code>accepted_inputs: ["lager"]</code> (open to more later). Logistics route delivers lager from Brewery to Warehouse.</li>
+      <li><strong>Trading Screen MVP — matrix shape, single row.</strong> Opened from a UI button when the active corp is Business. One row (lager) × N columns (road-reachable outside connections). Each cell shows the partner's quoted price + a "sell N" action.</li>
+      <li><strong>Sell action.</strong> Player picks a cell, picks a quantity, confirms. Lager debits from Storage Warehouse inventory, money credits to Business wallet at the quoted price. (Vehicle assignment + slot pool deferred to slice 1.5; the slice-1 MVP is one-shot transfer.)</li>
+      <li><strong>Price fluctuation.</strong> Each outside connection quotes a slightly different lager price; prices drift over time via MarketManager. This is the "watch the market" piece in microcosm — and it makes the matrix-comparison shape pay off immediately even with just one row.</li>
+    </ol>
+    <p>
+      Explicitly <strong>not</strong> in slice-1 minimum (each deferred to its own slice when the loop is verified):
+    </p>
+    <ul>
+      <li><strong>Vehicle pool / slot bottleneck</strong> (slice 1.5) — needs the Trading Depot building first.</li>
+      <li><strong>Trading Depot building</strong> (slice 1.5) — Storage Warehouse stands in for now.</li>
+      <li><strong>Contracts Screen</strong> (slice 2) — procedural generator + UI.</li>
+      <li><strong>Economic Screen + distribution sliders</strong> (slice 2) — the load-bearing co-op mechanic; deserves its own design pass before code, especially the default-distribution and refusal-of-funds questions.</li>
+      <li><strong>Settlement entities + selling points</strong> (slice 1.5 / 2) — Tavern, Bar, Liquor Store, Lodgings.</li>
+      <li>Bandits, security tiers, narrative events (Phase 11).</li>
+      <li>Loans (tentative, post slice-2).</li>
+      <li>Aging mechanics (separate doc, separate slice).</li>
+    </ul>
+    <div class="callout scratch">
+      <div class="callout-title">The bootstrap is the test</div>
+      Even this minimum proves the question: <em>does watching a price tick down at outside connection #3 feel like a real decision?</em> If yes, settlements + selling points + contracts make the surface richer. If not, Business needs a different core verb and we caught it cheap.
+    </div>
+  </section>
+
+  <section id="existing">
+    <h2>9. Where this hooks into existing systems</h2>
+    <table>
+      <tr><th>System</th><th>Status</th><th>Reuse / extension</th></tr>
+      <tr>
+        <td><code>MarketManager</code></td>
+        <td>Exists, dynamic pricing implemented</td>
+        <td>Already does per-product price ticks. Extension: per-destination price spread (each outside connection has a small price offset / random walk on top of the base market price). Worth verifying current wiring before designing the extension — may already be partially there.</td>
+      </tr>
+      <tr>
+        <td>Road network + path finding</td>
+        <td>Exists (Phase 8 step 3)</td>
+        <td>Outside connections become a new world entity type that participates in the road graph. <code>find_road_path</code> already handles the reachability predicate.</td>
+      </tr>
+      <tr>
+        <td>Logistics routes</td>
+        <td>Exists (Brewery → Storage works in tests)</td>
+        <td>Storage Warehouse becomes a routable sink for finished products. Likely already mostly works — needs <code>accepted_inputs</code> field added.</td>
+      </tr>
+      <tr>
+        <td>Corp ownership (<code>corp_id</code>)</td>
+        <td>Shipped (Phase 8 step 1)</td>
+        <td>Outside connections are unowned world entities. Trading Screen is gated to <code>active_corp_id == "business"</code>. Selling points (later) are Business-owned.</td>
+      </tr>
+      <tr>
+        <td>Logistics Network panel</td>
+        <td>Shipped (slice 2.x)</td>
+        <td>Outside connections appear as nodes in the panel like any other facility. Connections from Storage Warehouse to outside connections look identical to existing routes visually — re-uses the node-graph machinery the artist already loves.</td>
+      </tr>
+      <tr>
+        <td><code>EconomyManager</code> / corp wallets</td>
+        <td>Shipped (Phase 8 step 2, <code>shared.money</code>)</td>
+        <td>Sale revenue credits Business wallet specifically. Today wallets are shared; once they split per-corp (Phase 8 v4 work), Business revenue is properly isolated.</td>
+      </tr>
+    </table>
+  </section>
+
+  <section id="open">
+    <h2>10. Open questions</h2>
+
+    <h4>The world layer</h4>
+    <ul>
+      <li><strong>Outside connection identity.</strong> Are they just "Edge North", "Edge East", or do they have names / character (rival megacorp, foreign syndicate)? Affects how much narrative payload they can carry later.</li>
+      <li><strong>Settlement growth / decline.</strong> Do settlements grow based on Business activity (Tavern raises district vibrancy)? Out of scope for slice-1 but worth flagging.</li>
+      <li><strong>Demand decay.</strong> Does an under-served settlement's demand build up (riot, opportunity later) or decay (lost interest, harder to recover)? Different game feel either way.</li>
+    </ul>
+
+    <h4>Selling points + trading depot</h4>
+    <ul>
+      <li><strong>Trading Depot corp.</strong> Business-only building, or Logistics-built / Business-policy? Logistics ownership gives a "we have to coordinate" beat that fits the co-op vision.</li>
+      <li><strong>Selling point capacity.</strong> Does a Tavern have a max stock, or does it draw on warehouse stock continuously through a route? Latter is simpler; former gives Business a "restock" micro-decision.</li>
+      <li><strong>Selling point "fit" formula.</strong> Soft score across settlement type × size, or hard restrictions? Soft score lets players make off-meta plays.</li>
+      <li><strong>Storage as the only buffer.</strong> Does the Trading Depot also hold stock, or does it pull from Storage Warehouse on dispatch? Latter keeps storage as the single source of truth.</li>
+      <li><strong>Intermediate trading.</strong> Can Business sell wort or boiled_wort to outside connections, or only finished products? Selling intermediates undercuts the production loop but creates "I'd rather be a B2B supplier" strategies. Possibly a tech-tree unlock.</li>
+    </ul>
+
+    <h4>Vehicle pool (Trading Screen)</h4>
+    <ul>
+      <li><strong>Vehicle type.</strong> Same trucks as Logistics's existing fleet, or a separate "trading vehicle" type with different stats? Separate gives Business its own visual identity and tunable bottleneck; same simplifies the model.</li>
+      <li><strong>Initial pool size.</strong> 1 vehicle per Trading Depot, or 3? Small = bottleneck bites immediately; larger = upgrades feel less impactful.</li>
+      <li><strong>Vehicle dispatch model.</strong> One vehicle = one route (continuous service), or one vehicle = one trip (Business dispatches per cargo)? Continuous service is cleaner UX but locks the slot for the route's full lifetime.</li>
+      <li><strong>Empty return trips.</strong> Vehicles return empty after delivery? Carry backhaul if available?</li>
+    </ul>
+
+    <h4>Contracts</h4>
+    <ul>
+      <li><strong>Contract source.</strong> Procedural per settlement + hand-authored for narrative beats — confirmed in §7.2. Open: how many active simultaneously? Hard cap, or scaling with reputation?</li>
+      <li><strong>Decline penalty.</strong> Can Business refuse a contract that's offered? Penalty for declining? Reputation hit, or no consequence?</li>
+      <li><strong>Partial completion.</strong> Deliver 150 of 200 lager by deadline — partial reward + partial penalty, or all-or-nothing?</li>
+    </ul>
+
+    <h4>Economic Screen + distribution sliders</h4>
+    <ul>
+      <li><strong>Default distribution.</strong> Equal 25% to each corp at game start? Weighted toward Industrial since it has the most maintenance? Configurable in scenario setup?</li>
+      <li><strong>Zero-share corp.</strong> What happens if Business sets a corp's share to 0%? Hard stop on all its spending, graceful degradation (existing buildings keep running, no new ones), or it gets a base subsistence floor regardless?</li>
+      <li><strong>Refusal of funds.</strong> Can a non-Business corp REJECT its allocation? "I don't want subsidy this cycle, spend it on contracts." Adds player agency for the other corps but complicates the model.</li>
+      <li><strong>Distribution cadence.</strong> Sliders apply continuously to incoming revenue, or batched per tick / per day / per turn? Continuous is simplest; batched gives Business meaningful per-period decisions.</li>
+      <li><strong>Loan debt holder.</strong> Business takes a loan — does the alliance carry the debt (taxed across all corps' future revenue), or does Business carry it personally (taxed only from Business's slice)?</li>
+      <li><strong>Override permission.</strong> Can a non-Business corp override its share if it has enough independent income (e.g., Industrial sells via Market Outlet — wait, we removed that. So nothing today)? Worth thinking about whether other corps should have ANY independent revenue source.</li>
+    </ul>
+  </section>
+
+  <section id="order">
+    <h2>11. Implementation order suggestion</h2>
+    <p>
+      Smallest tractable piece first; each step delivers a visible bite. This is not an architect plan — it's the suggested sequence for the brainstorm to harden into.
+    </p>
+    <ol>
+      <li><strong>Outside connection entity</strong> — new facility type, 4–5 spawned at world gen at map perimeter. Renders as a distinct node. No interaction yet.</li>
+      <li><strong>Storage Warehouse as lager sink</strong> — accept lager via logistics route from Brewery. Inventory display.</li>
+      <li><strong>Trading Screen MVP (matrix shape)</strong> — single row (lager) × N columns (road-reachable outside connections). Each cell = price + sell action. Sell action transfers stock → Business wallet credit.</li>
+      <li><strong>Per-destination price drift</strong> — small random walk on top of the base MarketManager price so each outside connection feels distinct.</li>
+      <li><strong>Trading Depot building</strong> — dedicated trade-route hub. Houses a vehicle pool with a hard slot count (start: 2-3 slots).</li>
+      <li><strong>Vehicle assignment in Trading Screen</strong> — below the matrix, the assign-vehicles UI. Slots = visible bottleneck. Assigning a vehicle to a route converts that route from one-shot sell to continuous service.</li>
+      <li><strong>Settlement entity</strong> — OTTD-style spawn at world gen. Type + size attributes. No selling points yet; just visible on map.</li>
+      <li><strong>Tavern / Bar / Liquor Store / Lodgings buildings</strong> — Business-corp placeable inside settlements. Selling points become additional columns in the Trading Screen matrix.</li>
+      <li><strong>Selling point fit scoring</strong> — match score per selling-point × settlement-type pair, modifies throughput / margin.</li>
+      <li><strong>Contracts Screen + procedural generator</strong> — small pool of templates parameterized by world state. UI to accept / track. Maturity, penalty, reward. Acceptance reweights Trading Screen priorities.</li>
+      <li><strong>Economic Screen v1</strong> — per-corp maintenance, income, balance dashboard. Read-only at first. Lets the team SEE the financial picture before the sliders bite.</li>
+      <li><strong>Income distribution sliders</strong> — the load-bearing co-op mechanic. Default distribution + zero-share behavior need to be settled first (see §10).</li>
+      <li><strong>Tech tree: Trading Depot capacity upgrades</strong> — garage extension, larger depot tiers, vehicle quality. Phase 11.</li>
+      <li><strong>Hand-authored contracts as narrative event payloads</strong> — Phase 11, ties into the narrative events engine.</li>
+      <li><strong>Bank / loan management</strong> — Business takes loans against future revenue. Tentative; needs the debt-holder question resolved.</li>
+      <li><strong>Security tier + bandits + smuggling</strong> — depth pass on trading. Phase 11.</li>
+    </ol>
+    <p>
+      Roughly: steps <strong>1–4 are slice-1 MVP</strong> (one-shot sale loop closes). Steps <strong>5–6 are slice-1.5</strong> (vehicle bottleneck makes Trading Screen a real decision space). Steps <strong>7–9 are slice-2</strong> (settlements + selling points + contracts). Steps <strong>10–12 are slice-2.5</strong> (Economic Screen + the distribution sliders that make Business a co-op role). Steps <strong>13+</strong> are Phase 11+ depth additions.
+    </p>
+  </section>
+
+  <footer class="doc-footer">
+    Drinkustry / Butykos · Design brainstorm · 2026-06-07 · captures Ambrus's storage-sales-business intent
+  </footer>
+
+</div>
+</body>
+</html>
