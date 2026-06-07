@@ -32,3 +32,10 @@ LogisticsManager="*res://systems/logistics_manager.gd"
 FactoryManager="*res://systems/factory_manager.gd"
 ResearchManager="*res://systems/research_manager.gd"
 SaveManager="*res://core/save_manager.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
