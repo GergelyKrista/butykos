@@ -3,3 +3,6 @@
 
 # Claude Code troubleshooting screenshots
 claudesnippets/
+
+# JetBrains IDE config
+.idea/
